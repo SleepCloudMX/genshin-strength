@@ -34,23 +34,27 @@
 pip install -e .          # 装 numpy / scipy / matplotlib，并让脚本能 import genshin_strength
 ```
 
-三个入口，产物都写到 `output/`：
+两个脚本，产物都写到 `output/`：
 
 ```bash
 python tasks/mizuki/scarlet_vs_em22.py    # 血红 vs 精通 2+2，两张比值热力图
 python tasks/mizuki/em_vs_crit.py         # 精通 vs 双爆最优分配，两张曲线图
-python tasks/mizuki/em_vs_crit_web.py     # 生成可交互网页（见下）
 ```
 
-最后一个生成 `output/Mizuki/em_vs_crit/interactive.html`，**双击用浏览器打开**（Plotly 走 CDN，需要联网）。悬浮曲线任意位置可读出该点的双爆拆分、精通、伤害倍数；基准精通/暴击/暴伤、星扩散增伤、曲线取哪几个 `n`、平台阈值都可以改，三张图即时重算。
+另有一个**可交互页面** [`tasks/mizuki/em_vs_crit.html`](tasks/mizuki/em_vs_crit.html) —— 它不是生成的，就是那个文件本身，**双击直接用浏览器打开**（Plotly 走 CDN，需要联网）。
+
+悬浮曲线任意位置可读出该点的双爆拆分、精通、伤害倍数、占该曲线最大值的百分比；基准精通 / 暴击 / 暴伤、星扩散增伤、曲线取哪几个 `n`、平台阈值都可以改，三张图即时重算。
+
+也通过 GitHub Pages 提供在线版，链接形如
+`https://<用户名>.github.io/<仓库名>/tasks/mizuki/em_vs_crit.html`。
 
 ## 目录
 
 ```
-genshin_strength/          共享层：星扩散的公式常数与暴击区
-tasks/<角色>/<需求>.py      每个需求一个脚本：本任务的数据 + 这张图的画法
-tasks/mizuki/em_vs_crit_web.html   可交互页面的模板（生成器往里注入常数）
-output/<角色>/<任务>/       产物，gitignore
+genshin_strength/             共享层：星扩散的公式常数与暴击区
+tasks/<角色>/<需求>.py         每个需求一个脚本：本任务的数据 + 这张图的画法
+tasks/mizuki/em_vs_crit.html  可交互页面（自包含，双击直接打开）
+output/<角色>/<任务>/          产物，gitignore
 ```
 
 `genshin_strength/` 现在只有一个模块。它存在的理由不是复用，是**唯一真源** —— 星扩散的精通系数是 `6` 而不是传统剧变反应的 `16`，这类常数错一次不会报错、只会静默算错。
@@ -67,7 +71,7 @@ output/<角色>/<任务>/       产物，gitignore
 - 算的是**星扩散直伤**（瑞希天赋「廓然梦生」的「元素精通 1000%」倍率伤害），**不是反应星扩散**（占比很小）。公式里没有 `1446.85`，属性是元素精通而非攻击力。
 - 暴击区取**期望值** `1 + 暴击率 × 暴伤`。单次伤害是二值的，瑞希一次循环里伤害次数不多，实战体感与期望可能有出入。
 - 部分游戏机制来自社区与解包数据，**非官方文本**。存疑处在文档里逐条标注了。
-- **可交互页面里的数学是 JS 重写的一份**（浏览器要实时重算，绕不开）。改公式时 `tasks/mizuki/em_vs_crit.py` 和 `em_vs_crit_web.html` 里的 JS **必须同时改**，两边都有注释指认对方。常数与配色由生成器从 Python 注入，没有重复。
+- **可交互页面里的数学是 JS 重写的一份**（浏览器要实时重算，绕不开）。改公式时 `tasks/mizuki/em_vs_crit.py` 与 `em_vs_crit.html` 里的 JS **必须同时改**，两边都有注释指认对方。
 
 ---
 

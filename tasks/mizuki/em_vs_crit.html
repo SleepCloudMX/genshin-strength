@@ -24,9 +24,7 @@
     padding: 5px 8px; border: 1px solid var(--line); border-radius: 5px; background: #fff;
   }
   input[type=text] { width: 190px; }
-  .derived {
-    font-size: 13px; color: var(--muted); padding-bottom: 6px;
-  }
+  .derived { font-size: 13px; color: var(--muted); padding-bottom: 6px; }
   .derived b { color: var(--ink); font-size: 15px; }
   .plot { width: 100%; }
   footer {
@@ -59,42 +57,51 @@
 </footer>
 
 <script>
-const CFG = /*__CONFIG__*/;
+// ── 游戏规则常数（与 tasks/mizuki/em_vs_crit.py 一一对应，改公式必须同时改两边）──
+const EM_COEF = 6.0;        // 星扩散的精通系数。传统剧变反应是 16，别写错
+const EM_OFFSET = 2000.0;
+const EM_PER_ROLL = 20.0;   // 1 等效词条
+const CR_PER_ROLL = 3.3;
+const CD_PER_ROLL = 6.6;
 
-// ── 游戏规则（与 tasks/mizuki/em_vs_crit.py 中的实现一一对应，改公式要同时改两处）──
-const emTerm = (em) => CFG.coef.em * em / (em + CFG.coef.emOffset);
+// ── 初始基准面板（页面上可改）──
+const DEFAULTS = { em: 951, cr: 36, cd: 112.2, bonus: 1.40, ns: [15, 20, 25, 30, 35], level: 0.99 };
 
-/** b 个双爆词条在暴击率与暴伤之间最优拆分后的暴击区。 */
+// 曲线配色：viridis_r 在 [0.28, 1.0] 上取 11 个采样点 —— 从 0.28 起是为了
+// 避开最浅的亮黄，白底上看不清词条最少的那条曲线。
+const RAMP = ['#4ec36b', '#2eb37c', '#1fa287', '#20928c', '#27808e', '#2e6f8e',
+              '#365c8d', '#3f4889', '#46327e', '#481b6d', '#440154'];
+
+// ── 游戏公式 ──
+const emTerm = (em) => EM_COEF * em / (em + EM_OFFSET);
+
+/** b 个双爆词条在暴击率与暴伤之间最优拆分后的配比。 */
 function allocAt(b, cr0, cd0) {
-  const aStar = b / 2 + (cd0 / CFG.coef.cdPerRoll - cr0 / CFG.coef.crPerRoll) / 2;
-  const a = Math.min(Math.max(aStar, 0), b, (100 - cr0) / CFG.coef.crPerRoll);
-  return {
-    a,
-    cr: cr0 + CFG.coef.crPerRoll * a,
-    cd: cd0 + CFG.coef.cdPerRoll * (b - a),
-  };
+  const aStar = b / 2 + (cd0 / CD_PER_ROLL - cr0 / CR_PER_ROLL) / 2;
+  const a = Math.min(Math.max(aStar, 0), b, (100 - cr0) / CR_PER_ROLL);
+  return { a, cr: cr0 + CR_PER_ROLL * a, cd: cd0 + CD_PER_ROLL * (b - a) };
 }
 const critZoneAt = (b, cr0, cd0) => {
   const { cr, cd } = allocAt(b, cr0, cd0);
   return 1 + (cr / 100) * (cd / 100);
 };
 
-/** n 个等效词条中给双爆 b 个时的星扩散直伤（任意单位）。 */
+/** n 个等效词条中给双爆 b 个时的星扩散直伤（任意单位，只用于比较）。 */
 function damage(s, n, b) {
-  const em = CFG.coef.emPerRoll * (n - b) + s.em;
+  const em = EM_PER_ROLL * (n - b) + s.em;
   return em * (1 + s.bonus + emTerm(em)) * critZoneAt(b, s.cr, s.cd);
 }
 
-/** 黄金分割搜索最大值，避免为实现 Brent 写一堆代码。 */
+/** 黄金分割搜索最大值。 */
 function bestSplit(s, n) {
   const phi = 0.6180339887;
-  let lo = 0, hi = n;
   const f = (b) => damage(s, n, b);
-  let a = hi - phi * (hi - lo), bb = lo + phi * (hi - lo);
-  let fa = f(a), fb = f(bb);
+  let lo = 0, hi = n;
+  let a = hi - phi * (hi - lo), b2 = lo + phi * (hi - lo);
+  let fa = f(a), fb = f(b2);
   for (let i = 0; i < 80 && hi - lo > 1e-7; i++) {
-    if (fa > fb) { hi = bb; bb = a; fb = fa; a = hi - phi * (hi - lo); fa = f(a); }
-    else { lo = a; a = bb; fa = fb; bb = lo + phi * (hi - lo); fb = f(bb); }
+    if (fa > fb) { hi = b2; b2 = a; fb = fa; a = hi - phi * (hi - lo); fa = f(a); }
+    else { lo = a; a = b2; fa = fb; b2 = lo + phi * (hi - lo); fb = f(b2); }
   }
   const b = (lo + hi) / 2;
   return { b, f: f(b) };
@@ -111,11 +118,12 @@ function plateau(s, n, fmax, level) {
   return { lo, hi };
 }
 
-/** 从分段色带里按 t∈[0,1] 取色，复现 matplotlib 的 viridis_r 采样。 */
+/** 在配色带上按 t∈[0,1] 取色。 */
 function ramp(t) {
-  const stops = CFG.viridisR, x = Math.min(Math.max(t, 0), 1) * (stops.length - 1);
-  const i = Math.min(Math.floor(x), stops.length - 2), k = x - i;
-  const mix = (j) => Math.round(stops[i][j] + (stops[i + 1][j] - stops[i][j]) * k);
+  const x = Math.min(Math.max(t, 0), 1) * (RAMP.length - 1);
+  const i = Math.min(Math.floor(x), RAMP.length - 2), k = x - i;
+  const at = (hex, j) => parseInt(hex.slice(1 + 2 * j, 3 + 2 * j), 16);
+  const mix = (j) => Math.round(at(RAMP[i], j) + (at(RAMP[i + 1], j) - at(RAMP[i], j)) * k);
   return `rgb(${mix(0)},${mix(1)},${mix(2)})`;
 }
 
@@ -130,12 +138,13 @@ const parseNs = () => $('ns').value.split(/[,，\s]+/)
   .sort((a, b) => a - b).slice(0, 10);
 
 function readState() {
-  const cr = num('cr', CFG.cr), cd = num('cd', CFG.cd);
   return {
-    em: num('em', CFG.em), cr, cd,
-    bonus: num('bonus', CFG.bonus * 100) / 100,
+    em: num('em', DEFAULTS.em),
+    cr: num('cr', DEFAULTS.cr),
+    cd: num('cd', DEFAULTS.cd),
+    bonus: num('bonus', DEFAULTS.bonus * 100) / 100,
     ns: parseNs(),
-    level: num('level', CFG.level * 100) / 100,
+    level: num('level', DEFAULTS.level * 100) / 100,
   };
 }
 
@@ -144,11 +153,11 @@ const SAMPLES = 401;
 
 function buildA(s) {
   const traces = [], annos = [];
-  const ns = s.ns.length ? s.ns : CFG.ns;
+  const ns = s.ns.length ? s.ns : DEFAULTS.ns;
   const span = Math.max(...ns);
 
   ns.forEach((n, i) => {
-    const color = ramp(CFG.colorFrom + (1 - CFG.colorFrom) * i / Math.max(ns.length - 1, 1));
+    const color = ramp(i / Math.max(ns.length - 1, 1));
     const base = damage(s, n, 0);
     const { b: bStar, f: fMax } = bestSplit(s, n);
     const { lo, hi } = plateau(s, n, fMax, s.level);
@@ -157,9 +166,9 @@ function buildA(s) {
     for (let k = 0; k <= SAMPLES; k++) {
       const b = n * k / SAMPLES;
       const v = damage(s, n, b);
-      const { a, cr, cd: cdmg } = allocAt(b, s.cr, s.cd);
+      const { cr, cd: cdmg } = allocAt(b, s.cr, s.cd);
       xs.push(b); ys.push(v / base);
-      cd.push([n, b, n - b, cr, cdmg, CFG.coef.emPerRoll * (n - b) + s.em,
+      cd.push([n, b, n - b, cr, cdmg, EM_PER_ROLL * (n - b) + s.em,
                v / base, 100 * v / fMax]);
     }
 
@@ -175,7 +184,8 @@ function buildA(s) {
 
     if (lo !== null) {
       traces.push({
-        type: 'scatter', mode: 'lines', x: [lo, hi], y: [damage(s, n, lo) / base, damage(s, n, hi) / base],
+        type: 'scatter', mode: 'lines', x: [lo, hi],
+        y: [damage(s, n, lo) / base, damage(s, n, hi) / base],
         line: { color, width: 1.4, dash: 'dash' }, hoverinfo: 'skip', showlegend: false,
       });
       for (const x of [lo, hi]) {
@@ -197,7 +207,8 @@ function buildA(s) {
       bgcolor: 'rgba(255,255,255,0.82)', borderpad: 2,
     };
     annos.push({ ...common, x: bStar, y: fMax / base, xshift: 7, yshift: 2,
-                 xanchor: 'left', yanchor: 'bottom', text: `×${bStar.toFixed(1)} (${(fMax / base).toFixed(3)})` });
+                 xanchor: 'left', yanchor: 'bottom',
+                 text: `×${bStar.toFixed(1)} (${(fMax / base).toFixed(3)})` });
     if (lo !== null) {
       for (const x of [lo, hi]) {
         annos.push({ ...common, x, y: damage(s, n, x) / base, xshift: 0, yshift: -15,
@@ -224,7 +235,7 @@ function buildA(s) {
 }
 
 function buildB(s) {
-  const steps = 121, lo0 = 5, hi0 = Math.max(45, ...(s.ns.length ? s.ns : CFG.ns));
+  const steps = 121, lo0 = 5, hi0 = Math.max(45, ...(s.ns.length ? s.ns : DEFAULTS.ns));
   const ns = [], bs = [], los = [], his = [], ems = [], crs = [], cds = [];
   for (let i = 0; i <= steps; i++) {
     const n = lo0 + (hi0 - lo0) * i / steps;
@@ -232,20 +243,21 @@ function buildB(s) {
     const { lo, hi } = plateau(s, n, fMax, s.level);
     ns.push(n); bs.push(bStar); los.push(lo); his.push(hi);
     const { cr, cd } = allocAt(bStar, s.cr, s.cd);
-    ems.push(CFG.coef.emPerRoll * (n - bStar) + s.em);
+    ems.push(EM_PER_ROLL * (n - bStar) + s.em);
     crs.push(cr); cds.push(cd);
   }
 
   const traces = [
-    { type: 'scatter', mode: 'lines', x: ns, y: his, name: '平台上界', showlegend: false,
+    { type: 'scatter', mode: 'lines', x: ns, y: his, showlegend: false,
       line: { color: 'rgba(220,20,60,0)' }, hoverinfo: 'skip' },
-    { type: 'scatter', mode: 'lines', x: ns, y: los, name: `${(s.level * 100).toFixed(0)}% 平台`,
-      fill: 'tonexty', fillcolor: 'rgba(220,20,60,0.16)', line: { color: 'rgba(220,20,60,0)' },
-      hoverinfo: 'skip' },
+    { type: 'scatter', mode: 'lines', x: ns, y: los,
+      name: `${(s.level * 100).toFixed(0)}% 平台`,
+      fill: 'tonexty', fillcolor: 'rgba(220,20,60,0.16)',
+      line: { color: 'rgba(220,20,60,0)' }, hoverinfo: 'skip' },
     { type: 'scatter', mode: 'lines', x: ns, y: bs, name: '最优双爆词条数（图 A 的 ×）',
-      line: { color: '#000', width: 2.6 }, xaxis: 'x', yaxis: 'y' },
+      line: { color: '#000', width: 2.6 } },
     { type: 'scatter', mode: 'lines', x: ns, y: ns, name: '全部词条给双爆',
-      line: { color: '#999', width: 1.4, dash: 'dash' }, xaxis: 'x', yaxis: 'y' },
+      line: { color: '#999', width: 1.4, dash: 'dash' } },
     { type: 'scatter', mode: 'lines', x: ns, y: ems, name: '元素精通',
       line: { color: '#2e8b57', width: 2.2 }, xaxis: 'x2', yaxis: 'y2' },
     { type: 'scatter', mode: 'lines', x: ns, y: crs, name: '暴击率',
@@ -266,8 +278,7 @@ function buildB(s) {
                 showgrid: false },
       legend: { x: 0.01, y: 0.99, bgcolor: 'rgba(255,255,255,0.9)' },
       margin: { t: 28, r: 70, b: 52, l: 70 }, height: 620,
-      gridcolor: '#e8e8e8', hovermode: 'closest',
-      plot_bgcolor: '#fff', paper_bgcolor: '#fff',
+      hovermode: 'closest', plot_bgcolor: '#fff', paper_bgcolor: '#fff',
     },
   };
 }
@@ -276,19 +287,17 @@ function buildB(s) {
 function render() {
   const s = readState();
   $('score').textContent = (s.cr + s.cd / 2).toFixed(1);
-
   const a = buildA(s), b = buildB(s);
   Plotly.react('figA', a.traces, a.layout, { responsive: true });
   Plotly.react('figB', b.traces, b.layout, { responsive: true });
 }
 
-// 初始化输入框
-$('em').value = CFG.em;
-$('cr').value = CFG.cr;
-$('cd').value = CFG.cd;
-$('bonus').value = (CFG.bonus * 100).toFixed(0);
-$('ns').value = CFG.ns.join(', ');
-$('level').value = (CFG.level * 100).toFixed(0);
+$('em').value = DEFAULTS.em;
+$('cr').value = DEFAULTS.cr;
+$('cd').value = DEFAULTS.cd;
+$('bonus').value = (DEFAULTS.bonus * 100).toFixed(0);
+$('ns').value = DEFAULTS.ns.join(', ');
+$('level').value = (DEFAULTS.level * 100).toFixed(0);
 
 for (const el of document.querySelectorAll('input')) el.addEventListener('input', render);
 render();
