@@ -122,9 +122,9 @@ def plot_relative_damage():
         ax.plot([b_star], [at(b_star)], marker="D", ms=5.5, color=color,
                 markeredgecolor="white", markeredgewidth=0.9, zorder=6)
         ax.annotate(f"×{b_star:.1f} ({at(b_star):.3f})", (b_star, at(b_star)),
-                    textcoords="offset points", xytext=(8, 5),
-                    ha="left", va="bottom", fontsize=9.5,
-                    color=color, fontweight="bold")
+                    textcoords="offset points", xytext=(8, 0),
+                    ha="left", va="center", fontsize=9.5, zorder=10,
+                    color="black", fontweight="bold")
 
         ax.plot([lo, hi], [at(lo), at(hi)], ls="--", lw=1.2, color=color,
                 alpha=0.85, zorder=4)
@@ -132,7 +132,8 @@ def plot_relative_damage():
                 markeredgecolor="white", markeredgewidth=0.9, zorder=5)
         for x in (lo, hi):
             ax.annotate(f"{x:.1f} 词", (x, at(x)), textcoords="offset points",
-                        xytext=(0, -13), ha="center", fontsize=8.5, color=color)
+                        xytext=(0, -13), ha="center", fontsize=8.5, zorder=10,
+                        color="black")
 
     ax.axhline(1.0, ls="--", lw=1.2, color="grey", zorder=1)
     ax.set_xlabel("给双爆的等效词条数（其余给精通）")
