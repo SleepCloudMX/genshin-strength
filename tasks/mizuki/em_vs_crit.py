@@ -98,43 +98,49 @@ def sweep(ns: Iterable[float]):
 
 
 def plot_relative_damage():
-    """图 A：相对 0 词条基准的伤害倍数，看形状与平台宽度。"""
-    fig, ax = plt.subplots(figsize=(8.6, 6.2), layout="constrained")
-    cmap = plt.get_cmap("viridis")
+    """图 A：相对「该 n 下词条全给精通」的伤害倍数，看形状与平台宽度。"""
+    fig, ax = plt.subplots(figsize=(9.2, 7.2), layout="constrained")
+    cmap = plt.get_cmap("viridis_r")  # 词条越多颜色越深
 
     for i, n in enumerate(N_CURVES):
+        base = damage(n, 0.0)
+
+        def at(x, n=n, base=base):
+            return damage(n, x) / base
+
         b = np.linspace(0.0, n, 601)
-        ratio = damage(n, b) / damage(n, 0.0)
         color = cmap(i / max(len(N_CURVES) - 1, 1))
-        ax.plot(b, ratio, lw=2.0, color=color, label=f"n = {n} 词条")
+        ax.plot(b, at(b), lw=2.0, color=color, label=f"共 {n} 词条")
 
         b_star, f_max = best_split(n)
-        ax.plot([b_star], [f_max / damage(n, 0.0)], "o", ms=7, color=color,
-                markeredgecolor="white", markeredgewidth=1.2, zorder=5)
-        ax.annotate(
-            f"b*={b_star:.1f}", (b_star, f_max / damage(n, 0.0)),
-            textcoords="offset points", xytext=(6, 7), fontsize=10,
-            color=color, fontweight="bold",
-        )
+        lo, hi = plateau(n, f_max)
 
-    # 用 n = 25 那条把「99% 平台」画出来 —— 这个需求的主要结论就是平台很宽
-    n_ref = 25
-    _, f_ref = best_split(n_ref)
-    lo, hi = plateau(n_ref, f_ref)
-    ax.hlines(f_ref * PLATEAU_LEVEL / damage(n_ref, 0.0), lo, hi,
-              colors="crimson", lw=5, alpha=0.45, zorder=4,
-              label=f"n={n_ref} 的 99% 平台（{lo:.1f} ~ {hi:.1f} 词条）")
+        # 最优用 × 标记，99% 平台的两端用圆点 —— 两种样式区分开，各自就近写词条数
+        ax.plot([b_star], [at(b_star)], marker="x", ms=9, mew=2.4,
+                color=color, zorder=6)
+        ax.annotate(f"{b_star:.1f}", (b_star, at(b_star)),
+                    textcoords="offset points", xytext=(7, 3),
+                    fontsize=10, color=color, fontweight="bold")
+
+        ax.plot([lo, hi], [at(lo), at(hi)], "o", ms=5.5, color=color,
+                markeredgecolor="white", markeredgewidth=0.9, zorder=5)
+        for x in (lo, hi):
+            ax.annotate(f"{x:.1f}", (x, at(x)), textcoords="offset points",
+                        xytext=(0, -13), ha="center", fontsize=8.5, color=color)
 
     ax.axhline(1.0, ls="--", lw=1.2, color="grey", zorder=1)
-    ax.set_xlabel("给双爆的等效词条数 b（其余给精通）")
-    ax.set_ylabel("星扩散直伤 / 0 词条基准")
-    ax.set_title(
-        "精通 vs 双爆：固定词条总数下的分配（星扩散直伤）\n"
-        f"纵轴满量程仅约 {ax.get_ylim()[1] - 1:.0%}；最优分配的收益是几个百分点的量级，注意刻度",
-        fontsize=12,
-    )
+    ax.set_xlabel("给双爆的等效词条数（其余给精通）")
+    ax.set_ylabel("星扩散直伤，相对「该曲线词条全部给精通」的倍数")
+    ax.set_title("星扩散直伤：精通和双爆的词条分配", fontsize=13)
     ax.grid(alpha=0.3, lw=0.6)
     ax.legend(loc="upper left", fontsize=10, framealpha=0.92)
+
+    fig.supxlabel(
+        "基准：上完 buff、不含副词条的面板 —— 精通 951，暴击 36% / 暴伤 112.2%（等效暴击 92.1）。\n"
+        "纵轴是各曲线相对其自身「0 双爆词条」点（n 个词条全部给精通）的倍数，满量程仅约 13%，注意刻度。\n"
+        "× 为该 n 下最优的双爆词条数；圆点是 99% 平台的两端 —— 两者之间伤害仍在最大值的 99% 以上。",
+        fontsize=9, color="#555555",
+    )
     fig.savefig(OUT_DIR / "relative_damage.png", dpi=160)
     plt.close(fig)
 
@@ -150,11 +156,11 @@ def plot_optimal_split():
 
     top.fill_between(ns, lo, hi, color="crimson", alpha=0.18,
                      label=f"{PLATEAU_LEVEL:.0%} 平台（伤害差 <1% 的范围）")
-    top.plot(ns, bs, lw=2.4, color="black", label="最优双爆词条数 b*")
-    top.plot(ns, ns, ls="--", lw=1.4, color="grey", label="全部词条给双爆（b = n）")
+    top.plot(ns, bs, lw=2.4, color="black", label="最优双爆词条数（图 A 的 ×）")
+    top.plot(ns, ns, ls="--", lw=1.4, color="grey", label="全部词条给双爆")
     top.axhline(0.0, ls=":", lw=1.2, color="grey")
-    top.set_ylabel("双爆词条数 b")
-    top.set_title("精通 vs 双爆：最优分配规则\n（星扩散直伤）", fontsize=12)
+    top.set_ylabel("给双爆的等效词条数")
+    top.set_title("星扩散直伤：最优分配规则", fontsize=13)
     top.grid(alpha=0.3, lw=0.6)
     top.legend(loc="upper left", fontsize=10, framealpha=0.92)
 
@@ -177,7 +183,13 @@ def plot_optimal_split():
     twin.legend(loc="lower right", fontsize=10, framealpha=0.92)
 
     bottom.set_xlabel("等效词条总数 n")
-    bottom.set_title("最优点对应的面板（不含固定来源之外的其它加成）", fontsize=11)
+    bottom.set_title("最优点对应的面板", fontsize=11)
+
+    fig.supxlabel(
+        "基准：上完 buff、不含副词条的面板 —— 精通 951，暴击 36% / 暴伤 112.2%（等效暴击 92.1）。\n"
+        "n 为副词条中落在精通或双爆上的等效词条总数；只有副词条参与分配。",
+        fontsize=9, color="#555555",
+    )
 
     fig.savefig(OUT_DIR / "optimal_split.png", dpi=160)
     plt.close(fig)
