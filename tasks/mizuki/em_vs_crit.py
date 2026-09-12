@@ -198,7 +198,7 @@ def plot_optimal_split():
     bottom.set_title("最优点对应的面板", fontsize=11)
 
     fig.supxlabel(
-        "基准：上完 buff、不含副词条的面板 —— 精通 951，暴击 36% / 暴伤 112.2%（等效暴击 92.1）。\n"
+        "基准：上完 buff、不含副词条的面板 —— 精通 951，双暴分 92.1。\n"
         "n 为副词条中落在精通或双爆上的等效词条总数；只有副词条参与分配。",
         fontsize=9, color="#555555",
     )
