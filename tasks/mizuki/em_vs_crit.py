@@ -15,6 +15,7 @@ from collections.abc import Iterable
 from pathlib import Path
 
 import matplotlib
+import matplotlib.patheffects as path_effects
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import minimize_scalar
@@ -105,6 +106,10 @@ def plot_relative_damage():
     cmap = plt.get_cmap("viridis_r")
     first, last = 0.28, 1.0
 
+    # 标注文字用曲线色 + 白色描边：既能和曲线对上，压线时也不会被曲线笔画切断
+    def halo(width):
+        return [path_effects.withStroke(linewidth=width, foreground="white")]
+
     for i, n in enumerate(N_CURVES):
         base = damage(n, 0.0)
 
@@ -124,7 +129,7 @@ def plot_relative_damage():
         ax.annotate(f"×{b_star:.1f} ({at(b_star):.3f})", (b_star, at(b_star)),
                     textcoords="offset points", xytext=(8, 0),
                     ha="left", va="center", fontsize=9.5, zorder=10,
-                    color="black", fontweight="bold")
+                    color=color, fontweight="bold", path_effects=halo(3.0))
 
         ax.plot([lo, hi], [at(lo), at(hi)], ls="--", lw=1.2, color=color,
                 alpha=0.85, zorder=4)
@@ -133,7 +138,7 @@ def plot_relative_damage():
         for x in (lo, hi):
             ax.annotate(f"{x:.1f} 词", (x, at(x)), textcoords="offset points",
                         xytext=(0, -13), ha="center", fontsize=8.5, zorder=10,
-                        color="black")
+                        color=color, path_effects=halo(2.5))
 
     ax.axhline(1.0, ls="--", lw=1.2, color="grey", zorder=1)
     ax.set_xlabel("给双爆的等效词条数（其余给精通）")
