@@ -115,17 +115,20 @@ def plot_relative_damage():
         b_star, f_max = best_split(n)
         lo, hi = plateau(n, f_max)
 
-        # 最优用 × 标记，99% 平台的两端用圆点 —— 两种样式区分开，各自就近写词条数
-        ax.plot([b_star], [at(b_star)], marker="x", ms=9, mew=2.4,
-                color=color, zorder=6)
-        ax.annotate(f"{b_star:.1f}", (b_star, at(b_star)),
-                    textcoords="offset points", xytext=(7, 3),
-                    fontsize=10, color=color, fontweight="bold")
+        # 最优：菱形标记 + 文字「×最优词条数」与纵轴值；99% 平台：两端圆点 + 虚线弦
+        ax.plot([b_star], [at(b_star)], marker="D", ms=5.5, color=color,
+                markeredgecolor="white", markeredgewidth=0.9, zorder=6)
+        ax.annotate(f"×{b_star:.1f}\n{at(b_star):.3f}", (b_star, at(b_star)),
+                    textcoords="offset points", xytext=(8, 0),
+                    ha="left", va="center", fontsize=9.5,
+                    color=color, fontweight="bold")
 
+        ax.plot([lo, hi], [at(lo), at(hi)], ls="--", lw=1.2, color=color,
+                alpha=0.85, zorder=4)
         ax.plot([lo, hi], [at(lo), at(hi)], "o", ms=5.5, color=color,
                 markeredgecolor="white", markeredgewidth=0.9, zorder=5)
         for x in (lo, hi):
-            ax.annotate(f"{x:.1f}", (x, at(x)), textcoords="offset points",
+            ax.annotate(f"{x:.1f} 词", (x, at(x)), textcoords="offset points",
                         xytext=(0, -13), ha="center", fontsize=8.5, color=color)
 
     ax.axhline(1.0, ls="--", lw=1.2, color="grey", zorder=1)
@@ -136,9 +139,11 @@ def plot_relative_damage():
     ax.legend(loc="upper left", fontsize=10, framealpha=0.92)
 
     fig.supxlabel(
-        "基准：上完 buff、不含副词条的面板 —— 精通 951，暴击 36% / 暴伤 112.2%（等效暴击 92.1）。\n"
+        "基准：上完 buff、不含副词条的面板 —— 精通 951，双暴分 92.1。\n"
+        "（双暴分 = 暴击 + 暴伤/2；理之冠的暴击/暴伤主词条可自由选取，故只记双暴分。）\n"
         "纵轴是各曲线相对其自身「0 双爆词条」点（n 个词条全部给精通）的倍数，满量程仅约 13%，注意刻度。\n"
-        "× 为该 n 下最优的双爆词条数；圆点是 99% 平台的两端 —— 两者之间伤害仍在最大值的 99% 以上。",
+        "菱形点及其「×词条数 / 纵轴值」为该 n 下的最优；圆点是 99% 平台的两端，虚线弦代表"
+        "这段区间内伤害仍在最大值的 99% 以上。",
         fontsize=9, color="#555555",
     )
     fig.savefig(OUT_DIR / "relative_damage.png", dpi=160)
