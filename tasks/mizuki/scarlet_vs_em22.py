@@ -123,7 +123,10 @@ def plot_ratio_field(ratio, team, out_path):
 
     # 分界线与十字准线共用同一个求根结果，避免两套数值路径画出来对不上
     budgets = np.linspace(*BUDGET_RANGE, GRID_N // 2)
-    roots = np.array([break_even(ratio, b) or np.nan for b in budgets])
+    # 预算很小（b < 0.1）时两套没有交点，留空而不是画一条假线
+    roots = np.array([
+        np.nan if (root := break_even(ratio, b)) is None else root for b in budgets
+    ])
     ax.plot(
         roots, budgets, color="black", lw=2.2, zorder=3,
         label="两套等效（分界线）",
@@ -171,8 +174,10 @@ def main():
         print(f"{team.label}  ->  {out_path}")
         for b, label in REFERENCE_BUILDS:
             root = break_even(ratio, b)
-            side = "越高越倾向血红" if root else ""
-            print(f"    b={b:<4} ({label})  分界精通 = {root:,.0f}   {side}")
+            if root is None:
+                print(f"    b={b:<4} ({label})  该区间内两套无交点")
+            else:
+                print(f"    b={b:<4} ({label})  分界精通 = {root:,.0f}   越高越倾向血红")
 
 
 if __name__ == "__main__":

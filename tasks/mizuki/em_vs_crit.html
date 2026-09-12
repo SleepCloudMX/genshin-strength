@@ -109,7 +109,9 @@ function bestSplit(s, n) {
 
 /** 伤害不低于 level × fmax 的双爆词条区间。假定曲线单峰。 */
 function plateau(s, n, fmax, level) {
-  const steps = 800;
+  // 格子随 n 加密，保证步长不超过 0.025 词条 —— 否则 n 填大时
+  // 平台上标出的「N.N 词」会偏粗（Python 那边用固定 4001 格）。
+  const steps = Math.max(800, Math.ceil(n * 40));
   let lo = null, hi = null;
   for (let i = 0; i <= steps; i++) {
     const b = n * i / steps;

@@ -46,23 +46,31 @@ N_RANGE = (10.0, 40.0)
 PLATEAU_LEVEL = 0.99
 
 
-def crit_zone_at(b):
-    """b 个双爆词条在暴击率与暴伤之间最优分配后的暴击区 ``1 + 暴击率 × 暴伤``。
+def alloc_at(b):
+    """把 `b` 个双爆词条在暴击率与暴伤之间最优拆分后的配比。
 
     最大化 ``(c0 + r·a)(d0 + s·(b−a))`` 对 `a` 求导，得
 
         a* = b/2 + (d0/s − c0/r)/2
 
-    `a` 有两个上下界：词条数不能为负、不能超过 `b`，另外暴击率不能超过 100%。
+    `a` 有三个约束：不能为负、不能超过 `b`（词条总数就这么多）、
+    暴击率不能超过 100%。
+
     在 ``b < d0/s − c0/r`` 时 ``a* > b``，只能把词条全投暴击率，此时 c:d ≠ 1:2 ——
-    简化的 ``1 + (3.3b + 92.1)²/20000`` 会高估，`b = 0` 时高约 5%。
+    简化的 ``1 + (3.3b + 92.1)²/20000`` 会高估，`b = 0` 时高 1.44%。
+
+    返回 `(投入暴击率的词条数, 暴击率%, 暴伤%)`。
     """
     b = np.asarray(b, dtype=float)
     a = b / 2 + (CRIT_DMG_BASE / CRIT_DMG_PER_ROLL - CRIT_RATE_BASE / CRIT_RATE_PER_ROLL) / 2
     a = np.clip(a, 0.0, b)
     a = np.minimum(a, (100.0 - CRIT_RATE_BASE) / CRIT_RATE_PER_ROLL)
-    crit_rate = CRIT_RATE_BASE + CRIT_RATE_PER_ROLL * a
-    crit_dmg = CRIT_DMG_BASE + CRIT_DMG_PER_ROLL * (b - a)
+    return a, CRIT_RATE_BASE + CRIT_RATE_PER_ROLL * a, CRIT_DMG_BASE + CRIT_DMG_PER_ROLL * (b - a)
+
+
+def crit_zone_at(b):
+    """`b` 个双爆词条最优分配后的暴击区 ``1 + 暴击率 × 暴伤``。"""
+    _, crit_rate, crit_dmg = alloc_at(b)
     return 1 + (crit_rate / 100) * (crit_dmg / 100)
 
 
@@ -177,11 +185,7 @@ def plot_optimal_split():
     top.legend(loc="upper left", fontsize=10, framealpha=0.92)
 
     em = EM_PER_ROLL * (ns - bs) + EM_BASE
-    # 最优点处暴击率与暴伤的实际配比：a* = b/2 + (d0/s − c0/r)/2，同样受 [0, b] 约束
-    a = bs / 2 + (CRIT_DMG_BASE / CRIT_DMG_PER_ROLL - CRIT_RATE_BASE / CRIT_RATE_PER_ROLL) / 2
-    a = np.clip(a, 0.0, bs)
-    crit_rate = CRIT_RATE_BASE + CRIT_RATE_PER_ROLL * a
-    crit_dmg = CRIT_DMG_BASE + CRIT_DMG_PER_ROLL * (bs - a)
+    _a, crit_rate, crit_dmg = alloc_at(bs)
 
     bottom.plot(ns, em, lw=2.2, color="tab:green")
     bottom.set_ylabel("元素精通", color="tab:green")
