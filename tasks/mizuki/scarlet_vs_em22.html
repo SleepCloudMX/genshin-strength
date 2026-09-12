@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>血红之证 vs 精通 2+2</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+<style>
+  :root { --ink:#222; --muted:#555; --line:#d8d8d8; --bg:#fafafa; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px 24px 40px; background: #fff; color: var(--ink);
+    font-family: "Microsoft YaHei", "SimHei", system-ui, sans-serif;
+  }
+  h1 { font-size: 19px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+  .panel {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+    padding: 14px 16px; margin-bottom: 14px;
+    display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: flex-end;
+  }
+  label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+  input {
+    font: inherit; font-size: 14px; color: var(--ink); width: 120px;
+    padding: 5px 8px; border: 1px solid var(--line); border-radius: 5px; background: #fff;
+  }
+  .verdict {
+    border: 1px solid var(--line); border-left: 4px solid #444; border-radius: 6px;
+    padding: 12px 16px; margin-bottom: 18px;
+  }
+  .verdict .ratio { font-size: 14px; color: var(--muted); }
+  .verdict .ratio b { color: var(--ink); font-size: 26px; font-variant-numeric: tabular-nums; }
+  .verdict .who { font-size: 17px; font-weight: bold; margin-top: 2px; }
+  .verdict .split { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+  #plot { width: 100%; }
+  footer {
+    margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line);
+    font-size: 12px; color: var(--muted); line-height: 1.7;
+  }
+</style>
+</head>
+<body>
+
+<h1>血红之证 4 件套 vs 精通 2+2</h1>
+<div class="sub">悬浮图上任意位置可读该点的比值。改下面任意一项，图与结论即时重算。</div>
+
+<div class="panel">
+  <label>星扩散增伤 %<input id="bonus" type="number" step="5"></label>
+  <label>基准精通<input id="em" type="number" step="10"></label>
+  <label>双暴分 %（不含套装特效）<input id="score" type="number" step="1"></label>
+</div>
+
+<div class="verdict">
+  <div class="ratio">血红之证 / 精通 2+2 = <b id="ratio">—</b></div>
+  <div class="who" id="who">—</div>
+  <div class="split" id="split">—</div>
+</div>
+
+<div id="plot"></div>
+
+<footer>
+  <b>双暴分</b> = 暴击率 + 暴伤 ÷ 2，填<b>不含圣遗物套装特效</b>的总量（自身、武器、主副词条、队友给的都算进去）。
+  血红之证 4 件套的 +16% 暴击由脚本自己加，所以图上血红那一路的双暴分是「你填的值 + 16」。<br>
+  两套的精通也不同：精通 2+2 比你填的基准精通多 160。星扩散增伤则是在你填的值上，血红那一路再 +40%。<br>
+  比值 = 两套的期望伤害比，> 1 表示血红更优。倍率、(1 + 基础提升)、抗性系数、擢升在同队伍下相同，已约掉。
+</footer>
+
+<script>
+// ── 游戏规则（与 tasks/mizuki/scarlet_vs_em22.py 一一对应，改公式必须同时改两边）──
+const EM_COEF = 6.0;      // 星扩散的精通系数。传统剧变反应是 16，别写错
+const EM_OFFSET = 2000.0;
+
+const SCARLET = { em: 0,     critRate: 0.16, swirlBonus: 0.40 };  // 血红之证 4 件套
+const EM_2P2  = { em: 160.0, critRate: 0.0,  swirlBonus: 0.0 };   // 精通 2+2
+
+const DEFAULTS = { bonus: 140, em: 951, score: 120 };
+
+const EM_MAX = 2000, SCORE_MAX = 200, GRID = 201;
+
+// 参考配装：双暴分 = 暴击 + 暴伤/2
+const REFERENCES = [
+  { score: 50,  label: '25/50' },
+  { score: 120, label: '60/120' },
+];
+
+// 色带取自 matplotlib 的 RdBu_r，与静态图一致
+const COLORSCALE = [
+  [0.000, '#053061'], [0.167, '#3783bb'], [0.333, '#a7d0e4'], [0.500, '#f7f6f6'],
+  [0.667, '#f7b799'], [0.833, '#c94741'], [1.000, '#67001f'],
+];
+
+// ── 游戏公式 ──
+const emTerm = (em) => EM_COEF * em / (em + EM_OFFSET);
+
+/** 双爆词条预算 budget（= 暴击率 + 暴伤/2，小数）下的期望暴击区。 */
+function critZone(budget, extraCritRate) {
+  const total = budget + extraCritRate;
+  const rate = Math.min(total / 2, 1.0);   // 暴击率上限 100%
+  const dmg = 2 * (total - rate);          // 由 暴击率 + 暴伤/2 = 双暴分 解出
+  return 1 + rate * dmg;
+}
+
+/** 血红之证 / 精通 2+2 的期望伤害比。score 为双暴分小数，不含套装特效。 */
+function ratio(em, score, bonus) {
+  const hit = (build) => {
+    const e = em + build.em;
+    return e * (1 + emTerm(e) + bonus + build.swirlBonus) * critZone(score, build.critRate);
+  };
+  return hit(SCARLET) / hit(EM_2P2);
+}
+
+/** 该双暴分下比值为 1 的精通。区间内两套无交点时返回 null。 */
+function breakEven(score, bonus) {
+  const f = (em) => ratio(em, score, bonus) - 1;
+  if (f(EM_MAX) <= 0) return null;         // 全区间都是 2+2 更优
+  let lo = 0, hi = EM_MAX;                 // f(0) = -1，f(hi) > 0
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    if (f(mid) < 0) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+// ── 状态 ──
+const $ = (id) => document.getElementById(id);
+const num = (id, fallback) => {
+  const v = parseFloat($(id).value);
+  return Number.isFinite(v) ? v : fallback;
+};
+const readState = () => ({
+  bonus: num('bonus', DEFAULTS.bonus) / 100,
+  em: num('em', DEFAULTS.em),
+  score: num('score', DEFAULTS.score),
+});
+
+// ── 绘制 ──
+/**
+ * Plotly 没有 matplotlib 的 TwoSlopeNorm，得手动模拟。
+ *
+ * 注意 Plotly 自带的 `zmid` **不是**同一回事：它把 zmin/zmax 等比拉伸成以 zmid
+ * 为算术中心，色带仍是线性映射，于是「比值略高于 1」的窄带会被压成几乎看不见的
+ * 一小段。这里改成**分段**压缩：1.0 → 0.5，两侧各占色带的一半，与静态图一致。
+ *
+ * 返回 toT（比值 → 色带位置）与 lo/hi，供色条刻度反查。
+ */
+function makeColorMap(values) {
+  let lo = Infinity, hi = -Infinity;
+  for (const row of values) for (const v of row) { if (v < lo) lo = v; if (v > hi) hi = v; }
+  lo = Math.min(lo, 1 - 1e-9);      // 防止全区间在同侧时除零
+  hi = Math.max(hi, 1 + 1e-9);
+  return {
+    lo, hi,
+    toT: (v) => (v <= 1 ? 0.5 * (v - lo) / (1 - lo) : 0.5 + 0.5 * (v - 1) / (hi - 1)),
+  };
+}
+
+function buildPlot(s) {
+  const ems = Array.from({ length: GRID }, (_, i) => EM_MAX * i / (GRID - 1));
+  const scores = Array.from({ length: GRID }, (_, j) => SCORE_MAX * j / (GRID - 1));
+  const raw = scores.map((sc) => ems.map((em) => ratio(em, sc / 100, s.bonus)));
+
+  const cmap = makeColorMap(raw);
+  const z = raw.map((row) => row.map(cmap.toT));
+
+  // 色条刻度：两侧各取中点，外加 1.0
+  const tickVals = [cmap.lo, (cmap.lo + 1) / 2, 1, (1 + cmap.hi) / 2, cmap.hi];
+  const round2 = (v) => Math.round(v * 100) / 100;
+
+  const traces = [{
+    type: 'heatmap', x: ems, y: scores, z, customdata: raw,
+    colorscale: COLORSCALE, zmin: 0, zmax: 1,
+    hovertemplate:
+      '精通 %{x:.0f}　双暴分 %{y:.1f}%<br>血红 / 2+2 = <b>%{customdata:.4f}</b><extra></extra>',
+    colorbar: {
+      title: { text: '血红 / 2+2' }, thickness: 16, len: 0.75,
+      tickvals: tickVals.map(cmap.toT), ticktext: tickVals.map(round2),
+    },
+  }];
+
+  // 分界线：逐行求根后画参数曲线，不交给 Plotly 的 contour 自己追
+  const bx = [], by = [];
+  for (let j = 0; j <= GRID - 1; j++) {
+    const sc = SCORE_MAX * j / (GRID - 1);
+    const root = breakEven(sc / 100, s.bonus);
+    if (root !== null) { bx.push(root); by.push(sc); }
+  }
+  traces.push({
+    type: 'scatter', mode: 'lines', x: bx, y: by, name: '两套等效（分界线）',
+    line: { color: '#000', width: 2.4 }, hoverinfo: 'skip',
+  });
+
+  // 输入定位的十字准星
+  traces.push({
+    type: 'scatter', mode: 'markers', x: [s.em], y: [s.score],
+    marker: { symbol: 'cross-thin-open', size: 22, color: '#111', line: { width: 2.5, color: '#111' } },
+    showlegend: false, hoverinfo: 'skip',
+  });
+
+  const shapes = [
+    { type: 'line', x0: s.em, x1: s.em, y0: 0, y1: SCORE_MAX,
+      line: { color: '#111', width: 1.2, dash: 'dot' } },
+    { type: 'line', x0: 0, x1: EM_MAX, y0: s.score, y1: s.score,
+      line: { color: '#111', width: 1.2, dash: 'dot' } },
+  ];
+  const annotations = [];
+  for (const r of REFERENCES) {
+    shapes.push({ type: 'line', x0: 0, x1: EM_MAX, y0: r.score, y1: r.score,
+                  line: { color: '#999', width: 1, dash: 'dash' } });
+    annotations.push({ x: EM_MAX * 0.995, y: r.score, xanchor: 'right', yanchor: 'bottom',
+                       text: r.label, showarrow: false, font: { size: 11, color: '#888' } });
+  }
+
+  return {
+    traces, layout: {
+      xaxis: { title: { text: '元素精通（刻度 /1000）' }, range: [0, EM_MAX],
+               tickvals: [0, 500, 1000, 1500, 2000], ticktext: ['0', '0.5', '1', '1.5', '2'],
+               zeroline: false, gridcolor: '#e8e8e8' },
+      yaxis: { title: { text: '双暴分（不含套装特效）' }, range: [0, SCORE_MAX],
+               ticksuffix: '%', gridcolor: '#e8e8e8' },
+      shapes, annotations,
+      margin: { t: 24, r: 24, b: 52, l: 66 }, height: 620,
+      hovermode: 'closest', plot_bgcolor: '#fff', paper_bgcolor: '#fff',
+    },
+  };
+}
+
+function render() {
+  const s = readState();
+
+  const r = ratio(s.em, s.score / 100, s.bonus);
+  $('ratio').textContent = r.toFixed(4);
+  const margin = Math.abs(r - 1) * 100;
+  const better = r > 1 ? '血红之证' : '精通 2+2';
+  $('who').textContent = `${better} 优 ${margin.toFixed(1)}%`;
+  $('who').style.color = r > 1 ? '#a03030' : '#2a6099';
+
+  const be = breakEven(s.score / 100, s.bonus);
+  $('split').textContent = be === null
+    ? `双暴分 ${s.score.toFixed(1)}% 下，全区间都是精通 2+2 更优`
+    : `双暴分固定在 ${s.score.toFixed(1)}% 时，精通 ${be.toFixed(0)} 是分界（你现在 ${s.em.toFixed(0)}）`;
+
+  const fig = buildPlot(s);
+  Plotly.react('plot', fig.traces, fig.layout, { responsive: true });
+}
+
+$('bonus').value = DEFAULTS.bonus;
+$('em').value = DEFAULTS.em;
+$('score').value = DEFAULTS.score;
+
+for (const el of document.querySelectorAll('input')) el.addEventListener('input', render);
+render();
+</script>
+</body>
+</html>

@@ -41,20 +41,23 @@ python tasks/mizuki/scarlet_vs_em22.py    # 血红 vs 精通 2+2，两张比值�
 python tasks/mizuki/em_vs_crit.py         # 精通 vs 双爆最优分配，两张曲线图
 ```
 
-另有一个**可交互页面** [`tasks/mizuki/em_vs_crit.html`](tasks/mizuki/em_vs_crit.html) —— 它不是生成的，就是那个文件本身，**双击直接用浏览器打开**（Plotly 走 CDN，需要联网）。
+另有两个**可交互页面**，它们不是生成的，就是那两个文件本身，**双击直接用浏览器打开**（Plotly 走 CDN，需要联网）：
 
-悬浮曲线任意位置可读出该点的双爆拆分、精通、伤害倍数、占该曲线最大值的百分比；基准精通 / 暴击 / 暴伤、星扩散增伤、曲线取哪几个 `n`、平台阈值都可以改，三张图即时重算。
+| 页面 | 做什么 |
+| --- | --- |
+| [`tasks/mizuki/scarlet_vs_em22.html`](tasks/mizuki/scarlet_vs_em22.html) | 血红 vs 精通 2+2 的比值热力图。**它同时就是计算器** —— 填「星扩散增伤 / 基准精通 / 双暴分」，图上十字准星定位并给出比值、谁更优、以及精通到多少才翻面 |
+| [`tasks/mizuki/em_vs_crit.html`](tasks/mizuki/em_vs_crit.html) | 精通 vs 双爆的最优分配。悬浮曲线读该点的双爆拆分、精通、伤害倍数；基准面板、星扩散增伤、曲线取哪几个 `n`、平台阈值都可改 |
 
 也通过 GitHub Pages 提供在线版，链接形如
-`https://<用户名>.github.io/<仓库名>/tasks/mizuki/em_vs_crit.html`。
+`https://<用户名>.github.io/<仓库名>/tasks/mizuki/scarlet_vs_em22.html`。
 
 ## 目录
 
 ```
-genshin_strength/             共享层：星扩散的公式常数与暴击区
-tasks/<角色>/<需求>.py         每个需求一个脚本：本任务的数据 + 这张图的画法
-tasks/mizuki/em_vs_crit.html  可交互页面（自包含，双击直接打开）
-output/<角色>/<任务>/          产物，gitignore
+genshin_strength/               共享层：星扩散的公式常数与暴击区
+tasks/<角色>/<需求>.py           每个需求一个脚本：本任务的数据 + 这张图的画法
+tasks/mizuki/*.html             可交互页面（自包含，双击直接打开）
+output/<角色>/<任务>/            产物，gitignore
 ```
 
 `genshin_strength/` 现在只有一个模块。它存在的理由不是复用，是**唯一真源** —— 星扩散的精通系数是 `6` 而不是传统剧变反应的 `16`，这类常数错一次不会报错、只会静默算错。
