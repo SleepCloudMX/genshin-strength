@@ -128,7 +128,7 @@ def plot_relative_damage():
                 markeredgecolor="white", markeredgewidth=0.9, zorder=6)
         # 标注紧贴在菱形的右上方 —— 只抬几个点，靠描边与曲线脱开
         ax.annotate(f"×{b_star:.1f} ({at(b_star):.3f})", (b_star, at(b_star)),
-                    textcoords="offset points", xytext=(5, 2),
+                    textcoords="offset points", xytext=(5, 0),
                     ha="left", va="bottom", fontsize=9.5, zorder=10,
                     color=color, fontweight="bold", path_effects=halo(3.0))
 
