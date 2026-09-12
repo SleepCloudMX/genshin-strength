@@ -100,7 +100,10 @@ def sweep(ns: Iterable[float]):
 def plot_relative_damage():
     """图 A：相对「该 n 下词条全给精通」的伤害倍数，看形状与平台宽度。"""
     fig, ax = plt.subplots(figsize=(9.2, 7.2), layout="constrained")
-    cmap = plt.get_cmap("viridis_r")  # 词条越多颜色越深
+    # viridis_r：词条越多颜色越深。但从 0.28 起采样，避开最浅的黄 ——
+    # n = 15 用满量程的起点会是亮黄色，白底上看不清。
+    cmap = plt.get_cmap("viridis_r")
+    first, last = 0.28, 1.0
 
     for i, n in enumerate(N_CURVES):
         base = damage(n, 0.0)
@@ -109,18 +112,18 @@ def plot_relative_damage():
             return damage(n, x) / base
 
         b = np.linspace(0.0, n, 601)
-        color = cmap(i / max(len(N_CURVES) - 1, 1))
+        color = cmap(first + (last - first) * i / max(len(N_CURVES) - 1, 1))
         ax.plot(b, at(b), lw=2.0, color=color, label=f"共 {n} 词条")
 
         b_star, f_max = best_split(n)
         lo, hi = plateau(n, f_max)
 
-        # 最优：菱形标记 + 文字「×最优词条数」与纵轴值；99% 平台：两端圆点 + 虚线弦
+        # 最优：菱形标记 + 「×最优词条数 (纵轴值)」；99% 平台：两端圆点 + 虚线弦
         ax.plot([b_star], [at(b_star)], marker="D", ms=5.5, color=color,
                 markeredgecolor="white", markeredgewidth=0.9, zorder=6)
-        ax.annotate(f"×{b_star:.1f}\n{at(b_star):.3f}", (b_star, at(b_star)),
-                    textcoords="offset points", xytext=(8, 0),
-                    ha="left", va="center", fontsize=9.5,
+        ax.annotate(f"×{b_star:.1f} ({at(b_star):.3f})", (b_star, at(b_star)),
+                    textcoords="offset points", xytext=(8, 5),
+                    ha="left", va="bottom", fontsize=9.5,
                     color=color, fontweight="bold")
 
         ax.plot([lo, hi], [at(lo), at(hi)], ls="--", lw=1.2, color=color,
@@ -140,10 +143,7 @@ def plot_relative_damage():
 
     fig.supxlabel(
         "基准：上完 buff、不含副词条的面板 —— 精通 951，双暴分 92.1。\n"
-        "（双暴分 = 暴击 + 暴伤/2；理之冠的暴击/暴伤主词条可自由选取，故只记双暴分。）\n"
-        "纵轴是各曲线相对其自身「0 双爆词条」点（n 个词条全部给精通）的倍数，满量程仅约 13%，注意刻度。\n"
-        "菱形点及其「×词条数 / 纵轴值」为该 n 下的最优；圆点是 99% 平台的两端，虚线弦代表"
-        "这段区间内伤害仍在最大值的 99% 以上。",
+        "菱形点及其「×词条数 (纵轴值)」为该 n 下的最优；虚线弦代表这段区间内伤害仍在最大值的 99% 以上。",
         fontsize=9, color="#555555",
     )
     fig.savefig(OUT_DIR / "relative_damage.png", dpi=160)
