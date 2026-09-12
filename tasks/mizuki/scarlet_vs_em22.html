@@ -46,7 +46,7 @@
 <div class="panel">
   <label>星扩散增伤 %<input id="bonus" type="number" step="5"></label>
   <label>基准精通<input id="em" type="number" step="10"></label>
-  <label>双暴分 %（不含套装特效）<input id="score" type="number" step="1"></label>
+  <label>双暴分（不含套装特效）<input id="score" type="number" step="1"></label>
 </div>
 
 <div class="verdict">
@@ -72,7 +72,7 @@ const EM_OFFSET = 2000.0;
 const SCARLET = { em: 0,     critRate: 0.16, swirlBonus: 0.40 };  // 血红之证 4 件套
 const EM_2P2  = { em: 160.0, critRate: 0.0,  swirlBonus: 0.0 };   // 精通 2+2
 
-const DEFAULTS = { bonus: 140, em: 951, score: 120 };
+const DEFAULTS = { bonus: 100, em: 939, score: 120 };
 
 const EM_MAX = 2000, SCORE_MAX = 200, GRID = 201;
 
@@ -91,7 +91,7 @@ const COLORSCALE = [
 // ── 游戏公式 ──
 const emTerm = (em) => EM_COEF * em / (em + EM_OFFSET);
 
-/** 双爆词条预算 budget（= 暴击率 + 暴伤/2，小数）下的期望暴击区。 */
+/** 双暴词条预算 budget（= 暴击率 + 暴伤/2，小数）下的期望暴击区。 */
 function critZone(budget, extraCritRate) {
   const total = budget + extraCritRate;
   const rate = Math.min(total / 2, 1.0);   // 暴击率上限 100%
@@ -169,7 +169,7 @@ function buildPlot(s) {
     type: 'heatmap', x: ems, y: scores, z, customdata: raw,
     colorscale: COLORSCALE, zmin: 0, zmax: 1,
     hovertemplate:
-      '精通 %{x:.0f}　双暴分 %{y:.1f}%<br>血红 / 2+2 = <b>%{customdata:.4f}</b><extra></extra>',
+      '精通 %{x:.0f}　双暴分 %{y:.1f}<br>血红 / 2+2 = <b>%{customdata:.4f}</b><extra></extra>',
     colorbar: {
       title: { text: '血红 / 2+2' }, thickness: 16, len: 0.75,
       tickvals: tickVals.map(cmap.toT), ticktext: tickVals.map(round2),
@@ -215,7 +215,7 @@ function buildPlot(s) {
                tickvals: [0, 500, 1000, 1500, 2000], ticktext: ['0', '0.5', '1', '1.5', '2'],
                zeroline: false, gridcolor: '#e8e8e8' },
       yaxis: { title: { text: '双暴分（不含套装特效）' }, range: [0, SCORE_MAX],
-               ticksuffix: '%', gridcolor: '#e8e8e8' },
+               gridcolor: '#e8e8e8' },
       shapes, annotations,
       margin: { t: 24, r: 24, b: 52, l: 66 }, height: 620,
       hovermode: 'closest', plot_bgcolor: '#fff', paper_bgcolor: '#fff',
@@ -235,8 +235,8 @@ function render() {
 
   const be = breakEven(s.score / 100, s.bonus);
   $('split').textContent = be === null
-    ? `双暴分 ${s.score.toFixed(1)}% 下，全区间都是精通 2+2 更优`
-    : `双暴分固定在 ${s.score.toFixed(1)}% 时，精通 ${be.toFixed(0)} 是分界（你现在 ${s.em.toFixed(0)}）`;
+    ? `双暴分 ${s.score.toFixed(1)} 下，全区间都是精通 2+2 更优`
+    : `双暴分固定在 ${s.score.toFixed(1)} 时，精通 ${be.toFixed(0)} 是分界（你现在 ${s.em.toFixed(0)}）`;
 
   const fig = buildPlot(s);
   Plotly.react('plot', fig.traces, fig.layout, { responsive: true });

@@ -1,4 +1,4 @@
-"""血红之证 4 件套 vs 精通 2+2：固定双爆词条预算下的星扩散直伤比。
+"""血红之证 4 件套 vs 精通 2+2：固定双暴词条预算下的星扩散直伤比。
 
 对应 Mathematica 原稿 `docs/ai-ref/瑞希/代码.txt`，
 评审与重构说明见 `docs/ai-output/1-Mizuki/1-code-review.md`。
@@ -37,7 +37,7 @@ EM_RANGE = (0.0, 2000.0)
 BUDGET_RANGE = (0.0, 2.0)
 GRID_N = 400
 
-#: 参考配装：(双爆词条预算, 图上标注)。25/50 是低配，60/120 是高配。
+#: 参考配装：(双暴词条预算, 图上标注)。25/50 是低配，60/120 是高配。
 REFERENCE_BUILDS = ((0.5, "25/50"), (1.2, "60/120"))
 
 
@@ -83,7 +83,7 @@ TEAMS = (
 
 
 def damage_ratio(em_base, crit_budget, team, *, a=SCARLET, b=EM_2P2):
-    """固定双爆词条预算下，方案 a 与方案 b 的期望伤害比。大于 1 表示 a 更优。
+    """固定双暴词条预算下，方案 a 与方案 b 的期望伤害比。大于 1 表示 a 更优。
 
     `em_base` 是两套方案共有的元素精通（武器、主词条、副词条、队友给的）；
     套装本身提供的精通由 `Build.em` 叠加。支持 numpy 数组以做二维扫描。
@@ -148,7 +148,7 @@ def plot_ratio_field(ratio, team, out_path):
         )
 
     ax.set_xlabel("元素精通 / 1000")
-    ax.set_ylabel("暴击 + 暴伤 / 2  （双爆词条预算）")
+    ax.set_ylabel("暴击 + 暴伤 / 2  （双暴词条预算）")
     ax.set_title(f"血红之证 vs 精通 2+2\n星扩散增伤来源：{team.label}", fontsize=12)
     ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v / 1000:g}"))
     ax.set_xlim(*EM_RANGE)

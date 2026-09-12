@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<title>星扩散直伤：精通和双爆的词条分配</title>
+<title>星扩散直伤：精通和双暴的词条分配</title>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
 <style>
   :root { --ink:#222; --muted:#555; --line:#d8d8d8; --bg:#fafafa; }
@@ -35,7 +35,7 @@
 </head>
 <body>
 
-<h1>星扩散直伤：精通和双爆的词条分配</h1>
+<h1>星扩散直伤：精通和双暴的词条分配</h1>
 <div class="sub">悬浮曲线上任意位置可看该点的面板与相对伤害。改下面任意一项，三张图即时重算。</div>
 
 <div class="panel">
@@ -75,7 +75,7 @@ const RAMP = ['#4ec36b', '#2eb37c', '#1fa287', '#20928c', '#27808e', '#2e6f8e',
 // ── 游戏公式 ──
 const emTerm = (em) => EM_COEF * em / (em + EM_OFFSET);
 
-/** b 个双爆词条在暴击率与暴伤之间最优拆分后的配比。 */
+/** b 个双暴词条在暴击率与暴伤之间最优拆分后的配比。 */
 function allocAt(b, cr0, cd0) {
   const aStar = b / 2 + (cd0 / CD_PER_ROLL - cr0 / CR_PER_ROLL) / 2;
   const a = Math.min(Math.max(aStar, 0), b, (100 - cr0) / CR_PER_ROLL);
@@ -86,7 +86,7 @@ const critZoneAt = (b, cr0, cd0) => {
   return 1 + (cr / 100) * (cd / 100);
 };
 
-/** n 个等效词条中给双爆 b 个时的星扩散直伤（任意单位，只用于比较）。 */
+/** n 个等效词条中给双暴 b 个时的星扩散直伤（任意单位，只用于比较）。 */
 function damage(s, n, b) {
   const em = EM_PER_ROLL * (n - b) + s.em;
   return em * (1 + s.bonus + emTerm(em)) * critZoneAt(b, s.cr, s.cd);
@@ -107,7 +107,7 @@ function bestSplit(s, n) {
   return { b, f: f(b) };
 }
 
-/** 伤害不低于 level × fmax 的双爆词条区间。假定曲线单峰。 */
+/** 伤害不低于 level × fmax 的双暴词条区间。假定曲线单峰。 */
 function plateau(s, n, fmax, level) {
   // 格子随 n 加密，保证步长不超过 0.025 词条 —— 否则 n 填大时
   // 平台上标出的「N.N 词」会偏粗（Python 那边用固定 4001 格）。
@@ -178,7 +178,7 @@ function buildA(s) {
       type: 'scatter', mode: 'lines', x: xs, y: ys, customdata: cd,
       name: `共 ${n} 词条`, line: { color, width: 2.2 }, hoverinfo: 'text',
       hovertemplate:
-        `共 %{customdata[0]} 词条　双爆 %{customdata[1]:.1f} · 精通 %{customdata[2]:.1f}<br>` +
+        `共 %{customdata[0]} 词条　双暴 %{customdata[1]:.1f} · 精通 %{customdata[2]:.1f}<br>` +
         `暴击率 %{customdata[3]:.1f}%　暴伤 %{customdata[4]:.1f}%<br>` +
         `精通 %{customdata[5]:.0f}　伤害 ×%{customdata[6]:.4f}<br>` +
         `该曲线最大值的 %{customdata[7]:.1f}%<extra></extra>`,
@@ -223,7 +223,7 @@ function buildA(s) {
   return {
     traces, layout: {
       title: { text: '相对「词条全给精通」的伤害倍数', font: { size: 14 } },
-      xaxis: { title: { text: '给双爆的等效词条数（其余给精通）' }, range: [0, span],
+      xaxis: { title: { text: '给双暴的等效词条数（其余给精通）' }, range: [0, span],
                zeroline: false, gridcolor: '#e8e8e8' },
       yaxis: { title: { text: '星扩散直伤倍数' }, gridcolor: '#e8e8e8' },
       shapes: [{ type: 'line', x0: 0, x1: span, y0: 1, y1: 1,
@@ -256,9 +256,9 @@ function buildB(s) {
       name: `${(s.level * 100).toFixed(0)}% 平台`,
       fill: 'tonexty', fillcolor: 'rgba(220,20,60,0.16)',
       line: { color: 'rgba(220,20,60,0)' }, hoverinfo: 'skip' },
-    { type: 'scatter', mode: 'lines', x: ns, y: bs, name: '最优双爆词条数（图 A 的 ×）',
+    { type: 'scatter', mode: 'lines', x: ns, y: bs, name: '最优双暴词条数（图 A 的 ×）',
       line: { color: '#000', width: 2.6 } },
-    { type: 'scatter', mode: 'lines', x: ns, y: ns, name: '全部词条给双爆',
+    { type: 'scatter', mode: 'lines', x: ns, y: ns, name: '全部词条给双暴',
       line: { color: '#999', width: 1.4, dash: 'dash' } },
     { type: 'scatter', mode: 'lines', x: ns, y: ems, name: '元素精通',
       line: { color: '#2e8b57', width: 2.2 }, xaxis: 'x2', yaxis: 'y2' },
@@ -272,7 +272,7 @@ function buildB(s) {
     traces, layout: {
       grid: { rows: 2, columns: 1, pattern: 'independent', roworder: 'top to bottom' },
       xaxis: { title: { text: '等效词条总数 n' }, gridcolor: '#e8e8e8' },
-      yaxis: { title: { text: '给双爆的等效词条数' }, gridcolor: '#e8e8e8' },
+      yaxis: { title: { text: '给双暴的等效词条数' }, gridcolor: '#e8e8e8' },
       xaxis2: { title: { text: '等效词条总数 n' }, gridcolor: '#e8e8e8' },
       yaxis2: { title: { text: '元素精通' }, titlefont: { color: '#2e8b57' },
                 tickfont: { color: '#2e8b57' }, gridcolor: '#e8e8e8' },

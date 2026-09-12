@@ -24,7 +24,7 @@ def em_term(em: float) -> float:
 
 
 def crit_zone(crit_budget: float, extra_crit_rate: float = 0.0) -> float:
-    """双爆词条预算下的最大期望暴击区 ``1 + 暴击率 × 暴伤``。
+    """双暴词条预算下的最大期望暴击区 ``1 + 暴击率 × 暴伤``。
 
     词条预算 ``crit_budget = 暴击率 + 暴伤/2``，依据是 1 词条 = 3.3% 暴击 = 6.6% 暴伤，
     即 1 暴击等效 2 暴伤。

@@ -1,4 +1,4 @@
-"""精通 vs 双爆：固定等效词条总数下，星扩散直伤的最优分配。
+"""精通 vs 双暴：固定等效词条总数下，星扩散直伤的最优分配。
 
 **算的是「星扩散直伤」**（瑞希天赋「廓然梦生」的「元素精通 1000%」倍率伤害），
 不是「反应星扩散」（占比很小）。所以公式里没有 1446.85，属性是元素精通而非攻击力。
@@ -38,7 +38,7 @@ EM_PER_ROLL = 20.0
 CRIT_RATE_PER_ROLL = 3.3
 CRIT_DMG_PER_ROLL = 6.6
 
-#: 1:2 配平所需的最少双爆词条数。低于它时 暴击率 词条数会算成负数，不成立。
+#: 1:2 配平所需的最少双暴词条数。低于它时 暴击率 词条数会算成负数，不成立。
 BALANCED_FROM = CRIT_DMG_BASE / CRIT_DMG_PER_ROLL - CRIT_RATE_BASE / CRIT_RATE_PER_ROLL
 
 N_CURVES = (15, 20, 25, 30, 35)
@@ -47,7 +47,7 @@ PLATEAU_LEVEL = 0.99
 
 
 def alloc_at(b):
-    """把 `b` 个双爆词条在暴击率与暴伤之间最优拆分后的配比。
+    """把 `b` 个双暴词条在暴击率与暴伤之间最优拆分后的配比。
 
     最大化 ``(c0 + r·a)(d0 + s·(b−a))`` 对 `a` 求导，得
 
@@ -69,25 +69,25 @@ def alloc_at(b):
 
 
 def crit_zone_at(b):
-    """`b` 个双爆词条最优分配后的暴击区 ``1 + 暴击率 × 暴伤``。"""
+    """`b` 个双暴词条最优分配后的暴击区 ``1 + 暴击率 × 暴伤``。"""
     _, crit_rate, crit_dmg = alloc_at(b)
     return 1 + (crit_rate / 100) * (crit_dmg / 100)
 
 
 def damage(n, b):
-    """`n` 个等效词条中给双爆 `b` 个时的星扩散直伤（任意单位，只用于比较）。"""
+    """`n` 个等效词条中给双暴 `b` 个时的星扩散直伤（任意单位，只用于比较）。"""
     em = EM_PER_ROLL * (n - b) + EM_BASE
     return em * (1 + SWIRL_BONUS + em_term(em)) * crit_zone_at(b)
 
 
 def best_split(n):
-    """最优双爆词条数 `b*` 与该 `n` 下的最大伤害。"""
+    """最优双暴词条数 `b*` 与该 `n` 下的最大伤害。"""
     result = minimize_scalar(lambda b: -damage(n, b), bounds=(0.0, n), method="bounded")
     return float(result.x), float(-result.fun)
 
 
 def plateau(n, f_max, level=PLATEAU_LEVEL):
-    """伤害不低于 `level × f_max` 的双爆词条数区间。假定曲线单峰。"""
+    """伤害不低于 `level × f_max` 的双暴词条数区间。假定曲线单峰。"""
     grid = np.linspace(0.0, n, 4001)
     within = grid[damage(n, grid) >= level * f_max]
     return (float(within.min()), float(within.max())) if within.size else (np.nan, np.nan)
@@ -150,9 +150,9 @@ def plot_relative_damage():
                         color=color, path_effects=halo(2.5))
 
     ax.axhline(1.0, ls="--", lw=1.2, color="grey", zorder=1)
-    ax.set_xlabel("给双爆的等效词条数（其余给精通）")
+    ax.set_xlabel("给双暴的等效词条数（其余给精通）")
     ax.set_ylabel("星扩散直伤，相对「该曲线词条全部给精通」的倍数")
-    ax.set_title("星扩散直伤：精通和双爆的词条分配", fontsize=13)
+    ax.set_title("星扩散直伤：精通和双暴的词条分配", fontsize=13)
     ax.grid(alpha=0.3, lw=0.6)
     ax.legend(loc="upper left", fontsize=10, framealpha=0.92)
 
@@ -166,7 +166,7 @@ def plot_relative_damage():
 
 
 def plot_optimal_split():
-    """图 B：最优分配规则 —— 分多少给双爆，容错多大，分完面板长什么样。"""
+    """图 B：最优分配规则 —— 分多少给双暴，容错多大，分完面板长什么样。"""
     ns, bs, _, lo, hi = sweep(np.linspace(*N_RANGE, 121))
 
     fig, (top, bottom) = plt.subplots(
@@ -176,10 +176,10 @@ def plot_optimal_split():
 
     top.fill_between(ns, lo, hi, color="crimson", alpha=0.18,
                      label=f"{PLATEAU_LEVEL:.0%} 平台（伤害差 <1% 的范围）")
-    top.plot(ns, bs, lw=2.4, color="black", label="最优双爆词条数（图 A 的 ×）")
-    top.plot(ns, ns, ls="--", lw=1.4, color="grey", label="全部词条给双爆")
+    top.plot(ns, bs, lw=2.4, color="black", label="最优双暴词条数（图 A 的 ×）")
+    top.plot(ns, ns, ls="--", lw=1.4, color="grey", label="全部词条给双暴")
     top.axhline(0.0, ls=":", lw=1.2, color="grey")
-    top.set_ylabel("给双爆的等效词条数")
+    top.set_ylabel("给双暴的等效词条数")
     top.set_title("星扩散直伤：最优分配规则", fontsize=13)
     top.grid(alpha=0.3, lw=0.6)
     top.legend(loc="upper left", fontsize=10, framealpha=0.92)
@@ -203,7 +203,7 @@ def plot_optimal_split():
 
     fig.supxlabel(
         "基准：上完 buff、不含副词条的面板 —— 精通 951，双暴分 92.1。\n"
-        "n 为副词条中落在精通或双爆上的等效词条总数；只有副词条参与分配。",
+        "n 为副词条中落在精通或双暴上的等效词条总数；只有副词条参与分配。",
         fontsize=9, color="#555555",
     )
 
