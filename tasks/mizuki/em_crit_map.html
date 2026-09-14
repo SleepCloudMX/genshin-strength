@@ -404,9 +404,9 @@ function plotSize() {
 
 /** 画一支梯度箭头（起点像素 px/py）+ 两行标注：权重（归一化增益）与数值（箭头两轴分量）。 */
 function drawArrow(parts, px, py, g, chip, w, h, sx, sy) {
-  // 方向 = 单步增益 × 一有效词条数值（20 精通 / 3.3 双暴分），再按当前刻度折到像素
-  const ax = g.em * EM_PER_ROLL * w / sx;
-  const ay = g.crit * CRIT_PER_ROLL * h / sy;
+  // 方向 = 画面的梯度方向（垂直于等高线）：每像素的增益 =（单步增益 ÷ 一有效词条数值）×（每像素数据量）
+  const ax = g.em / EM_PER_ROLL * sx / w;
+  const ay = g.crit / CRIT_PER_ROLL * sy / h;
   const len = Math.hypot(ax, ay) || 1;
   const L = 31, PAD = 8;
   const dx = ax / len * L, dy = -ay / len * L;   // 像素坐标：向上为负
