@@ -42,7 +42,7 @@
   .bad { color: #c0392b; }
   #plot { width: 100%; }
   /* 叠加层自己做（不经过 Plotly）：坐标系 = 绘图区，66 / 24 必须与 layout 的 margin 一致 */
-  .plotwrap { position: relative; }
+  .plotwrap { position: relative; cursor: crosshair; }
   .ovl { position: absolute; left: 66px; top: 24px; pointer-events: none; overflow: visible; }
   .ovl svg { position: absolute; left: 0; top: 0; overflow: visible; }
   .chip {
@@ -50,6 +50,28 @@
     background: rgba(255,255,255,0.85); border: 1px solid #d8d8d8; border-radius: 3px;
     padding: 1px 5px; transform: translate(8px, -100%);
   }
+  /* 悬浮卡片：位置 → 两个倍数 → 分配条 → 支撑行 */
+  .tip {
+    position: absolute; display: none; min-width: 196px; max-width: 268px;
+    background: #fff; border: 1px solid #d8d8d8; border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    padding: 8px 10px; font-size: 12px; color: #222; font-variant-numeric: tabular-nums;
+  }
+  .tip-head { font-size: 11.5px; color: #666; margin-bottom: 4px; }
+  .tip-hero b { font-size: 18px; }
+  .tip-hero .cap { font-size: 11px; color: #888; margin-left: 6px; }
+  .tip-sub { margin-top: 1px; }
+  .tip-sub b { font-size: 13px; }
+  .tip-sub .cap { font-size: 10.5px; color: #888; margin-left: 6px; }
+  .tip-bad { color: #c0392b; font-weight: 600; margin: 2px 0 4px; }
+  .tip-div { border-top: 1px solid #ececec; margin: 7px 0; }
+  .tip-cap { font-size: 11px; color: #666; margin-bottom: 4px; }
+  .tip-bar { height: 6px; border-radius: 3px; background: #ececec; overflow: hidden; }
+  .tip-bar i { display: block; height: 100%; background: #555; }
+  .tip-barlbl { display: flex; justify-content: space-between; font-size: 11px; color: #444; margin-top: 3px; }
+  .tip-grid { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; row-gap: 2px; font-size: 11.5px; }
+  .tip-grid .k { color: #888; }
+  .tip-note { margin-top: 7px; padding-top: 6px; border-top: 1px solid #ececec; font-size: 11px; color: #888; }
   footer {
     margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line);
     font-size: 12px; color: var(--muted); line-height: 1.7;
@@ -86,6 +108,7 @@
   <div class="ovl" id="ovl">
     <svg id="ovl-svg"></svg>
     <div class="chip" id="chip-pin"></div>
+    <div class="tip" id="tip"></div>
   </div>
 </div>
 
@@ -95,7 +118,7 @@
   <b>点划线</b> = 反转线：下一词条给精通还是给双暴无差别的轨迹（与「最优分配」页的最优路径同一条）。<br>
   倍数为<b>相对基准面板</b>（上完 buff、不含副词条 —— 即「0 词条」）的伤害之比，基准点 = ×1.00；每一点都假设双暴已按约束最优配平。<br>
   <b>参照倍数</b> = 与固定参照「589 精通、5% 暴击、50% 暴伤、星扩散增伤 0%」的伤害之比 —— 它不随上面的输入变化，用来横向比较不同配置（换武器 / 队友 / 套装）。<br>
-  <b>箭头</b> = 下一词条的投入方向：横向与纵向分量之比 = 给精通与给双暴的单步增益之比（相等即 45°）；标注「精通 x · 双暴 y」是它的归一化词条分配，和为 1。悬浮时方向以悬浮框最后一行的「下一词条最优分配」给出，点击固定后才画箭头。<br>
+  <b>箭头</b> = 下一词条的投入方向：横向与纵向分量之比 = 给精通与给双暴的单步增益之比（相等即 45°）；标注「精通 x · 双暴 y」是它的归一化词条分配，和为 1。悬浮时以卡片的「下一词条最优分配」条（比例条 + 数字）给出，点击固定后才画箭头。<br>
   1 等效词条 = 20 精通 = 3.3% 暴击 = 6.6% 暴伤。算的是<b>星扩散直伤</b>（瑞希天赋「廓然梦生」的精通倍率伤害），不是反应星扩散。
   <div class="repo-line">源码与说明：<a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></div>
 </footer>
@@ -229,6 +252,7 @@ const COLORSCALE = [
 ];
 
 let pin = null;        // 固定点（数据坐标）
+let hoverPx = null;    // 悬浮位置（相对绘图区左上角的像素）或 null
 let overlayQueued = false;
 let fieldCache = { key: null, base: null };   // buildBase 的结果，按输入缓存
 
@@ -267,38 +291,9 @@ function buildBase(s) {
     raw.push(rowZ); reasons.push(rowR);
   }
 
-  const inBand = (y) => y >= y0 && y < Math.max(2 * s.cr, s.cd);
-
-  // 主热力图：customdata = [倍数, 精通词条, 双暴词条, 配平后暴击率, 配平后暴伤, 备注]
-  const custom = raw.map((row, j) => row.map((v, i) => {
-    if (v === null) return null;
-    const y = scores[j];
-    const [r, d] = splitAt(y, s.cr, s.cd);
-    let extra = '';
-    if (inBand(y)) {
-      const other = pinnedSide(s) === '暴伤' ? '暴击率' : '暴伤';
-      extra = `<br><span style="color:#888">1:2 配平不可达：${pinnedSide(s)}已压在基准，超额只能加${other}</span>`;
-    }
-    // 下一词条最优分配：两个单步增益的归一化比例（和为 1）
-    const g = nextRollGains(ems[i], y, s);
-    const wEm = Math.round(g.em / (g.em + g.crit) * 100) / 100;
-    return [v, (ems[i] - s.em) / EM_PER_ROLL, (y - y0) / CRIT_PER_ROLL, r, d,
-            (ems[i] - s.em) / EM_PER_ROLL + (y - y0) / CRIT_PER_ROLL, extra,
-            refMultiplier(ems[i], y, s), wEm, 1 - wEm];
-  }));
-
   const traces = [{
-    type: 'heatmap', x: ems, y: scores, z: raw, customdata: custom,
-    colorscale: COLORSCALE, zmin: lo, zmax: hi, hoverongaps: false,
-    hoverlabel: { bgcolor: '#fff', bordercolor: '#d0d0d0', font: { color: '#222', size: 12 } },
-    hovertemplate:
-      '精通 %{x:.0f} 双暴分 %{y:.1f}<br>' +
-      '<b>×%{customdata[0]:.3f}</b>（相较 0 词条）<br>' +
-      '<b>×%{customdata[7]:.3f}</b>（相较精通 589 双暴 5/50 增伤 0）<br>' +
-      '词条：精通 %{customdata[1]:.1f} · 双暴 %{customdata[2]:.1f}（共 %{customdata[5]:.1f}）<br>' +
-      '配平后 %{customdata[3]:.1f}% / %{customdata[4]:.1f}%' +
-      '%{customdata[6]}<br>' +
-      '下一词条最优分配：精通 %{customdata[8]:.2f} · 双暴 %{customdata[9]:.2f}<extra></extra>',
+    type: 'heatmap', x: ems, y: scores, z: raw,
+    colorscale: COLORSCALE, zmin: lo, zmax: hi,
     colorbar: {
       title: { text: '倍数（相对基准）' }, thickness: 16, len: 0.75,
       tickvals: [lo, (lo + hi) / 2, hi],
@@ -315,17 +310,11 @@ function buildBase(s) {
     showscale: false, showlegend: false, hoverinfo: 'skip',
   });
 
-  // 遮罩层（浅灰，悬浮红字）。放在主图层上面：可配处为 null（透明，不挡悬浮）
+  // 遮罩层（浅灰）。放在主图层上面：可配处为 null（透明）；悬浮内容由自绘卡片负责
   const maskZ = reasons.map((row) => row.map((r) => (r ? 1 : null)));
-  const maskCustom = reasons.map((row, j) => row.map((r, i) => (r
-    ? [r, multiplier(ems[i], scores[j], s), refMultiplier(ems[i], scores[j], s)]
-    : null)));
   traces.push({
-    type: 'heatmap', x: ems, y: scores, z: maskZ, customdata: maskCustom,
-    colorscale: [[0, '#ededed'], [1, '#ededed']], showscale: false, hoverongaps: false,
-    hovertemplate: '<b>无法配平</b>：%{customdata[0]}<br>精通 %{x:.0f} 双暴分 %{y:.1f}<br>' +
-                   '×%{customdata[1]:.3f}（相较 0 词条）<br>×%{customdata[2]:.3f}（相较精通 589 双暴 5/50 增伤 0）<extra></extra>',
-    hoverlabel: { bgcolor: '#fff', bordercolor: '#c0392b', font: { color: '#c0392b' } },
+    type: 'heatmap', x: ems, y: scores, z: maskZ,
+    colorscale: [[0, '#ededed'], [1, '#ededed']], showscale: false,
   });
 
   // 反转线：下一词条给精通 / 给双暴 增益相等的轨迹
@@ -404,7 +393,7 @@ function buildPlot(s) {
       shapes: fieldCache.base.shapes.slice(),
       annotations: fieldCache.base.annotations.slice(),
       margin: { t: 24, r: 24, b: 52, l: 66 }, height: 620,
-      hovermode: 'closest', hoverdistance: 30, plot_bgcolor: '#fff', paper_bgcolor: '#fff',
+      hovermode: false, plot_bgcolor: '#fff', paper_bgcolor: '#fff',
     },
   };
 }
@@ -435,7 +424,34 @@ function drawArrow(parts, px, py, g, chip, w, h) {
   chip.style.display = 'block';
 }
 
-/** 重画叠加层（固定点 + 悬浮层）。纯 DOM / SVG，不经过 Plotly。 */
+/** 悬浮卡片的 HTML：位置 → 两个倍数 → 分配比例条 → 支撑行。 */
+function tipHTML(x, y, s) {
+  const info = pointInfo(x, y, s);
+  const head = `<div class="tip-head">精通 ${x.toFixed(0)} · 双暴分 ${fmt1(y)}</div>`;
+  const mult =
+    `<div class="tip-hero"><b>×${info.mult.toFixed(3)}</b><span class="cap">相较 0 词条</span></div>` +
+    `<div class="tip-sub"><b>×${info.ref.toFixed(3)}</b><span class="cap">相较精通 589 双暴 5/50 增伤 0</span></div>`;
+  if (info.state === 'bad') {
+    return head + `<div class="tip-bad">无法配平：${info.reason}</div>` + mult;
+  }
+  const g = nextRollGains(x, y, s);
+  const wEm = Math.round(g.em / (g.em + g.crit) * 100) / 100;
+  return head + mult +
+    '<div class="tip-div"></div>' +
+    '<div class="tip-cap">下一词条最优分配</div>' +
+    `<div class="tip-bar"><i style="width:${(wEm * 100).toFixed(0)}%"></i></div>` +
+    `<div class="tip-barlbl"><span>精通 ${wEm.toFixed(2)}</span><span>双暴 ${(1 - wEm).toFixed(2)}</span></div>` +
+    '<div class="tip-div"></div>' +
+    '<div class="tip-grid">' +
+      `<span class="k">词条</span><span>精通 ${fmt1(info.emRolls)} · 双暴 ${fmt1(info.critRolls)}（共 ${fmt1(info.emRolls + info.critRolls)}）</span>` +
+      `<span class="k">配平后</span><span>暴击 ${fmt1(info.rate)}% / 暴伤 ${fmt1(info.dmg)}%</span>` +
+    '</div>' +
+    (info.state === 'band'
+      ? `<div class="tip-note">1:2 配平不可达：${pinnedSide(s)}压在基准，超额全在${pinnedSide(s) === '暴伤' ? '暴击率' : '暴伤'}</div>`
+      : '');
+}
+
+/** 重画叠加层（固定点 + 悬浮卡片）。纯 DOM / SVG，不经过 Plotly。 */
 function updateOverlay() {
   const base = fieldCache.base;
   const svg = $('ovl-svg');
@@ -452,6 +468,24 @@ function updateOverlay() {
   parts.push(`<text x="3" y="${h - 7}" font-size="11" fill="#111" stroke="#fff" stroke-width="3" stroke-linejoin="round" style="paint-order:stroke">基准 ×1.00</text>`);
   const chipPin = $('chip-pin');
   chipPin.style.display = 'none';
+
+  // 悬浮卡片（自绘，替代库自带的悬浮框）
+  const tip = $('tip');
+  if (hoverPx) {
+    const hx = base.x0 + hoverPx.x / w * (base.x1 - base.x0);
+    const hy = base.y1 - hoverPx.y / h * (base.y1 - base.y0);
+    tip.innerHTML = tipHTML(hx, hy, s);
+    tip.style.display = 'block';
+    // 贴边翻转：右侧放不下就改到鼠标左边，下方放不下就改到上边
+    const tw = tip.offsetWidth, th = tip.offsetHeight;
+    let lx = hoverPx.x + 14, ly = hoverPx.y + 14;
+    if (lx + tw > w - 4) lx = hoverPx.x - 14 - tw;
+    if (ly + th > h - 4) ly = hoverPx.y - 14 - th;
+    tip.style.left = Math.max(lx, 2) + 'px';
+    tip.style.top = Math.max(ly, 2) + 'px';
+  } else {
+    tip.style.display = 'none';
+  }
 
   if (pin) {
     const X = (pin.x - base.x0) / (base.x1 - base.x0) * w;
@@ -528,12 +562,21 @@ function pxToData(p) {
   };
 }
 
+function onWrapMove(e) {
+  hoverPx = pxInPlot(e);
+  queueOverlay();
+}
+
+function onWrapLeave() {
+  if (!hoverPx) return;
+  hoverPx = null;
+  queueOverlay();
+}
+
 function onWrapClick(e) {
   const p = pxInPlot(e);
   if (!p || !fieldCache.base) return;
   pin = pxToData(p);
-  // 清掉当前的悬浮框，免得它和箭头 / 标注叠在一起
-  if (Plotly.Fx && Plotly.Fx.unhover) Plotly.Fx.unhover($('plot'));
   updatePinBox(readState());
   updateOverlay();
 }
@@ -554,6 +597,8 @@ $('cd').value = DEFAULTS.cd;
 
 for (const el of document.querySelectorAll('input')) el.addEventListener('input', render);
 const wrap = document.querySelector('.plotwrap');
+wrap.addEventListener('mousemove', onWrapMove);
+wrap.addEventListener('mouseleave', onWrapLeave);
 wrap.addEventListener('click', onWrapClick);
 window.addEventListener('resize', queueOverlay);
 render();
