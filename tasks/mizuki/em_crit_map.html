@@ -69,6 +69,9 @@
   .tip-bar { height: 6px; border-radius: 3px; background: #ececec; overflow: hidden; }
   .tip-bar i { display: block; height: 100%; background: #555; }
   .tip-barlbl { display: flex; justify-content: space-between; font-size: 11px; color: #444; margin-top: 3px; }
+  .tip-cap.mt { margin-top: 8px; }
+  .tip .s-em { color: #1f7a7a; }
+  .tip .s-cr { color: #9a4f6e; }
   .tip-grid { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; row-gap: 2px; font-size: 11.5px; }
   .tip-grid .k { color: #888; }
   .tip-note { margin-top: 7px; padding-top: 6px; border-top: 1px solid #ececec; font-size: 11px; color: #888; }
@@ -252,6 +255,15 @@ function dlnFdx(x, bonus) {
 function dlnGdy(y, cr0, cd0) {
   const h = 0.05;
   return (Math.log(critZone(y + h, cr0, cd0)) - Math.log(critZone(y - h, cr0, cd0))) / (2 * h);
+}
+
+/** 词条重要性：伤害对精通词条数、双暴词条数的梯度归一化
+ *  （= normalize(20·∂lnD/∂x, 3.3·∂lnD/∂y)；边际平衡处恰为 0.5 / 0.5）。 */
+function importance(x, y, s) {
+  const gu = EM_PER_ROLL * dlnFdx(x, s.bonus);
+  const gv = CRIT_PER_ROLL * dlnGdy(y, s.cr, s.cd);
+  const t = gu + gv;
+  return { em: gu / t, crit: gv / t };
 }
 
 /** 可行域在 y 处的右边界（精通上限 与 43 词条斜线 取小）。 */
@@ -483,11 +495,16 @@ function tipHTML(x, y, s) {
     return head + `<div class="tip-bad">无法配平：${info.reason}</div>` + mult;
   }
   const al = nextAlloc(x, y, s);
+  const im = importance(x, y, s);
+  const lab = (k, v) => `<span class="${k === '精通' ? 's-em' : 's-cr'}">${k} ${v.toFixed(2)}</span>`;
   return head + mult +
     '<div class="tip-div"></div>' +
     '<div class="tip-cap">下一词条最优分配</div>' +
     `<div class="tip-bar"><i style="width:${(al.du * 100).toFixed(0)}%"></i></div>` +
-    `<div class="tip-barlbl"><span>精通 ${al.du.toFixed(2)}</span><span>双暴 ${al.dv.toFixed(2)}</span></div>` +
+    `<div class="tip-barlbl">${lab('精通', al.du)}${lab('双暴', al.dv)}</div>` +
+    '<div class="tip-cap mt">词条重要性</div>' +
+    `<div class="tip-bar"><i style="width:${(im.em * 100).toFixed(0)}%"></i></div>` +
+    `<div class="tip-barlbl">${lab('精通', im.em)}${lab('双暴', im.crit)}</div>` +
     '<div class="tip-div"></div>' +
     '<div class="tip-grid">' +
       `<span class="k">词条</span><span>精通 ${fmt1(info.emRolls)} · 双暴 ${fmt1(info.critRolls)}（共 ${fmt1(info.emRolls + info.critRolls)}）</span>` +
