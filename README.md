@@ -10,7 +10,7 @@
 | --- | --- |
 | [**血红之证 4 件套 vs 精通 2+2**](https://sleepcloudmx.github.io/genshin-strength/tasks/mizuki/scarlet_vs_em22.html) | 两套圣遗物的**比值热力图，同时就是计算器**。填「星扩散增伤 / 基准精通 / 双暴分」，图上的十字准星定位，给出比值、谁更优、精通到多少才翻面；悬浮图上任意位置也能读该点的比值 |
 | [**精通 vs 双暴的最优分配**](https://sleepcloudmx.github.io/genshin-strength/tasks/mizuki/em_vs_crit.html) | 曲线图。悬浮读该点的双暴拆分、精通与伤害倍数；基准面板、星扩散增伤、曲线取哪几个词条数、平台阈值都可改 |
-| [**精通 × 双暴分的伤害地图**](https://sleepcloudmx.github.io/genshin-strength/tasks/mizuki/em_crit_map.html) | 伤害热力图 + 多条等高线。填「星扩散增伤 / 基准精通 / 基准暴击 / 基准暴伤」，悬浮读任意点的倍数与词条数；**点图上任意位置固定一个点**，给出「下一词条」该投哪、并画箭头。灰色区域 = 配不出 |
+| [**精通 × 双暴分的伤害地图**](https://sleepcloudmx.github.io/genshin-strength/tasks/mizuki/em_crit_map.html) | 伤害热力图 + 等高线。轴从基准面板铺到上限（+420 精通 / +43 词条）；悬浮读任意点的倍数、**参照倍数**（589/5/50 固定标尺，跨配置可比）与词条数；**点图上任意位置固定一点**，箭头按梯度给出下一词条的投入方向 |
 
 三个页面都是自包含的单个 HTML 文件（Plotly 走 CDN，需要联网），仓库里也能找到同名文件，用浏览器直接打开即可。
 
