@@ -208,6 +208,7 @@ const COLORSCALE = [
 ];
 
 let pin = null;   // { x, y } 或 null
+let fieldCache = { key: null, base: null };   // buildBase 的结果，按输入缓存（点击固定点时不重算）
 
 function readState() {
   const num = (id, fb) => { const v = parseFloat($(id).value); return Number.isFinite(v) ? v : fb; };
@@ -219,7 +220,8 @@ function readState() {
   };
 }
 
-function buildPlot(s) {
+/** 输入相关的全部重活（网格、热力图、等高线、遮罩、反转线、边界），按输入缓存。 */
+function buildBase(s) {
   // 画布窗口 = 可达域的外接矩形：从基准出发，横到精通上限、纵到 43 词条上限
   const x0 = s.em, x1 = s.em + EM_ADD_MAX;
   const y0 = baseScore(s.cr, s.cd), y1 = y0 + ROLL_LIMIT * CRIT_PER_ROLL;
@@ -353,6 +355,18 @@ function buildPlot(s) {
   }
 
   annotations.push({ x: s.em, y: y0, xanchor: 'left', yanchor: 'bottom', text: '基准 ×1.00', showarrow: false, yshift: 6, font: { size: 11, color: '#111' } });
+
+  return { x0, x1, y0, y1, traces, shapes, annotations };
+}
+
+/** 组图：复用缓存的基础层，点一下只重建固定点那一层（准线 / 标记 / 箭头）。 */
+function buildPlot(s) {
+  const key = `${s.bonus}|${s.em}|${s.cr}|${s.cd}`;
+  if (fieldCache.key !== key) fieldCache = { key, base: buildBase(s) };
+  const { x0, x1, y0, y1 } = fieldCache.base;
+  const traces = fieldCache.base.traces.slice();
+  const shapes = fieldCache.base.shapes.slice();
+  const annotations = fieldCache.base.annotations.slice();
 
   // 固定点：标记 + 十字准线 + 箭头
   if (pin) {
