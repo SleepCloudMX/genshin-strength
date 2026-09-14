@@ -53,7 +53,7 @@
 <h1>精通 × 双暴分的伤害地图</h1>
 <a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a>
 </div>
-<div class="sub">悬浮读任意点的倍数与词条数；点击固定一点，看下一词条的投入方向。改下面任意一项，全图即时重算。</div>
+<div class="sub">鼠标移到哪儿，就给出那儿的「下一词条」箭头与词条分配；点击可固定（点别处即移动）。改下面任意一项，全图即时重算。</div>
 
 <div class="panel">
   <label>星扩散增伤 %<input id="bonus" type="number" step="5"></label>
@@ -80,7 +80,7 @@
   <b>点划线</b> = 反转线：下一词条给精通还是给双暴无差别的轨迹（与「最优分配」页的最优路径同一条）。<br>
   倍数为<b>相对基准面板</b>（上完 buff、不含副词条 —— 即「0 词条」）的伤害之比，基准点 = ×1.00；每一点都假设双暴已按约束最优配平。<br>
   <b>参照倍数</b> = 与固定参照「589 精通、5% 暴击、50% 暴伤、星扩散增伤 0%」的伤害之比 —— 它不随上面的输入变化，用来横向比较不同配置（换武器 / 队友 / 套装）。<br>
-  <b>箭头</b> = 下一词条的投入方向：横向与纵向分量之比 = 给精通与给双暴的单步增益之比（两者相等即 45°）。<br>
+  <b>箭头</b> = 下一词条的投入方向：横向与纵向分量之比 = 给精通与给双暴的单步增益之比（相等即 45°）；标注「精通 x · 双暴 y」是它的归一化词条分配，和为 1。鼠标悬浮实时给出，点击可固定。<br>
   1 等效词条 = 20 精通 = 3.3% 暴击 = 6.6% 暴伤。算的是<b>星扩散直伤</b>（瑞希天赋「廓然梦生」的精通倍率伤害），不是反应星扩散。
   <div class="repo-line">源码与说明：<a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></div>
 </footer>
@@ -213,7 +213,9 @@ const COLORSCALE = [
   [0.889, '#b8de29'], [1.000, '#fde725'],
 ];
 
-let pin = null;   // { x, y } 或 null
+let pin = null;        // 固定点 { x, y } 或 null
+let hoverPt = null;    // 悬浮点（跟随鼠标，只画叠加层）
+let overlayQueued = false;
 let fieldCache = { key: null, base: null };   // buildBase 的结果，按输入缓存（点击固定点时不重算）
 
 function readState() {
@@ -369,58 +371,93 @@ function buildBase(s) {
   return { x0, x1, y0, y1, traces, shapes, annotations };
 }
 
-/** 组图：复用缓存的基础层，点一下只重建固定点那一层（准线 / 标记 / 箭头）。 */
+/** 组图：基础层按输入缓存；固定点 / 悬浮箭头走 overlay（只 relayout，不重绘热力图）。 */
 function buildPlot(s) {
   const key = `${s.bonus}|${s.em}|${s.cr}|${s.cd}`;
   if (fieldCache.key !== key) fieldCache = { key, base: buildBase(s) };
   const { x0, x1, y0, y1 } = fieldCache.base;
-  const traces = fieldCache.base.traces.slice();
-  const shapes = fieldCache.base.shapes.slice();
-  const annotations = fieldCache.base.annotations.slice();
-
-  // 固定点：标记 + 十字准线 + 箭头
-  if (pin) {
-    const info = pointInfo(pin.x, pin.y, s);
-    shapes.push({ type: 'line', x0: pin.x, x1: pin.x, y0, y1, line: { color: '#111', width: 1.2, dash: 'dot' } });
-    shapes.push({ type: 'line', x0, x1, y0: pin.y, y1: pin.y, line: { color: '#111', width: 1.2, dash: 'dot' } });
-    traces.push({
-      type: 'scatter', mode: 'markers', x: [pin.x], y: [pin.y],
-      marker: { symbol: 'cross-thin-open', size: 22, color: '#111', line: { width: 2.5, color: '#111' } },
-      showlegend: false, hoverinfo: 'skip',
-    });
-    if (info.state !== 'bad') {
-      // 箭头 = 下一词条的梯度方向：两分量之比 = 给精通 / 给双暴 的单步增益之比（等增益即 45°）
-      const g = nextRollGains(pin.x, pin.y, s);
-      const m = Math.max(g.em, g.crit);
-      const ux = g.em / m, uy = g.crit / m;
-      const H_PLOT = 544;   // 620 − 上下边距 24 / 52
-      const wPlot = Math.max(($('plot').clientWidth || 900) - 90, 200);
-      const Lpx = 62, PAD = 12;
-      const dx = ux * Lpx * (x1 - x0) / wPlot, dy = uy * Lpx * (y1 - y0) / H_PLOT;
-      // 贴边时按比例缩短（方向不变），画不下就兜底到 30% 长
-      let shrink = 1;
-      shrink = Math.min(shrink, Math.max(x1 - pin.x - PAD * (x1 - x0) / wPlot, 0) / dx);
-      shrink = Math.min(shrink, Math.max(y1 - pin.y - PAD * (y1 - y0) / H_PLOT, 0) / dy);
-      shrink = Math.max(shrink, 0.3);
-      annotations.push({
-        x: pin.x + dx * shrink, y: pin.y + dy * shrink,
-        ax: pin.x, ay: pin.y, xref: 'x', yref: 'y', axref: 'x', ayref: 'y',
-        showarrow: true, arrowhead: 2, arrowwidth: 2.5, arrowcolor: '#111', text: '',
-      });
-    }
-  }
-
   return {
-    traces, layout: {
+    traces: fieldCache.base.traces.slice(),
+    layout: {
       xaxis: { title: { text: '元素精通' }, range: [x0, x1],
                tickvals: niceTicks(x0, x1, 100), zeroline: false, gridcolor: '#e8e8e8' },
       yaxis: { title: { text: '双暴分' }, range: [y0, y1],
                tickvals: niceTicks(y0, y1, 25), gridcolor: '#e8e8e8' },
-      shapes, annotations,
+      shapes: fieldCache.base.shapes.slice(),
+      annotations: fieldCache.base.annotations.slice(),
       margin: { t: 24, r: 24, b: 52, l: 66 }, height: 620,
       hovermode: 'closest', hoverdistance: 30, plot_bgcolor: '#fff', paper_bgcolor: '#fff',
     },
   };
+}
+
+// ── 叠加层：固定点与悬浮箭头，只 shapes / annotations，不重绘热力图 ──
+/** 绘图区尺寸（像素）：宽随窗口，高由 height 与上下边距定死。 */
+function plotSize() {
+  return { w: Math.max(($('plot').clientWidth || 900) - 90, 200), h: 544 };   // 544 = 620 − 24 − 52
+}
+
+/** 下一个词条的梯度箭头 + 词条分配标注（归一化、和为 1）。返回 { annotations }。 */
+function rollOverlay(x, y, base, s) {
+  const { x0, x1, y0, y1 } = base;
+  const g = nextRollGains(x, y, s);
+  const m = Math.max(g.em, g.crit);
+  const ux = g.em / m, uy = g.crit / m;
+  const { w, h } = plotSize();
+  const Lpx = 62, PAD = 12;
+  const dx = ux * Lpx * (x1 - x0) / w, dy = uy * Lpx * (y1 - y0) / h;
+  // 贴边时按比例缩短（方向不变），画不下就兜底到 30% 长
+  let shrink = 1;
+  shrink = Math.min(shrink, Math.max(x1 - x - PAD * (x1 - x0) / w, 0) / dx);
+  shrink = Math.min(shrink, Math.max(y1 - y - PAD * (y1 - y0) / h, 0) / dy);
+  shrink = Math.max(shrink, 0.3);
+  const tipX = x + dx * shrink, tipY = y + dy * shrink;
+  // 两分量之比 = 给精通 / 给双暴 的单步增益之比（相等即 45°）；分配取归一化比例
+  const wEm = Math.round(g.em / (g.em + g.crit) * 100) / 100;
+  const text = `精通 ${wEm.toFixed(2)} · 双暴 ${(1 - wEm).toFixed(2)}`;
+  return {
+    annotations: [
+      { x: tipX, y: tipY, ax: x, ay: y, xref: 'x', yref: 'y', axref: 'x', ayref: 'y',
+        showarrow: true, arrowhead: 2, arrowwidth: 2.5, arrowcolor: '#111', text: '' },
+      { x: tipX, y: tipY, xanchor: 'left', yanchor: 'bottom', yshift: 4,
+        text, showarrow: false, font: { size: 11, color: '#111' },
+        bgcolor: 'rgba(255,255,255,0.85)', bordercolor: '#d8d8d8', borderwidth: 1, borderpad: 2 },
+    ],
+  };
+}
+
+/** 重画叠加层（固定点 + 悬浮点）。只动 shapes / annotations。 */
+function updateOverlay() {
+  const base = fieldCache.base;
+  if (!base) return;
+  const { x0, x1, y0, y1 } = base;
+  const s = readState();
+  const { w, h } = plotSize();
+  const shapes = [], annotations = base.annotations.slice();
+
+  if (pin) {
+    shapes.push({ type: 'line', x0: pin.x, x1: pin.x, y0, y1, line: { color: '#111', width: 1.2, dash: 'dot' } });
+    shapes.push({ type: 'line', x0, x1, y0: pin.y, y1: pin.y, line: { color: '#111', width: 1.2, dash: 'dot' } });
+    const rx = 5 * (x1 - x0) / w, ry = 5 * (y1 - y0) / h;
+    shapes.push({ type: 'circle', x0: pin.x - rx, x1: pin.x + rx, y0: pin.y - ry, y1: pin.y + ry,
+                  line: { color: '#111', width: 1.5 }, fillcolor: '#111' });
+    if (pointInfo(pin.x, pin.y, s).state !== 'bad') {
+      annotations.push(...rollOverlay(pin.x, pin.y, base, s).annotations);
+    }
+  }
+  if (hoverPt && !(pin && hoverPt.x === pin.x && hoverPt.y === pin.y)) {
+    if (pointInfo(hoverPt.x, hoverPt.y, s).state !== 'bad') {
+      annotations.push(...rollOverlay(hoverPt.x, hoverPt.y, base, s).annotations);
+    }
+  }
+  Plotly.relayout($('plot'), { shapes, annotations });
+}
+
+/** 悬浮触发频繁，合作一帧只刷一次叠加层。 */
+function queueOverlay() {
+  if (overlayQueued) return;
+  overlayQueued = true;
+  requestAnimationFrame(() => { overlayQueued = false; updateOverlay(); });
 }
 
 function updatePinBox(s) {
@@ -464,7 +501,21 @@ function onPlotClick(evt) {
   const p = evt.points[0];
   if (p.curveNumber !== 0 && p.curveNumber !== 2) return;   // 只认主图层与遮罩层
   pin = { x: p.x, y: p.y };
-  render();
+  updatePinBox(readState());
+  updateOverlay();
+}
+
+function onPlotHover(evt) {
+  const p = evt && evt.points && evt.points[0];
+  if (!p) return;
+  hoverPt = { x: p.x, y: p.y };
+  queueOverlay();
+}
+
+function onPlotUnhover() {
+  if (!hoverPt) return;
+  hoverPt = null;
+  queueOverlay();
 }
 
 function render() {
@@ -473,6 +524,7 @@ function render() {
   const fig = buildPlot(s);
   Plotly.react('plot', fig.traces, fig.layout, { responsive: true });
   updatePinBox(s);
+  updateOverlay();
 }
 
 $('bonus').value = DEFAULTS.bonus;
@@ -482,7 +534,10 @@ $('cd').value = DEFAULTS.cd;
 
 for (const el of document.querySelectorAll('input')) el.addEventListener('input', render);
 render();
-$('plot').on('plotly_click', onPlotClick);   // .on 要等第一次 render 建立绘图对象之后才存在
+// .on 要等第一次 render 建立绘图对象之后才存在
+$('plot').on('plotly_click', onPlotClick);
+$('plot').on('plotly_hover', onPlotHover);
+$('plot').on('plotly_unhover', onPlotUnhover);
 </script>
 </body>
 </html>
