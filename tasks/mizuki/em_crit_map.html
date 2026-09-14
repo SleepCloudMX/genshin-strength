@@ -74,7 +74,7 @@
 <div id="plot"></div>
 
 <footer>
-  <b>灰 = 配不出</b>（低于基准精通 / 低于基准双暴分 / 超过 43 词条 / 超过 +420 精通），这类点的悬浮框为红字。
+  <b>横纵轴 = 基准 → 上限</b>（+420 精通 / +43 词条）；唯一的灰是斜线以上的「超过 43 词条」，这类点的悬浮框为红字。
   <b>细点线</b> = 1:2 配平可达下界，其下一条横带能配但配不平（悬浮有灰字提示）。
   <b>点划线</b> = 反转线：下一词条给精通还是给双暴无差别的轨迹（与「最优分配」页的最优路径同一条）。<br>
   倍数为<b>相对基准面板</b>（上完 buff、不含副词条）的伤害之比，基准点 = ×1.00；每一点都假设双暴已按约束最优配平。<br>
@@ -99,7 +99,7 @@ const ROLL_LIMIT = 43;     // 总词条上界
 const EM_ADD_MAX = 420;    // 精通上界：副词条精通最多 18 条 × 满值 23 ≈ 420
 
 // 画布
-const EM_MAX = 2000, SCORE_MAX = 200, GRID = 201;
+const GRID = 201;
 const DEFAULTS = { bonus: 100, em: 951, cr: 36, cd: 112.2 };
 
 const baseScore = (cr, cd) => cr + cd / 2;
@@ -170,8 +170,14 @@ function xRight(y, s) {
   return Math.min(
     s.em + EM_ADD_MAX,
     s.em + (ROLL_LIMIT - (y - y0) / CRIT_PER_ROLL) * EM_PER_ROLL,
-    EM_MAX,
   );
+}
+
+/** [lo, hi] 内以 step 为间隔的整齐刻度。 */
+function niceTicks(lo, hi, step) {
+  const out = [];
+  for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(v);
+  return out;
 }
 </script>
 
@@ -187,7 +193,6 @@ const COLORSCALE = [
   [0.444, '#26828e'], [0.556, '#1f9e89'], [0.667, '#35b779'], [0.778, '#6ece58'],
   [0.889, '#b8de29'], [1.000, '#fde725'],
 ];
-const CANDIDATE_LEVELS = [1.2, 1.5, 2, 2.5, 3, 4, 5];
 
 let pin = null;   // { x, y } 或 null
 
@@ -202,8 +207,11 @@ function readState() {
 }
 
 function buildPlot(s) {
-  const ems = Array.from({ length: GRID }, (_, i) => EM_MAX * i / (GRID - 1));
-  const scores = Array.from({ length: GRID }, (_, j) => SCORE_MAX * j / (GRID - 1));
+  // 画布窗口 = 可达域的外接矩形：从基准出发，横到精通上限、纵到 43 词条上限
+  const x0 = s.em, x1 = s.em + EM_ADD_MAX;
+  const y0 = baseScore(s.cr, s.cd), y1 = y0 + ROLL_LIMIT * CRIT_PER_ROLL;
+  const ems = Array.from({ length: GRID }, (_, i) => x0 + (x1 - x0) * i / (GRID - 1));
+  const scores = Array.from({ length: GRID }, (_, j) => y0 + (y1 - y0) * j / (GRID - 1));
 
   // 逐格算倍数 / 原因
   const raw = [], reasons = [];
@@ -222,7 +230,6 @@ function buildPlot(s) {
     raw.push(rowZ); reasons.push(rowR);
   }
 
-  const y0 = baseScore(s.cr, s.cd);
   const inBand = (y) => y >= y0 && y < Math.max(2 * s.cr, s.cd);
 
   // 主热力图：customdata = [倍数, 精通词条, 双暴词条, 配平后暴击率, 配平后暴伤, 备注]
@@ -256,11 +263,11 @@ function buildPlot(s) {
     },
   }];
 
-  // 等高线（层级随可达域自动增减）
-  const levels = CANDIDATE_LEVELS.filter((v) => v > lo && v < hi);
+  // 等高线：0.2 一档，起点按可达域取整
+  const lvlStart = Math.ceil((lo + 1e-9) / 0.2) * 0.2;
   traces.push({
     type: 'contour', x: ems, y: scores, z: raw,
-    contours: { coloring: 'none', showlabels: true, labelfont: { size: 11, color: '#666' } },
+    contours: { coloring: 'none', showlabels: true, labelfont: { size: 11, color: '#666' }, start: lvlStart, end: hi, size: 0.2 },
     line: { color: '#555', width: 1.2, smoothing: 1 },
     showscale: false, showlegend: false, hoverinfo: 'skip',
   });
@@ -302,37 +309,26 @@ function buildPlot(s) {
   const annotations = [];
   const dash = { color: '#9a9a9a', width: 1, dash: 'dash' };
 
-  // 遮罩边界：左竖 + 下横
-  shapes.push({ type: 'line', x0: s.em, x1: s.em, y0: 0, y1: SCORE_MAX, line: dash });
-  shapes.push({ type: 'line', x0: 0, x1: EM_MAX, y0, y1: y0, line: dash });
-  annotations.push({ x: s.em, y: 196, xanchor: 'left', yanchor: 'top', text: '基准精通', showarrow: false, font: { size: 11, color: '#999' } });
-  annotations.push({ x: EM_MAX * 0.995, y: y0, xanchor: 'right', yanchor: 'bottom', text: '基准双暴分', showarrow: false, font: { size: 11, color: '#999' } });
-
-  // 遮罩边界：右侧（精通上限竖切 + 43 词条斜线）
+  // 遮罩边界：43 词条斜线（画布其余边界就是可达域边界本身）
+  const yMeet = y0 + (ROLL_LIMIT - EM_ADD_MAX / EM_PER_ROLL) * CRIT_PER_ROLL;
   const edgeX = [], edgeY = [];
-  for (let y = y0; y <= SCORE_MAX + 1e-9; y += 2) {
+  for (let y = yMeet; y <= y1 + 1e-9; y += 2) {
     const x = xRight(y, s);
-    if (x < s.em) break;
-    edgeX.push(x); edgeY.push(Math.min(y, SCORE_MAX));
+    if (x < x0) break;
+    edgeX.push(x); edgeY.push(Math.min(y, y1));
   }
   traces.push({
     type: 'scatter', mode: 'lines', x: edgeX, y: edgeY,
-    line: { color: '#9a9a9a', width: 1, dash: 'dash' }, hoverinfo: 'skip', showlegend: false,
+    line: dash, hoverinfo: 'skip', showlegend: false,
   });
-  // 右侧边线的两段标签
-  const yMeet = y0 + (ROLL_LIMIT - EM_ADD_MAX / EM_PER_ROLL) * CRIT_PER_ROLL;
-  if (yMeet < SCORE_MAX && s.em + EM_ADD_MAX < EM_MAX) {
-    annotations.push({ x: s.em + EM_ADD_MAX, y: Math.min(yMeet, SCORE_MAX) - 9, xanchor: 'left', yanchor: 'top', text: '+420 精通', showarrow: false, font: { size: 11, color: '#999' } });
-  }
-  if (yMeet < SCORE_MAX) {
-    const yMid = (Math.max(yMeet, y0) + SCORE_MAX) / 2;
-    const xMid = xRight(yMid, s);
-    annotations.push({ x: xMid, y: yMid, xanchor: 'right', yanchor: 'bottom', text: '43 词条上限', showarrow: false, font: { size: 11, color: '#999' } });
+  {
+    const yMid = (yMeet + y1) / 2;
+    annotations.push({ x: xRight(yMid, s), y: yMid, xanchor: 'left', yanchor: 'bottom', text: '43 词条上限', showarrow: false, font: { size: 11, color: '#999' } });
   }
 
   // 配平下界（细点线）
   const yP = Math.max(2 * s.cr, s.cd);
-  if (yP > y0 + 0.5 && yP < SCORE_MAX) {
+  if (yP > y0 + 0.5 && yP < y1) {
     traces.push({
       type: 'scatter', mode: 'lines',
       x: [s.em, xRight(yP, s)], y: [yP, yP],
@@ -346,8 +342,8 @@ function buildPlot(s) {
   // 固定点：标记 + 十字准线 + 箭头
   if (pin) {
     const info = pointInfo(pin.x, pin.y, s);
-    shapes.push({ type: 'line', x0: pin.x, x1: pin.x, y0: 0, y1: SCORE_MAX, line: { color: '#111', width: 1.2, dash: 'dot' } });
-    shapes.push({ type: 'line', x0: 0, x1: EM_MAX, y0: pin.y, y1: pin.y, line: { color: '#111', width: 1.2, dash: 'dot' } });
+    shapes.push({ type: 'line', x0: pin.x, x1: pin.x, y0, y1, line: { color: '#111', width: 1.2, dash: 'dot' } });
+    shapes.push({ type: 'line', x0, x1, y0: pin.y, y1: pin.y, line: { color: '#111', width: 1.2, dash: 'dot' } });
     traces.push({
       type: 'scatter', mode: 'markers', x: [pin.x], y: [pin.y],
       marker: { symbol: 'cross-thin-open', size: 22, color: '#111', line: { width: 2.5, color: '#111' } },
@@ -366,10 +362,10 @@ function buildPlot(s) {
 
   return {
     traces, layout: {
-      xaxis: { title: { text: '元素精通（刻度 /1000）' }, range: [0, EM_MAX],
-               tickvals: [0, 500, 1000, 1500, 2000], ticktext: ['0', '0.5', '1', '1.5', '2'],
-               zeroline: false, gridcolor: '#e8e8e8' },
-      yaxis: { title: { text: '双暴分' }, range: [0, SCORE_MAX], gridcolor: '#e8e8e8' },
+      xaxis: { title: { text: '元素精通' }, range: [x0, x1],
+               tickvals: niceTicks(x0, x1, 100), zeroline: false, gridcolor: '#e8e8e8' },
+      yaxis: { title: { text: '双暴分' }, range: [y0, y1],
+               tickvals: niceTicks(y0, y1, 25), gridcolor: '#e8e8e8' },
       shapes, annotations,
       margin: { t: 24, r: 24, b: 52, l: 66 }, height: 620,
       hovermode: 'closest', hoverdistance: 30, plot_bgcolor: '#fff', paper_bgcolor: '#fff',
