@@ -41,6 +41,15 @@
   .verdict .split { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
   .bad { color: #c0392b; }
   #plot { width: 100%; }
+  /* 叠加层自己做（不经过 Plotly）：坐标系 = 绘图区，66 / 24 必须与 layout 的 margin 一致 */
+  .plotwrap { position: relative; }
+  .ovl { position: absolute; left: 66px; top: 24px; pointer-events: none; overflow: visible; }
+  .ovl svg { position: absolute; left: 0; top: 0; overflow: visible; }
+  .chip {
+    position: absolute; display: none; font-size: 11px; color: #111; white-space: nowrap;
+    background: rgba(255,255,255,0.85); border: 1px solid #d8d8d8; border-radius: 3px;
+    padding: 1px 5px; transform: translate(8px, -100%);
+  }
   footer {
     margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line);
     font-size: 12px; color: var(--muted); line-height: 1.7;
@@ -72,7 +81,14 @@
   <div class="split" id="pin-note"></div>
 </div>
 
-<div id="plot"></div>
+<div class="plotwrap">
+  <div id="plot"></div>
+  <div class="ovl" id="ovl">
+    <svg id="ovl-svg"></svg>
+    <div class="chip" id="chip-hover"></div>
+    <div class="chip" id="chip-pin"></div>
+  </div>
+</div>
 
 <footer>
   <b>横纵轴 = 基准 → 上限</b>（+420 精通 / +43 词条）；唯一的灰是斜线以上的「超过 43 词条」，这类点的悬浮框为红字。
@@ -213,10 +229,10 @@ const COLORSCALE = [
   [0.889, '#b8de29'], [1.000, '#fde725'],
 ];
 
-let pin = null;        // 固定点 { x, y } 或 null
-let hoverPt = null;    // 悬浮点（跟随鼠标，只画叠加层）
+let pin = null;        // 固定点（数据坐标）
+let hoverPx = null;    // 悬浮位置（相对绘图区左上角的像素）或 null
 let overlayQueued = false;
-let fieldCache = { key: null, base: null };   // buildBase 的结果，按输入缓存（点击固定点时不重算）
+let fieldCache = { key: null, base: null };   // buildBase 的结果，按输入缓存
 
 function readState() {
   const num = (id, fb) => { const v = parseFloat($(id).value); return Number.isFinite(v) ? v : fb; };
@@ -397,60 +413,62 @@ function plotSize() {
   return { w: Math.max(($('plot').clientWidth || 900) - 90, 200), h: 544 };   // 544 = 620 − 24 − 52
 }
 
-/** 下一个词条的梯度箭头 + 词条分配标注（归一化、和为 1）。返回 { annotations }。 */
-function rollOverlay(x, y, base, s) {
-  const { x0, x1, y0, y1 } = base;
-  const g = nextRollGains(x, y, s);
+/** 画一支梯度箭头（起点像素 px/py）+ 词条分配标注（归一化、和为 1）。 */
+function drawArrow(parts, px, py, g, chip, w, h) {
   const m = Math.max(g.em, g.crit);
   const ux = g.em / m, uy = g.crit / m;
-  const { w, h } = plotSize();
-  const Lpx = 62, PAD = 12;
-  const dx = ux * Lpx * (x1 - x0) / w, dy = uy * Lpx * (y1 - y0) / h;
+  const L = 62, PAD = 8;
+  const dx = ux * L, dy = -uy * L;   // 像素坐标：向上为负
   // 贴边时按比例缩短（方向不变），画不下就兜底到 30% 长
   let shrink = 1;
-  shrink = Math.min(shrink, Math.max(x1 - x - PAD * (x1 - x0) / w, 0) / dx);
-  shrink = Math.min(shrink, Math.max(y1 - y - PAD * (y1 - y0) / h, 0) / dy);
+  if (dx > 0) shrink = Math.min(shrink, Math.max(w - PAD - px, 0) / dx);
+  if (dy < 0) shrink = Math.min(shrink, Math.max(py - PAD, 0) / -dy);
   shrink = Math.max(shrink, 0.3);
-  const tipX = x + dx * shrink, tipY = y + dy * shrink;
-  // 两分量之比 = 给精通 / 给双暴 的单步增益之比（相等即 45°）；分配取归一化比例
+  const tx = px + dx * shrink, ty = py + dy * shrink;
+  parts.push(`<line x1="${px}" y1="${py}" x2="${tx}" y2="${ty}" stroke="#111" stroke-width="2" marker-end="url(#ovl-arrow)"/>`);
   const wEm = Math.round(g.em / (g.em + g.crit) * 100) / 100;
-  const text = `精通 ${wEm.toFixed(2)} · 双暴 ${(1 - wEm).toFixed(2)}`;
-  return {
-    annotations: [
-      { x: tipX, y: tipY, ax: x, ay: y, xref: 'x', yref: 'y', axref: 'x', ayref: 'y',
-        showarrow: true, arrowhead: 2, arrowwidth: 2.5, arrowcolor: '#111', text: '' },
-      { x: tipX, y: tipY, xanchor: 'left', yanchor: 'bottom', yshift: 4,
-        text, showarrow: false, font: { size: 11, color: '#111' },
-        bgcolor: 'rgba(255,255,255,0.85)', bordercolor: '#d8d8d8', borderwidth: 1, borderpad: 2 },
-    ],
-  };
+  chip.textContent = `精通 ${wEm.toFixed(2)} · 双暴 ${(1 - wEm).toFixed(2)}`;
+  chip.style.left = tx + 'px';
+  chip.style.top = (ty - 4) + 'px';
+  chip.style.display = 'block';
 }
 
-/** 重画叠加层（固定点 + 悬浮点）。只动 shapes / annotations。 */
+/** 重画叠加层（固定点 + 悬浮层）。纯 DOM / SVG，不经过 Plotly。 */
 function updateOverlay() {
   const base = fieldCache.base;
-  if (!base) return;
-  const { x0, x1, y0, y1 } = base;
+  const svg = $('ovl-svg');
+  if (!base || !svg) return;
   const s = readState();
   const { w, h } = plotSize();
-  const shapes = [], annotations = base.annotations.slice();
+  $('ovl').style.width = w + 'px';
+  $('ovl').style.height = h + 'px';
+  svg.setAttribute('width', w);
+  svg.setAttribute('height', h);
 
+  const parts = ['<defs><marker id="ovl-arrow" markerWidth="7" markerHeight="7" refX="5.5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#111"/></marker></defs>'];
+  const chipHover = $('chip-hover'), chipPin = $('chip-pin');
+  chipHover.style.display = 'none';
+  chipPin.style.display = 'none';
+
+  if (hoverPx) {
+    const x = base.x0 + hoverPx.x / w * (base.x1 - base.x0);
+    const y = base.y1 - hoverPx.y / h * (base.y1 - base.y0);
+    if (pointInfo(x, y, s).state !== 'bad') {
+      drawArrow(parts, hoverPx.x, hoverPx.y, nextRollGains(x, y, s), chipHover, w, h);
+    }
+  }
   if (pin) {
-    shapes.push({ type: 'line', x0: pin.x, x1: pin.x, y0, y1, line: { color: '#111', width: 1.2, dash: 'dot' } });
-    shapes.push({ type: 'line', x0, x1, y0: pin.y, y1: pin.y, line: { color: '#111', width: 1.2, dash: 'dot' } });
-    const rx = 5 * (x1 - x0) / w, ry = 5 * (y1 - y0) / h;
-    shapes.push({ type: 'circle', x0: pin.x - rx, x1: pin.x + rx, y0: pin.y - ry, y1: pin.y + ry,
-                  line: { color: '#111', width: 1.5 }, fillcolor: '#111' });
+    const X = (pin.x - base.x0) / (base.x1 - base.x0) * w;
+    const Y = (base.y1 - pin.y) / (base.y1 - base.y0) * h;
+    const cx = Math.min(Math.max(X, 0), w), cy = Math.min(Math.max(Y, 0), h);
+    parts.push(`<line x1="${cx}" y1="0" x2="${cx}" y2="${h}" stroke="#111" stroke-width="1" stroke-dasharray="2,3"/>`);
+    parts.push(`<line x1="0" y1="${cy}" x2="${w}" y2="${cy}" stroke="#111" stroke-width="1" stroke-dasharray="2,3"/>`);
+    parts.push(`<circle cx="${cx}" cy="${cy}" r="4.5" fill="#111"/>`);
     if (pointInfo(pin.x, pin.y, s).state !== 'bad') {
-      annotations.push(...rollOverlay(pin.x, pin.y, base, s).annotations);
+      drawArrow(parts, cx, cy, nextRollGains(pin.x, pin.y, s), chipPin, w, h);
     }
   }
-  if (hoverPt && !(pin && hoverPt.x === pin.x && hoverPt.y === pin.y)) {
-    if (pointInfo(hoverPt.x, hoverPt.y, s).state !== 'bad') {
-      annotations.push(...rollOverlay(hoverPt.x, hoverPt.y, base, s).annotations);
-    }
-  }
-  Plotly.relayout($('plot'), { shapes, annotations });
+  svg.innerHTML = parts.join('');
 }
 
 /** 悬浮触发频繁，合作一帧只刷一次叠加层。 */
@@ -496,26 +514,41 @@ function updatePinBox(s) {
     : '';
 }
 
-function onPlotClick(evt) {
-  if (!evt || !evt.points || !evt.points.length) return;
-  const p = evt.points[0];
-  if (p.curveNumber !== 0 && p.curveNumber !== 2) return;   // 只认主图层与遮罩层
-  pin = { x: p.x, y: p.y };
+/** 鼠标位置 → 绘图区内像素；在绘图区外返回 null。 */
+function pxInPlot(e) {
+  const r = $('ovl').getBoundingClientRect();
+  const { w, h } = plotSize();
+  const px = e.clientX - r.left, py = e.clientY - r.top;
+  return (px < 0 || px > w || py < 0 || py > h) ? null : { x: px, y: py };
+}
+
+/** 绘图区像素 → 数据坐标。 */
+function pxToData(p) {
+  const base = fieldCache.base;
+  const { w, h } = plotSize();
+  return {
+    x: base.x0 + p.x / w * (base.x1 - base.x0),
+    y: base.y1 - p.y / h * (base.y1 - base.y0),
+  };
+}
+
+function onWrapMove(e) {
+  hoverPx = pxInPlot(e);
+  queueOverlay();
+}
+
+function onWrapLeave() {
+  if (!hoverPx) return;
+  hoverPx = null;
+  queueOverlay();
+}
+
+function onWrapClick(e) {
+  const p = pxInPlot(e);
+  if (!p || !fieldCache.base) return;
+  pin = pxToData(p);
   updatePinBox(readState());
   updateOverlay();
-}
-
-function onPlotHover(evt) {
-  const p = evt && evt.points && evt.points[0];
-  if (!p) return;
-  hoverPt = { x: p.x, y: p.y };
-  queueOverlay();
-}
-
-function onPlotUnhover() {
-  if (!hoverPt) return;
-  hoverPt = null;
-  queueOverlay();
 }
 
 function render() {
@@ -533,11 +566,12 @@ $('cr').value = DEFAULTS.cr;
 $('cd').value = DEFAULTS.cd;
 
 for (const el of document.querySelectorAll('input')) el.addEventListener('input', render);
+const wrap = document.querySelector('.plotwrap');
+wrap.addEventListener('mousemove', onWrapMove);
+wrap.addEventListener('mouseleave', onWrapLeave);
+wrap.addEventListener('click', onWrapClick);
+window.addEventListener('resize', queueOverlay);
 render();
-// .on 要等第一次 render 建立绘图对象之后才存在
-$('plot').on('plotly_click', onPlotClick);
-$('plot').on('plotly_hover', onPlotHover);
-$('plot').on('plotly_unhover', onPlotUnhover);
 </script>
 </body>
 </html>
