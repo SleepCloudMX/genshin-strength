@@ -53,7 +53,7 @@
 <h1>精通 × 双暴分的伤害地图</h1>
 <a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a>
 </div>
-<div class="sub">悬浮读任意点的倍数与词条数；点击固定一点，看下一词条该投哪。改下面任意一项，全图即时重算。</div>
+<div class="sub">悬浮读任意点的倍数与词条数；点击固定一点，看下一词条的投入方向。改下面任意一项，全图即时重算。</div>
 
 <div class="panel">
   <label>星扩散增伤 %<input id="bonus" type="number" step="5"></label>
@@ -80,6 +80,7 @@
   <b>点划线</b> = 反转线：下一词条给精通还是给双暴无差别的轨迹（与「最优分配」页的最优路径同一条）。<br>
   倍数为<b>相对基准面板</b>（上完 buff、不含副词条）的伤害之比，基准点 = ×1.00；每一点都假设双暴已按约束最优配平。<br>
   <b>参照倍数</b> = 与固定参照「589 精通、5% 暴击、50% 暴伤」的伤害之比 —— 它不随上面的输入变化，用来横向比较不同配置（换武器 / 队友 / 套装）。<br>
+  <b>箭头</b> = 下一词条的投入方向：横向与纵向分量之比 = 给精通与给双暴的单步增益之比（两者相等即 45°）。<br>
   1 等效词条 = 20 精通 = 3.3% 暴击 = 6.6% 暴伤。算的是<b>星扩散直伤</b>（瑞希天赋「廓然梦生」的精通倍率伤害），不是反应星扩散。
   <div class="repo-line">源码与说明：<a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></div>
 </footer>
@@ -364,10 +365,21 @@ function buildPlot(s) {
       showlegend: false, hoverinfo: 'skip',
     });
     if (info.state !== 'bad') {
+      // 箭头 = 下一词条的梯度方向：两分量之比 = 给精通 / 给双暴 的单步增益之比（等增益即 45°）
       const g = nextRollGains(pin.x, pin.y, s);
-      const toCrit = g.crit >= g.em;
+      const m = Math.max(g.em, g.crit);
+      const ux = g.em / m, uy = g.crit / m;
+      const H_PLOT = 544;   // 620 − 上下边距 24 / 52
+      const wPlot = Math.max(($('plot').clientWidth || 900) - 90, 200);
+      const Lpx = 62, PAD = 12;
+      const dx = ux * Lpx * (x1 - x0) / wPlot, dy = uy * Lpx * (y1 - y0) / H_PLOT;
+      // 贴边时按比例缩短（方向不变），画不下就兜底到 30% 长
+      let shrink = 1;
+      shrink = Math.min(shrink, Math.max(x1 - pin.x - PAD * (x1 - x0) / wPlot, 0) / dx);
+      shrink = Math.min(shrink, Math.max(y1 - pin.y - PAD * (y1 - y0) / H_PLOT, 0) / dy);
+      shrink = Math.max(shrink, 0.3);
       annotations.push({
-        x: pin.x + (toCrit ? 0 : 130), y: pin.y + (toCrit ? 13 : 0),
+        x: pin.x + dx * shrink, y: pin.y + dy * shrink,
         ax: pin.x, ay: pin.y, xref: 'x', yref: 'y', axref: 'x', ayref: 'y',
         showarrow: true, arrowhead: 2, arrowwidth: 2.5, arrowcolor: '#111', text: '',
       });
@@ -414,9 +426,7 @@ function updatePinBox(s) {
     `词条：精通 ${fmt1(info.emRolls)} · 双暴 ${fmt1(info.critRolls)}（共 ${fmt1(info.emRolls + info.critRolls)}）`;
   ref.textContent = `参照倍数（589/5/50）：×${info.ref.toFixed(4)}`;
   const g = nextRollGains(info.x, info.y, s);
-  const toCrit = g.crit >= g.em;
-  next.textContent = `下一词条：给${toCrit ? '双暴' : '精通'}（＋${pct2(toCrit ? g.crit : g.em)}）` +
-    `，给${toCrit ? '精通' : '双暴'} ＋${pct2(toCrit ? g.em : g.crit)}`;
+  next.textContent = `下一词条增益：精通 ＋${pct2(g.em)} · 双暴 ＋${pct2(g.crit)}`;
   note.textContent = info.state === 'band'
     ? `注：此双暴分下 1:2 配平不可达，${pinnedSide(s)}压在基准，超额全在${pinnedSide(s) === '暴伤' ? '暴击率' : '暴伤'}。`
     : '';
