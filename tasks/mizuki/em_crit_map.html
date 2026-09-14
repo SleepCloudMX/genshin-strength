@@ -41,9 +41,9 @@
   .verdict .split { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
   .bad { color: #c0392b; }
   #plot { width: 100%; }
-  /* 叠加层自己做（不经过 Plotly）：坐标系 = 绘图区，66 / 24 必须与 layout 的 margin 一致 */
+  /* 叠加层自己做（不经过 Plotly）：位置与尺寸由 JS 按 Plotly 实际绘图区几何设置（colorbar 会撑大右边距） */
   .plotwrap { position: relative; cursor: crosshair; }
-  .ovl { position: absolute; left: 66px; top: 24px; pointer-events: none; overflow: visible; }
+  .ovl { position: absolute; pointer-events: none; overflow: visible; }
   .ovl svg { position: absolute; left: 0; top: 0; overflow: visible; }
   .chip {
     position: absolute; display: none; font-size: 11px; color: #111; white-space: nowrap;
@@ -114,9 +114,9 @@
 </div>
 
 <footer>
-  <b>图上</b>：颜色 = 倍数；灰 = 配不出（只有「超过 43 词条」一种，卡片会红字说明）；细点线 = 1:2 配平可达下界，以下能配但配不平（基准的偏斜还没补完）；点划线 = 反转线（下一词条给精通还是给双暴都一样，即「最优分配」页的最优路径）。<br>
+  <b>图上</b>：颜色 = 倍数；灰 = 配不出（只有「超过 43 词条」一种，卡片会红字说明）；细点线 = 1:2 配平可达下界，以下能配但配不平（基准的偏斜还没补完）；点划线 = 反转线（同词条最优路径：当前点两个投向的边际增益相等；与「最优分配」页的最优路径精确一致）。<br>
   <b>数值</b>：倍数 = 该点伤害 ÷ 基准面板（上完 buff、不含副词条）的伤害，基准点 ×1.00；卡片与固定框里的另一个是固定参照「589 精通、5% 暴击、50% 暴伤、增伤 0%」之比，跨配置可比。每点都假设双暴已按约束最优配平；1 词条 = 20 精通 = 3.3% 暴击 = 6.6% 暴伤。<br>
-  <b>操作</b>：悬浮出卡片；点击固定并画箭头 —— 箭头 = <b>画面上的梯度方向</b>（垂直于等高线）：每像素的增益 =（单步增益 ÷ 一有效词条数值）×（每像素数据量）；chip 两行：<b>权重</b>（归一化增益，和为 1）与<b>数值</b>（箭头在两轴上各走多少）。<br>
+  <b>操作</b>：悬浮出卡片；点击固定并画箭头 —— 箭头 = <b>下一词条位移向量的方向</b>：权重 × 词条数值（精通 w·20、双暴 w·3.3）按两轴刻度映射到画面，长度固定、只指示方向；chip 两行：<b>权重</b>（归一化增益，和为 1）与<b>数值</b>（权重 × 词条数值，折合 1 词条）。<br>
   轴的范围 = 基准 → 上限（+420 精通 / +43 词条）。算的是<b>星扩散直伤</b>（瑞希天赋「廓然梦生」的精通倍率伤害），不是反应星扩散。
   <div class="repo-line">源码与说明：<a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></div>
 </footer>
@@ -219,6 +219,24 @@ function nextRollGains(x, y, s) {
   };
 }
 
+/** 暴击区 G(y) = 1 + r·d/10⁴。 */
+function critZone(y, cr0, cd0) {
+  const [r, d] = splitAt(y, cr0, cd0);
+  return 1 + (r / 100) * (d / 100);
+}
+
+/** d lnF / dx（解析）：F = x·(1 + 增伤 + 6x/(x+2000))。 */
+function dlnFdx(x, bonus) {
+  const dEm = EM_COEF * EM_OFFSET / ((x + EM_OFFSET) * (x + EM_OFFSET));
+  return 1 / x + dEm / (1 + bonus + emTerm(x));
+}
+
+/** d lnG / dy（中心差分，h = 0.05；G 的一阶导连续，二阶导只在配平带边与 100% 上限处折）。 */
+function dlnGdy(y, cr0, cd0) {
+  const h = 0.05;
+  return (Math.log(critZone(y + h, cr0, cd0)) - Math.log(critZone(y - h, cr0, cd0))) / (2 * h);
+}
+
 /** 可行域在 y 处的右边界（精通上限 与 43 词条斜线 取小）。 */
 function xRight(y, s) {
   const y0 = baseScore(s.cr, s.cd);
@@ -253,6 +271,7 @@ let pin = null;        // 固定点（数据坐标）
 let hoverPx = null;    // 悬浮位置（相对绘图区左上角的像素）或 null
 let overlayQueued = false;
 let fieldCache = { key: null, base: null };   // buildBase 的结果，按输入缓存
+let afterplotHooked = false;   // gd.on 必须等首次 Plotly.react 之后才存在
 
 function readState() {
   const num = (id, fb) => { const v = parseFloat($(id).value); return Number.isFinite(v) ? v : fb; };
@@ -315,11 +334,13 @@ function buildBase(s) {
     colorscale: [[0, '#ededed'], [1, '#ededed']], showscale: false,
   });
 
-  // 反转线：下一词条给精通 / 给双暴 增益相等的轨迹
+  // 反转线：同词条最优路径 —— 等词条预算的驻点：20·d(lnF)/dx = 3.3·d(lnG)/dy
+  // （「当前点两个投向的边际增益相等」；与「最优分配」页的最优路径精确一致）
   const revX = [], revY = [];
   for (const y of scores) {
     if (infeasibleReason(s.em, y, s)) continue;   // 该行不可达
-    const f = (x) => { const g = nextRollGains(x, y, s); return g.em - g.crit; };
+    const rhs = CRIT_PER_ROLL * dlnGdy(y, s.cr, s.cd);
+    const f = (x) => EM_PER_ROLL * dlnFdx(x, s.bonus) - rhs;
     let a = s.em, b = xRight(y, s);
     if (b <= a || f(a) * f(b) > 0) continue;
     for (let k = 0; k < 40; k++) {
@@ -397,16 +418,22 @@ function buildPlot(s) {
 }
 
 // ── 叠加层：固定点与悬浮箭头，只 shapes / annotations，不重绘热力图 ──
-/** 绘图区尺寸（像素）：宽随窗口，高由 height 与上下边距定死。 */
-function plotSize() {
-  return { w: Math.max(($('plot').clientWidth || 900) - 90, 200), h: 544 };   // 544 = 620 − 24 − 52
+/** 绘图区真实几何（像素，相对 .plotwrap）：读 Plotly 渲染后的实际值。
+ *  colorbar 等会把右边距撑得比 layout.margin 更大，不能按声明边距硬编码。 */
+function plotGeom() {
+  const fl = $('plot')._fullLayout;
+  if (fl && fl.xaxis && fl.xaxis._length && fl.yaxis && fl.yaxis._length) {
+    return { left: fl.xaxis._offset, top: fl.yaxis._offset, w: fl.xaxis._length, h: fl.yaxis._length };
+  }
+  return { left: 66, top: 24, w: Math.max(($('plot').clientWidth || 900) - 90, 200), h: 544 };   // 首帧兜底：声明边距
 }
 
-/** 画一支梯度箭头（起点像素 px/py）+ 两行标注：权重（归一化增益）与数值（箭头两轴分量）。 */
+/** 画一支箭头（起点像素 px/py）+ 两行标注：权重（归一化增益）与数值（权重 × 词条数值）。
+ *  方向 = 下一词条位移向量（权重 × 词条数值：精通 w·20、双暴 w·3.3）按两轴刻度映射到画面；
+ *  长度固定，只指示方向。 */
 function drawArrow(parts, px, py, g, chip, w, h, sx, sy) {
-  // 方向 = 画面的梯度方向（垂直于等高线）：每像素的增益 =（单步增益 ÷ 一有效词条数值）×（每像素数据量）
-  const ax = g.em / EM_PER_ROLL * sx / w;
-  const ay = g.crit / CRIT_PER_ROLL * sy / h;
+  const ax = g.em * EM_PER_ROLL * w / sx;       // ∝ (w_em·20) × 每精通像素
+  const ay = g.crit * CRIT_PER_ROLL * h / sy;   // ∝ (w_crit·3.3) × 每双暴像素
   const len = Math.hypot(ax, ay) || 1;
   const L = 31, PAD = 8;
   const dx = ax / len * L, dy = -ay / len * L;   // 像素坐标：向上为负
@@ -417,13 +444,12 @@ function drawArrow(parts, px, py, g, chip, w, h, sx, sy) {
   shrink = Math.max(shrink, 0.3);
   const tx = px + dx * shrink, ty = py + dy * shrink;
   parts.push(`<line x1="${px}" y1="${py}" x2="${tx}" y2="${ty}" stroke="#111" stroke-width="2" marker-end="url(#ovl-arrow)"/>`);
-  // 数值 = 按实际画出的箭头，两根轴各走多少
-  const numX = (tx - px) * sx / w, numY = (py - ty) * sy / h;
-  const f2 = (v) => (v >= 10 ? v.toFixed(1) : v.toFixed(2));
+  // 数值 = 权重 × 词条数值（折合 1 词条：w + (1−w) = 1）；与画出的箭头方向一致，长度无关
   const wEm = Math.round(g.em / (g.em + g.crit) * 100) / 100;
+  const f2 = (v) => (v >= 10 ? v.toFixed(1) : v.toFixed(2));
   chip.innerHTML =
     `权重：精通 ${wEm.toFixed(2)} · 双暴 ${(1 - wEm).toFixed(2)}<br>` +
-    `数值：精通 ${f2(numX)} · 双暴 ${f2(numY)}`;
+    `数值：精通 ${f2(wEm * EM_PER_ROLL)} · 双暴 ${f2((1 - wEm) * CRIT_PER_ROLL)}`;
   chip.style.left = tx + 'px';
   chip.style.top = (ty - 4) + 'px';
   chip.style.display = 'block';
@@ -462,9 +488,13 @@ function updateOverlay() {
   const svg = $('ovl-svg');
   if (!base || !svg) return;
   const s = readState();
-  const { w, h } = plotSize();
-  $('ovl').style.width = w + 'px';
-  $('ovl').style.height = h + 'px';
+  const geom = plotGeom();
+  const { w, h } = geom;
+  const ovl = $('ovl');
+  ovl.style.left = geom.left + 'px';
+  ovl.style.top = geom.top + 'px';
+  ovl.style.width = w + 'px';
+  ovl.style.height = h + 'px';
   svg.setAttribute('width', w);
   svg.setAttribute('height', h);
 
@@ -554,7 +584,7 @@ function updatePinBox(s) {
 /** 鼠标位置 → 绘图区内像素；在绘图区外返回 null。 */
 function pxInPlot(e) {
   const r = $('ovl').getBoundingClientRect();
-  const { w, h } = plotSize();
+  const { w, h } = plotGeom();
   const px = e.clientX - r.left, py = e.clientY - r.top;
   return (px < 0 || px > w || py < 0 || py > h) ? null : { x: px, y: py };
 }
@@ -562,7 +592,7 @@ function pxInPlot(e) {
 /** 绘图区像素 → 数据坐标。 */
 function pxToData(p) {
   const base = fieldCache.base;
-  const { w, h } = plotSize();
+  const { w, h } = plotGeom();
   return {
     x: base.x0 + p.x / w * (base.x1 - base.x0),
     y: base.y1 - p.y / h * (base.y1 - base.y0),
@@ -592,7 +622,13 @@ function render() {
   const s = readState();
   $('score').textContent = fmt1(baseScore(s.cr, s.cd));
   const fig = buildPlot(s);
-  Plotly.react('plot', fig.traces, fig.layout, { responsive: true });
+  Plotly.react('plot', fig.traces, fig.layout, { responsive: true }).then(() => {
+    if (!afterplotHooked) {
+      $('plot').on('plotly_afterplot', queueOverlay);
+      afterplotHooked = true;
+    }
+    queueOverlay();   // 渲染完成后再同步一次真实几何
+  });
   updatePinBox(s);
   updateOverlay();
 }
@@ -607,7 +643,7 @@ const wrap = document.querySelector('.plotwrap');
 wrap.addEventListener('mousemove', onWrapMove);
 wrap.addEventListener('mouseleave', onWrapLeave);
 wrap.addEventListener('click', onWrapClick);
-window.addEventListener('resize', queueOverlay);
+window.addEventListener('resize', () => { queueOverlay(); requestAnimationFrame(queueOverlay); });   // 第二帧等 responsive 重排落定
 render();
 </script>
 </body>
