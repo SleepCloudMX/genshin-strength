@@ -50,6 +50,8 @@
     background: rgba(255,255,255,0.85); border: 1px solid #d8d8d8; border-radius: 3px;
     padding: 1px 5px; transform: translate(8px, -100%);
   }
+  .chip .c-p { color: #111; }        /* 最优分配（黑箭头） */
+  .chip .c-g { color: #4a6fa5; }     /* 归一化梯度（钢蓝箭头） */
   /* 悬浮卡片：位置 → 两个倍数 → 分配条 → 支撑行 */
   .tip {
     position: absolute; display: none; min-width: 196px; max-width: 268px;
@@ -87,7 +89,7 @@
 <h1>精通 × 双暴分的伤害地图</h1>
 <a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a>
 </div>
-<div class="sub">悬浮读该点的完整数值、「下一词条最优分配」与「词条重要性」；点击固定该点，画出双箭头（黑 = 最优分配、钢蓝 = 梯度；点别处即移动）。改下面任意一项，全图即时重算。</div>
+<div class="sub">悬浮出卡片与双箭头（黑 = 最优分配、钢蓝 = 梯度）；点击固定该点并显示标注（点别处即移动）。改下面任意一项，全图即时重算。</div>
 
 <div class="panel">
   <label>星扩散增伤 %<input id="bonus" type="number" step="5"></label>
@@ -119,7 +121,7 @@
 <footer>
   <b>图上</b>：颜色 = 倍数；灰 = 配不出（只有「超过 43 词条」一种，卡片会红字说明）；细点线 = 1:2 配平可达下界，以下能配但配不平（基准的偏斜还没补完）；橙点划线 = 最优分配线（每个词条数 n 的最优位置；线上「词条重要性」恰为 0.50 · 0.50；与「最优分配」页的最优路径一致）。<br>
   <b>数值</b>：倍数 = 该点伤害 ÷ 基准面板（上完 buff、不含副词条）的伤害，基准点 ×1.00；卡片与固定框里的另一个是固定参照「589 精通、5% 暴击、50% 暴伤、增伤 0%」之比，跨配置可比。每点都假设双暴已按约束最优配平；1 词条 = 20 精通 = 3.3% 暴击 = 6.6% 暴伤。<br>
-  <b>操作</b>：悬浮出卡片；点击固定并画双箭头 —— <b>黑（主）</b> = 「下一词条」的最优分配方向（只拆新的一条：α·20 精通 + (1−α)·3.3 双暴，已有词条不动；α 使落点命中最优分配线，够不到则整条给更值的一侧）；<b>钢蓝（次）</b> = 梯度方向（画面空间每像素增益最大，⊥ 等高线）。两箭头都按两轴刻度映射、长度固定、只指示方向；chip 两行：<b>权重</b>（α 与 1−α）与<b>数值</b>（α·20 / (1−α)·3.3）。<br>
+  <b>操作</b>：悬浮即出卡片与双箭头（卡片自动避开右上——箭头只在右上，不会遮挡）；点击固定该点，chip 两行 —— <b>归一化梯度</b>（钢蓝，即卡片里的「词条重要性」）与<b>最优的分配</b>（黑）。<b>黑（主）</b> = 「下一词条」的最优分配方向（只拆新的一条：α·20 精通 + (1−α)·3.3 双暴，已有词条不动；α 使落点命中最优分配线，够不到则整条给更值的一侧）；<b>钢蓝（次）</b> = 梯度方向（画面空间每像素增益最大，⊥ 等高线）。两箭头都按两轴刻度映射、长度固定、只指示方向。<br>
   轴的范围 = 基准 → 上限（+420 精通 / +43 词条）。算的是<b>星扩散直伤</b>（瑞希天赋「廓然梦生」的精通倍率伤害），不是反应星扩散。
   <div class="repo-line">源码与说明：<a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></div>
 </footer>
@@ -474,26 +476,30 @@ function arrowAt(parts, px, py, ax, ay, w, h, color, width, marker) {
   return { tx, ty };
 }
 
-/** 主箭头（黑）：「下一词条」最优分配的拆分方向 + chip（权重 / 数值）。
- *  方向 = (du·20 精通, dv·3.3 双暴) 按两轴刻度映射（du/dv ∈ [0, 1]，和 = 1）；长度固定，只指示方向。 */
-function drawArrow(parts, px, py, al, chip, w, h, sx, sy) {
+/** 画双箭头（悬浮与点击共用；两箭头只会指向右上方）：
+ *  黑（主）= 「下一词条」最优分配的拆分方向 (du·20, dv·3.3) 按两轴刻度映射；
+ *  钢蓝（次）= 画面空间梯度（每像素 lnD 增益最大，⊥ 等高线）。返回主箭头端点（chip 锚点）。 */
+function drawArrows(parts, px, py, x, y, s, w, h, sx, sy) {
+  const al = nextAlloc(x, y, s);
   const t = arrowAt(parts, px, py,
     al.du * EM_PER_ROLL * w / sx, al.dv * CRIT_PER_ROLL * h / sy,
     w, h, '#111', 2.2, 'ovl-arrow-p');
-  const f2 = (v) => (v >= 10 ? v.toFixed(1) : v.toFixed(2));
-  chip.innerHTML =
-    `权重：精通 ${al.du.toFixed(2)} · 双暴 ${al.dv.toFixed(2)}<br>` +
-    `数值：精通 ${f2(al.du * EM_PER_ROLL)} · 双暴 ${f2(al.dv * CRIT_PER_ROLL)}`;
-  chip.style.left = t.tx + 'px';
-  chip.style.top = (t.ty - 4) + 'px';
-  chip.style.display = 'block';
+  arrowAt(parts, px, py,
+    dlnFdx(x, s.bonus) * sx / w, dlnGdy(y, s.cr, s.cd) * sy / h,
+    w, h, '#4a6fa5', 1.6, 'ovl-arrow-g');
+  return t;
 }
 
-/** 次箭头（钢蓝）：画面空间梯度 —— 每像素 lnD 增益最大的方向（⊥ 等高线），无标注。 */
-function gradArrow(parts, px, py, x, y, s, w, h, sx, sy) {
-  const ax = dlnFdx(x, s.bonus) * sx / w;
-  const ay = dlnGdy(y, s.cr, s.cd) * sy / h;
-  arrowAt(parts, px, py, ax, ay, w, h, '#4a6fa5', 1.6, 'ovl-arrow-g');
+/** 点击固定的 chip 标注（两行分别用对应箭头的颜色；不显示数值）。 */
+function setChip(chip, x, y, s, anchorX, anchorY) {
+  const im = importance(x, y, s);
+  const al = nextAlloc(x, y, s);
+  chip.innerHTML =
+    `<span class="c-g">归一化梯度：精通 ${im.em.toFixed(2)} · 双暴 ${im.crit.toFixed(2)}</span><br>` +
+    `<span class="c-p">最优的分配：精通 ${al.du.toFixed(2)} · 双暴 ${al.dv.toFixed(2)}</span>`;
+  chip.style.left = anchorX + 'px';
+  chip.style.top = (anchorY - 4) + 'px';
+  chip.style.display = 'block';
 }
 
 /** 悬浮卡片的 HTML：位置 → 两个倍数 → 分配比例条 → 支撑行。 */
@@ -559,13 +565,22 @@ function updateOverlay() {
     const hy = base.y1 - hoverPx.y / h * (base.y1 - base.y0);
     tip.innerHTML = tipHTML(hx, hy, s);
     tip.style.display = 'block';
-    // 贴边翻转：右侧放不下就改到鼠标左边，下方放不下就改到上边
+    // 卡片避开「第一象限」（右上）——双箭头只指右上，放其他三象限就不遮挡箭头：右下 → 左下 → 左上
     const tw = tip.offsetWidth, th = tip.offsetHeight;
-    let lx = hoverPx.x + 14, ly = hoverPx.y + 14;
-    if (lx + tw > w - 4) lx = hoverPx.x - 14 - tw;
-    if (ly + th > h - 4) ly = hoverPx.y - 14 - th;
+    let lx, ly;
+    if (hoverPx.y + 14 + th <= h - 4) {
+      ly = hoverPx.y + 14;
+      lx = (hoverPx.x + 14 + tw <= w - 4) ? hoverPx.x + 14 : hoverPx.x - 14 - tw;
+    } else {
+      ly = hoverPx.y - 14 - th;
+      lx = hoverPx.x - 14 - tw;
+    }
     tip.style.left = Math.max(lx, 2) + 'px';
     tip.style.top = Math.max(ly, 2) + 'px';
+    // 悬浮也画双箭头（不带 chip；卡片已避开，不会遮挡）
+    if (pointInfo(hx, hy, s).state !== 'bad') {
+      drawArrows(parts, hoverPx.x, hoverPx.y, hx, hy, s, w, h, base.x1 - base.x0, base.y1 - base.y0);
+    }
   } else {
     tip.style.display = 'none';
   }
@@ -578,8 +593,8 @@ function updateOverlay() {
     parts.push(`<line x1="0" y1="${cy}" x2="${w}" y2="${cy}" stroke="#111" stroke-width="1" stroke-dasharray="2,3"/>`);
     parts.push(`<circle cx="${cx}" cy="${cy}" r="4.5" fill="#111"/>`);
     if (pointInfo(pin.x, pin.y, s).state !== 'bad') {
-      drawArrow(parts, cx, cy, nextAlloc(pin.x, pin.y, s), chipPin, w, h, base.x1 - base.x0, base.y1 - base.y0);
-      gradArrow(parts, cx, cy, pin.x, pin.y, s, w, h, base.x1 - base.x0, base.y1 - base.y0);
+      const t = drawArrows(parts, cx, cy, pin.x, pin.y, s, w, h, base.x1 - base.x0, base.y1 - base.y0);
+      setChip(chipPin, pin.x, pin.y, s, t.tx, t.ty);
     }
   }
   svg.innerHTML = parts.join('');
