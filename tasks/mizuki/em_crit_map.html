@@ -62,7 +62,7 @@
 <h1>精通 × 双暴分的伤害地图</h1>
 <a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a>
 </div>
-<div class="sub">鼠标移到哪儿，就给出那儿的「下一词条」箭头与词条分配；点击可固定（点别处即移动）。改下面任意一项，全图即时重算。</div>
+<div class="sub">悬浮读该点的完整数值与「下一词条最优分配」；点击固定该点，画出箭头（点别处即移动）。改下面任意一项，全图即时重算。</div>
 
 <div class="panel">
   <label>星扩散增伤 %<input id="bonus" type="number" step="5"></label>
@@ -85,7 +85,6 @@
   <div id="plot"></div>
   <div class="ovl" id="ovl">
     <svg id="ovl-svg"></svg>
-    <div class="chip" id="chip-hover"></div>
     <div class="chip" id="chip-pin"></div>
   </div>
 </div>
@@ -96,7 +95,7 @@
   <b>点划线</b> = 反转线：下一词条给精通还是给双暴无差别的轨迹（与「最优分配」页的最优路径同一条）。<br>
   倍数为<b>相对基准面板</b>（上完 buff、不含副词条 —— 即「0 词条」）的伤害之比，基准点 = ×1.00；每一点都假设双暴已按约束最优配平。<br>
   <b>参照倍数</b> = 与固定参照「589 精通、5% 暴击、50% 暴伤、星扩散增伤 0%」的伤害之比 —— 它不随上面的输入变化，用来横向比较不同配置（换武器 / 队友 / 套装）。<br>
-  <b>箭头</b> = 下一词条的投入方向：横向与纵向分量之比 = 给精通与给双暴的单步增益之比（相等即 45°）；标注「精通 x · 双暴 y」是它的归一化词条分配，和为 1。鼠标悬浮实时给出，点击可固定。<br>
+  <b>箭头</b> = 下一词条的投入方向：横向与纵向分量之比 = 给精通与给双暴的单步增益之比（相等即 45°）；标注「精通 x · 双暴 y」是它的归一化词条分配，和为 1。悬浮时方向以悬浮框最后一行的「下一词条最优分配」给出，点击固定后才画箭头。<br>
   1 等效词条 = 20 精通 = 3.3% 暴击 = 6.6% 暴伤。算的是<b>星扩散直伤</b>（瑞希天赋「廓然梦生」的精通倍率伤害），不是反应星扩散。
   <div class="repo-line">源码与说明：<a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></div>
 </footer>
@@ -230,7 +229,6 @@ const COLORSCALE = [
 ];
 
 let pin = null;        // 固定点（数据坐标）
-let hoverPx = null;    // 悬浮位置（相对绘图区左上角的像素）或 null
 let overlayQueued = false;
 let fieldCache = { key: null, base: null };   // buildBase 的结果，按输入缓存
 
@@ -281,9 +279,12 @@ function buildBase(s) {
       const other = pinnedSide(s) === '暴伤' ? '暴击率' : '暴伤';
       extra = `<br><span style="color:#888">1:2 配平不可达：${pinnedSide(s)}已压在基准，超额只能加${other}</span>`;
     }
+    // 下一词条最优分配：两个单步增益的归一化比例（和为 1）
+    const g = nextRollGains(ems[i], y, s);
+    const wEm = Math.round(g.em / (g.em + g.crit) * 100) / 100;
     return [v, (ems[i] - s.em) / EM_PER_ROLL, (y - y0) / CRIT_PER_ROLL, r, d,
             (ems[i] - s.em) / EM_PER_ROLL + (y - y0) / CRIT_PER_ROLL, extra,
-            refMultiplier(ems[i], y, s)];
+            refMultiplier(ems[i], y, s), wEm, 1 - wEm];
   }));
 
   const traces = [{
@@ -296,7 +297,8 @@ function buildBase(s) {
       '<b>×%{customdata[7]:.3f}</b>（相较精通 589 双暴 5/50 增伤 0）<br>' +
       '词条：精通 %{customdata[1]:.1f} · 双暴 %{customdata[2]:.1f}（共 %{customdata[5]:.1f}）<br>' +
       '配平后 %{customdata[3]:.1f}% / %{customdata[4]:.1f}%' +
-      '%{customdata[6]}<extra></extra>',
+      '%{customdata[6]}<br>' +
+      '下一词条最优分配：精通 %{customdata[8]:.2f} · 双暴 %{customdata[9]:.2f}<extra></extra>',
     colorbar: {
       title: { text: '倍数（相对基准）' }, thickness: 16, len: 0.75,
       tickvals: [lo, (lo + hi) / 2, hi],
@@ -417,7 +419,7 @@ function plotSize() {
 function drawArrow(parts, px, py, g, chip, w, h) {
   const m = Math.max(g.em, g.crit);
   const ux = g.em / m, uy = g.crit / m;
-  const L = 62, PAD = 8;
+  const L = 31, PAD = 8;
   const dx = ux * L, dy = -uy * L;   // 像素坐标：向上为负
   // 贴边时按比例缩短（方向不变），画不下就兜底到 30% 长
   let shrink = 1;
@@ -448,17 +450,9 @@ function updateOverlay() {
   const parts = ['<defs><marker id="ovl-arrow" markerWidth="7" markerHeight="7" refX="5.5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#111"/></marker></defs>'];
   // 基准点在左下角、底色深紫，文字加白色描边才读得清
   parts.push(`<text x="3" y="${h - 7}" font-size="11" fill="#111" stroke="#fff" stroke-width="3" stroke-linejoin="round" style="paint-order:stroke">基准 ×1.00</text>`);
-  const chipHover = $('chip-hover'), chipPin = $('chip-pin');
-  chipHover.style.display = 'none';
+  const chipPin = $('chip-pin');
   chipPin.style.display = 'none';
 
-  if (hoverPx) {
-    const x = base.x0 + hoverPx.x / w * (base.x1 - base.x0);
-    const y = base.y1 - hoverPx.y / h * (base.y1 - base.y0);
-    if (pointInfo(x, y, s).state !== 'bad') {
-      drawArrow(parts, hoverPx.x, hoverPx.y, nextRollGains(x, y, s), chipHover, w, h);
-    }
-  }
   if (pin) {
     const X = (pin.x - base.x0) / (base.x1 - base.x0) * w;
     const Y = (base.y1 - pin.y) / (base.y1 - base.y0) * h;
@@ -534,21 +528,12 @@ function pxToData(p) {
   };
 }
 
-function onWrapMove(e) {
-  hoverPx = pxInPlot(e);
-  queueOverlay();
-}
-
-function onWrapLeave() {
-  if (!hoverPx) return;
-  hoverPx = null;
-  queueOverlay();
-}
-
 function onWrapClick(e) {
   const p = pxInPlot(e);
   if (!p || !fieldCache.base) return;
   pin = pxToData(p);
+  // 清掉当前的悬浮框，免得它和箭头 / 标注叠在一起
+  if (Plotly.Fx && Plotly.Fx.unhover) Plotly.Fx.unhover($('plot'));
   updatePinBox(readState());
   updateOverlay();
 }
@@ -569,8 +554,6 @@ $('cd').value = DEFAULTS.cd;
 
 for (const el of document.querySelectorAll('input')) el.addEventListener('input', render);
 const wrap = document.querySelector('.plotwrap');
-wrap.addEventListener('mousemove', onWrapMove);
-wrap.addEventListener('mouseleave', onWrapLeave);
 wrap.addEventListener('click', onWrapClick);
 window.addEventListener('resize', queueOverlay);
 render();
