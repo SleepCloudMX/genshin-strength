@@ -87,7 +87,7 @@
 <h1>精通 × 双暴分的伤害地图</h1>
 <a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a>
 </div>
-<div class="sub">悬浮读该点的完整数值与「下一词条最优分配」；点击固定该点，画出箭头（点别处即移动）。改下面任意一项，全图即时重算。</div>
+<div class="sub">悬浮读该点的完整数值、「下一词条最优分配」与「词条重要性」；点击固定该点，画出双箭头（黑 = 最优分配、钢蓝 = 梯度；点别处即移动）。改下面任意一项，全图即时重算。</div>
 
 <div class="panel">
   <label>星扩散增伤 %<input id="bonus" type="number" step="5"></label>
@@ -119,7 +119,7 @@
 <footer>
   <b>图上</b>：颜色 = 倍数；灰 = 配不出（只有「超过 43 词条」一种，卡片会红字说明）；细点线 = 1:2 配平可达下界，以下能配但配不平（基准的偏斜还没补完）；点划线 = 反转线（同词条最优路径：当前点两个投向的边际增益相等；与「最优分配」页的最优路径精确一致）。<br>
   <b>数值</b>：倍数 = 该点伤害 ÷ 基准面板（上完 buff、不含副词条）的伤害，基准点 ×1.00；卡片与固定框里的另一个是固定参照「589 精通、5% 暴击、50% 暴伤、增伤 0%」之比，跨配置可比。每点都假设双暴已按约束最优配平；1 词条 = 20 精通 = 3.3% 暴击 = 6.6% 暴伤。<br>
-  <b>操作</b>：悬浮出卡片；点击固定并画箭头 —— 箭头 = <b>「下一词条」的最优分配方向</b>：只拆新的一条（精通 α·20 · 双暴 (1−α)·3.3，已有词条不动；α 使落下后命中反转线，够不到则整条给更值的一侧），按两轴刻度映射到画面，长度固定、只指示方向；chip 两行：<b>权重</b>（α 与 1−α）与<b>数值</b>（α·20 / (1−α)·3.3）。<br>
+  <b>操作</b>：悬浮出卡片；点击固定并画双箭头 —— <b>黑（主）</b> = 「下一词条」的最优分配方向（只拆新的一条：α·20 精通 + (1−α)·3.3 双暴，已有词条不动；α 使落点命中反转线，够不到则整条给更值的一侧）；<b>钢蓝（次）</b> = 梯度方向（画面空间每像素增益最大，⊥ 等高线）。两箭头都按两轴刻度映射、长度固定、只指示方向；chip 两行：<b>权重</b>（α 与 1−α）与<b>数值</b>（α·20 / (1−α)·3.3）。<br>
   轴的范围 = 基准 → 上限（+420 精通 / +43 词条）。算的是<b>星扩散直伤</b>（瑞希天赋「廓然梦生」的精通倍率伤害），不是反应星扩散。
   <div class="repo-line">源码与说明：<a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></div>
 </footer>
@@ -457,16 +457,12 @@ function plotGeom() {
   return { left: 66, top: 24, w: Math.max(($('plot').clientWidth || 900) - 90, 200), h: 544 };   // 首帧兜底：声明边距
 }
 
-/** 画一支箭头（起点像素 px/py）+ 两行标注：权重（最优分配的词条拆分）与数值（权重 × 词条数值）。
- *  方向 = 「下一词条」最优分配的拆分方向：把这一条写成 (du·20 精通, dv·3.3 双暴)，
- *  按两轴刻度映射到画面（du/dv ∈ [0, 1]，和 = 1）；长度固定，只指示方向。 */
-function drawArrow(parts, px, py, al, chip, w, h, sx, sy) {
-  const ax = al.du * EM_PER_ROLL * w / sx;      // ∝ (du·20) × 每精通像素
-  const ay = al.dv * CRIT_PER_ROLL * h / sy;    // ∝ (dv·3.3) × 每双暴像素
+/** 从 (px, py) 沿 (ax, ay) 画一支固定长度箭头（像素空间分量，向上为正）；
+ *  贴边按比例缩短（方向不变），兜底 30% 长。返回端点像素。 */
+function arrowAt(parts, px, py, ax, ay, w, h, color, width, marker) {
   const len = Math.hypot(ax, ay) || 1;
   const L = 31, PAD = 8;
   const dx = ax / len * L, dy = -ay / len * L;   // 像素坐标：向上为负
-  // 贴边时按比例缩短（方向不变），画不下就兜底到 30% 长
   let shrink = 1;
   if (dx > 0) shrink = Math.min(shrink, Math.max(w - PAD - px, 0) / dx);
   if (dx < 0) shrink = Math.min(shrink, Math.max(px - PAD, 0) / -dx);
@@ -474,14 +470,30 @@ function drawArrow(parts, px, py, al, chip, w, h, sx, sy) {
   if (dy > 0) shrink = Math.min(shrink, Math.max(h - PAD - py, 0) / dy);
   shrink = Math.max(shrink, 0.3);
   const tx = px + dx * shrink, ty = py + dy * shrink;
-  parts.push(`<line x1="${px}" y1="${py}" x2="${tx}" y2="${ty}" stroke="#111" stroke-width="2" marker-end="url(#ovl-arrow)"/>`);
+  parts.push(`<line x1="${px}" y1="${py}" x2="${tx}" y2="${ty}" stroke="${color}" stroke-width="${width}" marker-end="url(#${marker})"/>`);
+  return { tx, ty };
+}
+
+/** 主箭头（黑）：「下一词条」最优分配的拆分方向 + chip（权重 / 数值）。
+ *  方向 = (du·20 精通, dv·3.3 双暴) 按两轴刻度映射（du/dv ∈ [0, 1]，和 = 1）；长度固定，只指示方向。 */
+function drawArrow(parts, px, py, al, chip, w, h, sx, sy) {
+  const t = arrowAt(parts, px, py,
+    al.du * EM_PER_ROLL * w / sx, al.dv * CRIT_PER_ROLL * h / sy,
+    w, h, '#111', 2.2, 'ovl-arrow-p');
   const f2 = (v) => (v >= 10 ? v.toFixed(1) : v.toFixed(2));
   chip.innerHTML =
     `权重：精通 ${al.du.toFixed(2)} · 双暴 ${al.dv.toFixed(2)}<br>` +
     `数值：精通 ${f2(al.du * EM_PER_ROLL)} · 双暴 ${f2(al.dv * CRIT_PER_ROLL)}`;
-  chip.style.left = tx + 'px';
-  chip.style.top = (ty - 4) + 'px';
+  chip.style.left = t.tx + 'px';
+  chip.style.top = (t.ty - 4) + 'px';
   chip.style.display = 'block';
+}
+
+/** 次箭头（钢蓝）：画面空间梯度 —— 每像素 lnD 增益最大的方向（⊥ 等高线），无标注。 */
+function gradArrow(parts, px, py, x, y, s, w, h, sx, sy) {
+  const ax = dlnFdx(x, s.bonus) * sx / w;
+  const ay = dlnGdy(y, s.cr, s.cd) * sy / h;
+  arrowAt(parts, px, py, ax, ay, w, h, '#4a6fa5', 1.6, 'ovl-arrow-g');
 }
 
 /** 悬浮卡片的 HTML：位置 → 两个倍数 → 分配比例条 → 支撑行。 */
@@ -531,7 +543,10 @@ function updateOverlay() {
   svg.setAttribute('width', w);
   svg.setAttribute('height', h);
 
-  const parts = ['<defs><marker id="ovl-arrow" markerWidth="7" markerHeight="7" refX="5.5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#111"/></marker></defs>'];
+  const parts = ['<defs>' +
+    '<marker id="ovl-arrow-p" markerWidth="7" markerHeight="7" refX="5.5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#111"/></marker>' +
+    '<marker id="ovl-arrow-g" markerWidth="7" markerHeight="7" refX="5.5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#4a6fa5"/></marker>' +
+    '</defs>'];
   // 基准点在左下角、底色深紫，文字加白色描边才读得清
   parts.push(`<text x="3" y="${h - 7}" font-size="11" fill="#111" stroke="#fff" stroke-width="3" stroke-linejoin="round" style="paint-order:stroke">基准 ×1.00</text>`);
   const chipPin = $('chip-pin');
@@ -564,6 +579,7 @@ function updateOverlay() {
     parts.push(`<circle cx="${cx}" cy="${cy}" r="4.5" fill="#111"/>`);
     if (pointInfo(pin.x, pin.y, s).state !== 'bad') {
       drawArrow(parts, cx, cy, nextAlloc(pin.x, pin.y, s), chipPin, w, h, base.x1 - base.x0, base.y1 - base.y0);
+      gradArrow(parts, cx, cy, pin.x, pin.y, s, w, h, base.x1 - base.x0, base.y1 - base.y0);
     }
   }
   svg.innerHTML = parts.join('');
