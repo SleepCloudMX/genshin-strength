@@ -78,8 +78,8 @@
   <b>横纵轴 = 基准 → 上限</b>（+420 精通 / +43 词条）；唯一的灰是斜线以上的「超过 43 词条」，这类点的悬浮框为红字。
   <b>细点线</b> = 1:2 配平可达下界，其下一条横带能配但配不平（悬浮有灰字提示）。
   <b>点划线</b> = 反转线：下一词条给精通还是给双暴无差别的轨迹（与「最优分配」页的最优路径同一条）。<br>
-  倍数为<b>相对基准面板</b>（上完 buff、不含副词条）的伤害之比，基准点 = ×1.00；每一点都假设双暴已按约束最优配平。<br>
-  <b>参照倍数</b> = 与固定参照「589 精通、5% 暴击、50% 暴伤」的伤害之比 —— 它不随上面的输入变化，用来横向比较不同配置（换武器 / 队友 / 套装）。<br>
+  倍数为<b>相对基准面板</b>（上完 buff、不含副词条 —— 即「0 词条」）的伤害之比，基准点 = ×1.00；每一点都假设双暴已按约束最优配平。<br>
+  <b>参照倍数</b> = 与固定参照「589 精通、5% 暴击、50% 暴伤、星扩散增伤 0%」的伤害之比 —— 它不随上面的输入变化，用来横向比较不同配置（换武器 / 队友 / 套装）。<br>
   <b>箭头</b> = 下一词条的投入方向：横向与纵向分量之比 = 给精通与给双暴的单步增益之比（两者相等即 45°）。<br>
   1 等效词条 = 20 精通 = 3.3% 暴击 = 6.6% 暴伤。算的是<b>星扩散直伤</b>（瑞希天赋「廓然梦生」的精通倍率伤害），不是反应星扩散。
   <div class="repo-line">源码与说明：<a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></div>
@@ -145,10 +145,10 @@ function multiplier(x, y, s) {
   return damage(x, s.bonus, r, d) / damage(s.em, s.bonus, s.cr, s.cd);
 }
 
-/** 参照倍数 = D(x, y) / D(589 精通, 5% 暴击, 50% 暴伤)。参照面板固定，不随输入变化。 */
+/** 参照倍数 = D(x, y) / D(参照面板)。参照面板固定：589 精通 / 5% 暴击 / 50% 暴伤 / 增伤 0%，不随输入变化。 */
 function refMultiplier(x, y, s) {
   const [r, d] = splitAt(y, s.cr, s.cd);
-  return damage(x, s.bonus, r, d) / damage(REF_EM, s.bonus, REF_CR, REF_CD);
+  return damage(x, s.bonus, r, d) / damage(REF_EM, 0, REF_CR, REF_CD);
 }
 
 /** 悬浮 / 结果框的内容。state: 'ok' | 'band' | 'bad'。 */
@@ -156,7 +156,13 @@ function pointInfo(x, y, s) {
   const y0 = baseScore(s.cr, s.cd);
   const rolls = { emRolls: (x - s.em) / EM_PER_ROLL, critRolls: (y - y0) / CRIT_PER_ROLL };
   const reason = infeasibleReason(x, y, s);
-  if (reason) return Object.assign({ state: 'bad', reason, x, y }, rolls);
+  if (reason) {
+    return Object.assign({
+      state: 'bad', reason, x, y,
+      mult: multiplier(x, y, s),
+      ref: refMultiplier(x, y, s),
+    }, rolls);
+  }
   const [r, d] = splitAt(y, s.cr, s.cd);
   return Object.assign({
     state: isPinnedBand(y, s) ? 'band' : 'ok',
@@ -268,8 +274,8 @@ function buildBase(s) {
     hoverlabel: { bgcolor: '#fff', bordercolor: '#d0d0d0', font: { color: '#222', size: 12 } },
     hovertemplate:
       '精通 %{x:.0f} 双暴分 %{y:.1f}<br>' +
-      '倍数 <b>×%{customdata[0]:.3f}</b><br>' +
-      '参照 <b>×%{customdata[7]:.3f}</b>（589/5/50）<br>' +
+      '<b>×%{customdata[0]:.3f}</b>（相较 0 词条）<br>' +
+      '<b>×%{customdata[7]:.3f}</b>（相较精通 589 双暴 5/50 增伤 0）<br>' +
       '词条：精通 %{customdata[1]:.1f} · 双暴 %{customdata[2]:.1f}（共 %{customdata[5]:.1f}）<br>' +
       '配平后 %{customdata[3]:.1f}% / %{customdata[4]:.1f}%' +
       '%{customdata[6]}<extra></extra>',
@@ -291,10 +297,14 @@ function buildBase(s) {
 
   // 遮罩层（浅灰，悬浮红字）。放在主图层上面：可配处为 null（透明，不挡悬浮）
   const maskZ = reasons.map((row) => row.map((r) => (r ? 1 : null)));
+  const maskCustom = reasons.map((row, j) => row.map((r, i) => (r
+    ? [r, multiplier(ems[i], scores[j], s), refMultiplier(ems[i], scores[j], s)]
+    : null)));
   traces.push({
-    type: 'heatmap', x: ems, y: scores, z: maskZ, customdata: reasons,
+    type: 'heatmap', x: ems, y: scores, z: maskZ, customdata: maskCustom,
     colorscale: [[0, '#ededed'], [1, '#ededed']], showscale: false, hoverongaps: false,
-    hovertemplate: '<b>无法配平</b>：%{customdata}<br>精通 %{x:.0f} 双暴分 %{y:.1f}<extra></extra>',
+    hovertemplate: '<b>无法配平</b>：%{customdata[0]}<br>精通 %{x:.0f} 双暴分 %{y:.1f}<br>' +
+                   '×%{customdata[1]:.3f}（相较 0 词条）<br>×%{customdata[2]:.3f}（相较精通 589 双暴 5/50 增伤 0）<extra></extra>',
     hoverlabel: { bgcolor: '#fff', bordercolor: '#c0392b', font: { color: '#c0392b' } },
   });
 
@@ -429,16 +439,19 @@ function updatePinBox(s) {
     who.innerHTML = '<span class="bad">原因：' + info.reason + '</span>';
     who.className = 'who';
     split.textContent = `目标：精通 ${info.x.toFixed(0)}　双暴分 ${fmt1(info.y)}`;
-    ref.textContent = ''; next.textContent = ''; note.textContent = '';
+    ref.innerHTML =
+      `×${info.mult.toFixed(4)}（相较 0 词条）<br>` +
+      `×${info.ref.toFixed(4)}（相较精通 589 双暴 5/50 增伤 0）`;
+    next.textContent = ''; note.textContent = '';
     return;
   }
-  mult.innerHTML = '倍数 <b>×' + info.mult.toFixed(4) + '</b>';
+  mult.innerHTML = '<b>×' + info.mult.toFixed(4) + '</b>（相较 0 词条）';
   who.textContent = `精通 ${info.x.toFixed(0)}　双暴分 ${fmt1(info.y)}`;
   who.className = 'who';
   split.textContent =
     `配平后 暴击 ${fmt1(info.rate)}% / 暴伤 ${fmt1(info.dmg)}%　` +
     `词条：精通 ${fmt1(info.emRolls)} · 双暴 ${fmt1(info.critRolls)}（共 ${fmt1(info.emRolls + info.critRolls)}）`;
-  ref.textContent = `参照倍数（589/5/50）：×${info.ref.toFixed(4)}`;
+  ref.textContent = `×${info.ref.toFixed(4)}（相较精通 589 双暴 5/50 增伤 0）`;
   const g = nextRollGains(info.x, info.y, s);
   next.textContent = `下一词条增益：精通 ＋${pct2(g.em)} · 双暴 ＋${pct2(g.crit)}`;
   note.textContent = info.state === 'band'
