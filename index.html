@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>瑞希·强度计算</title>
+<link rel="icon" type="image/png" href="https://sleepcloudmx.github.io/Others/Image/kenomimi.png">
+<style>
+  :root { --ink:#222; --muted:#555; --line:#d8d8d8; --bg:#fafafa; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px 24px 40px; background: #fff; color: var(--ink);
+    font-family: "Microsoft YaHei", "SimHei", system-ui, sans-serif;
+  }
+  .wrap { max-width: 820px; }
+  h1 { font-size: 19px; margin: 0; }
+  .head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 4px; font-size: 13px; }
+  .repo { color: var(--muted); text-decoration: none; white-space: nowrap; }
+  .repo:hover { color: var(--ink); text-decoration: underline; }
+  .repo svg { width: 1.15em; height: 1.15em; fill: currentColor; vertical-align: -0.18em; margin-right: 4px; }
+  .repo-line { margin-top: 8px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+  .cards { display: grid; gap: 14px; }
+  .card {
+    display: block; color: inherit; text-decoration: none;
+    background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+    padding: 15px 18px 14px; transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .card:hover { border-color: #e8710a; box-shadow: 0 2px 10px rgba(0, 0, 0, .07); }
+  .card h2 { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 15.5px; margin: 0; }
+  .card .arrow { color: #ccc; font-weight: normal; transition: color .15s ease; }
+  .card:hover .arrow { color: #e8710a; }
+  .card .strip { height: 4px; width: 84px; border-radius: 2px; margin: 9px 0 8px; }
+  .card .desc { font-size: 13px; color: var(--muted); }
+  .card .take { font-size: 12.5px; color: #666; margin-top: 5px; }
+  .card .take b, .sub b { color: var(--ink); }
+  footer {
+    margin-top: 24px; padding-top: 14px; border-top: 1px solid var(--line);
+    font-size: 12px; color: var(--muted); line-height: 1.7;
+  }
+  /* 每张卡片的小色条 = 对应页面的图表配色 */
+  .s1 { background: linear-gradient(90deg, #053061, #a7d0e4, #f7f6f6, #f7b799, #67001f); }
+  .s2 { background: linear-gradient(90deg, #77d153, #21908d, #440154); }
+  .s3 { background: linear-gradient(90deg, #440154, #31688e, #35b779, #fde725); }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<div class="head">
+<h1>「梦见月瑞希」星扩散直伤 · 计算页面</h1>
+<a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a>
+</div>
+<div class="sub">三张交互页面，打开即用（页面里的图表库走 CDN，需要联网）。口径：<b>星扩散直伤</b>，基准面板 = <b>上完 buff、不含副词条</b>。</div>
+
+<div class="cards">
+  <a class="card" href="tasks/mizuki/scarlet_vs_em22.html">
+    <h2>血红之证 4 件套 vs 精通 2+2<span class="arrow">→</span></h2>
+    <div class="strip s1"></div>
+    <div class="desc">两套圣遗物的比值热力图，同时就是计算器：填面板，图上的十字准星定位，给出比值、谁更优、精通到多少才翻面。</div>
+    <div class="take">分界线在 940 ~ 1200 精通，两套差距 <b>6% 以内</b> —— 配装基本不用纠结。</div>
+  </a>
+
+  <a class="card" href="tasks/mizuki/em_vs_crit.html">
+    <h2>星扩散直伤：精通和双暴的词条分配<span class="arrow">→</span></h2>
+    <div class="strip s2"></div>
+    <div class="desc">曲线图：悬浮读该点的双暴拆分、精通与伤害倍数；基准面板、星扩散增伤、曲线取哪几个词条数都可改。</div>
+    <div class="take">最优存在但<b>不敏感</b>：双暴词条先补暴击率到 1 : 2，之后按 1 : 2 同步加。</div>
+  </a>
+
+  <a class="card" href="tasks/mizuki/em_crit_map.html">
+    <h2>精通 × 双暴分的伤害地图<span class="arrow">→</span></h2>
+    <div class="strip s3"></div>
+    <div class="desc">伤害热力图 + 最优分配线 + 等词条线：悬浮给「下一词条」方向，点击固定读数与标注。</div>
+    <div class="take">等词条线（10 / 20 / 30 / 40）与最优分配线的交点 = <b>该词条数下的最优拆分</b>。</div>
+  </a>
+</div>
+
+<footer>
+  算的是<b>星扩散直伤</b>（瑞希天赋「廓然梦生」的精通倍率伤害），不是反应星扩散。部分游戏机制来自社区与解包数据，非官方文本，请酌情参考。非官方项目，与米哈游无关。
+  <div class="repo-line">源码与说明：<a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></div>
+</footer>
+</div>
+
+</body>
+</html>
