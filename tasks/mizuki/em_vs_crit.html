@@ -34,7 +34,10 @@
     padding: 5px 8px; border: 1px solid var(--line); border-radius: 5px; background: #fff;
   }
   input[type=text] { width: 190px; }
+  input[type=range] { width: 150px; padding: 0; border: 0; background: transparent; }
+  .dval { color: var(--ink); font-weight: 600; }
   .derived { font-size: 13px; color: var(--muted); padding-bottom: 6px; }
+  .loss-note { font-size: 12px; color: var(--muted); margin: 2px 0 12px; }
   .derived b { color: var(--ink); font-size: 15px; }
   .plot { width: 100%; }
   footer {
@@ -53,21 +56,25 @@
 
 <div class="panel">
   <div class="panel-note"><b>基准面板 = 上完 buff、不含副词条</b> —— 副词条正是这里要分配的东西。</div>
+  <div class="panel-note"><b>星扩散直伤占比</b>：给定的假定常数（按基准分配处定义），计算中直接采用；本页<b>不</b>根据你的配置推算真实占比 —— 真实占比取决于触发次数等未确认机制。默认 100% = 只看星扩散直伤。社区有「直伤约占九成」的说法（未核实），实战可参考 90% 这一量级。</div>
   <label>基准精通（不含副词条）<input id="em" type="number" step="1"></label>
   <label>基准暴击率 %<input id="cr" type="number" step="0.1"></label>
   <label>基准暴伤 %<input id="cd" type="number" step="0.1"></label>
   <div class="derived">双暴分 <b id="score"></b></div>
   <label>星扩散增伤 %<input id="bonus" type="number" step="1"></label>
+  <label><span>星扩散直伤占比 <span class="dval" id="dval">100</span>%</span><input id="d" type="range" min="0" max="100" step="1"></label>
+  <div class="derived" id="caliber"></div>
   <label>曲线取哪些 n<input id="ns" type="text"></label>
   <label>平台阈值 %<input id="level" type="number" step="0.5"></label>
 </div>
 
 <div id="figA" class="plot"></div>
+<div id="lossNote" class="loss-note"></div>
 <div id="figB" class="plot"></div>
 
 <footer>
   基准面板只填<b>上完 buff、不含圣遗物副词条</b>的部分 —— 主词条、武器、天赋、队友给的都算在基准里；只有副词条参与分配。<br>
-  1 等效词条 = 20 精通 = 3.3% 暴击 = 6.6% 暴伤。算的是<b>星扩散直伤</b>（瑞希天赋「廓然梦生」的精通倍率伤害），不是反应星扩散。
+  1 等效词条 = 20 精通 = 3.3% 暴击 = 6.6% 暴伤。默认算的是<b>星扩散直伤</b>（瑞希天赋「廓然梦生」的精通倍率伤害），不是反应星扩散；拉低「星扩散直伤占比」滑条后，按给定比例把反应星扩散一并计入。
   <div class="repo-line">源码与说明：<a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></div>
 </footer>
 
@@ -80,7 +87,7 @@ const CR_PER_ROLL = 3.3;
 const CD_PER_ROLL = 6.6;
 
 // ── 初始基准面板（页面上可改）──
-const DEFAULTS = { em: 951, cr: 36, cd: 112.2, bonus: 1.40, ns: [15, 20, 25, 30, 35], level: 0.99 };
+const DEFAULTS = { em: 951, cr: 36, cd: 112.2, bonus: 1.40, d: 1.00, ns: [15, 20, 25, 30, 35], level: 0.99 };
 
 // 曲线配色：viridis_r 在 [0.28, 1.0] 上取 11 个采样点 —— 从 0.28 起是为了
 // 避开最浅的亮黄，白底上看不清词条最少的那条曲线。
@@ -101,10 +108,13 @@ const critZoneAt = (b, cr0, cd0) => {
   return 1 + (cr / 100) * (cd / 100);
 };
 
-/** n 个等效词条中给双暴 b 个时的星扩散直伤（任意单位，只用于比较）。 */
+/** n 个等效词条中给双暴 b 个时的星扩散伤害（任意单位，只用于比较）。
+ *  直伤 ∝ EM·B·C、反应 ∝ W·B·C（两路共用乘区），按基准分配处的直伤占比 d 合成：
+ *  [d·EM + (1-d)·EM0]·B·C。d = 1 即纯直伤 —— em_vs_crit.py 是它的特例。 */
 function damage(s, n, b) {
   const em = EM_PER_ROLL * (n - b) + s.em;
-  return em * (1 + s.bonus + emTerm(em)) * critZoneAt(b, s.cr, s.cd);
+  const emLinear = s.d * em + (1 - s.d) * s.em;
+  return emLinear * (1 + s.bonus + emTerm(em)) * critZoneAt(b, s.cr, s.cd);
 }
 
 /** 黄金分割搜索最大值。 */
@@ -160,6 +170,7 @@ function readState() {
     cr: num('cr', DEFAULTS.cr),
     cd: num('cd', DEFAULTS.cd),
     bonus: num('bonus', DEFAULTS.bonus * 100) / 100,
+    d: num('d', DEFAULTS.d * 100) / 100,
     ns: parseNs(),
     level: num('level', DEFAULTS.level * 100) / 100,
   };
@@ -172,12 +183,17 @@ function buildA(s) {
   const traces = [], annos = [];
   const ns = s.ns.length ? s.ns : DEFAULTS.ns;
   const span = Math.max(...ns);
+  let lossMax = 0;
 
   ns.forEach((n, i) => {
     const color = ramp(i / Math.max(ns.length - 1, 1));
     const base = damage(s, n, 0);
     const { b: bStar, f: fMax } = bestSplit(s, n);
     const { lo, hi } = plateau(s, n, fMax, s.level);
+    if (s.d < 1) {
+      const { b: bDirect } = bestSplit({ ...s, d: 1 }, n);
+      lossMax = Math.max(lossMax, 1 - damage(s, n, bDirect) / fMax);
+    }
 
     const xs = [], ys = [], cd = [];
     for (let k = 0; k <= SAMPLES; k++) {
@@ -236,7 +252,7 @@ function buildA(s) {
   });
 
   return {
-    traces, layout: {
+    traces, lossMax, layout: {
       title: { text: '相对「词条全给精通」的伤害倍数', font: { size: 14 } },
       xaxis: { title: { text: '给双暴的等效词条数（其余给精通）' }, range: [0, span],
                zeroline: false, gridcolor: '#e8e8e8' },
@@ -304,7 +320,21 @@ function buildB(s) {
 function render() {
   const s = readState();
   $('score').textContent = (2 * s.cr + s.cd).toFixed(1);
+  $('dval').textContent = (s.d * 100).toFixed(0);
+  $('caliber').innerHTML = s.d >= 1
+    ? '当前口径：<b>星扩散直伤</b>'
+    : '当前口径：<b>星扩散直伤 + 反应星扩散</b>（占比为给定假定常数）';
   const a = buildA(s), b = buildB(s);
+  const note = $('lossNote');
+  if (s.d >= 1) {
+    note.style.display = 'none'; note.textContent = '';
+  } else {
+    const p = a.lossMax * 100;
+    note.style.display = '';
+    note.textContent = p < 0.005
+      ? '参考：词条按「纯直伤最优」分配时，总伤害损失 ＜ 0.01%。'
+      : `参考：词条按「纯直伤最优」分配时，总伤害损失 ≤ ${p.toFixed(2)}%。`;
+  }
   Plotly.react('figA', a.traces, a.layout, { responsive: true });
   Plotly.react('figB', b.traces, b.layout, { responsive: true });
 }
@@ -313,6 +343,7 @@ $('em').value = DEFAULTS.em;
 $('cr').value = DEFAULTS.cr;
 $('cd').value = DEFAULTS.cd;
 $('bonus').value = (DEFAULTS.bonus * 100).toFixed(0);
+$('d').value = DEFAULTS.d * 100;
 $('ns').value = DEFAULTS.ns.join(', ');
 $('level').value = (DEFAULTS.level * 100).toFixed(0);
 
