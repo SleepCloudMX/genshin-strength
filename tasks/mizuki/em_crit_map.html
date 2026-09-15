@@ -35,6 +35,7 @@
   }
   input[type=range] { width: 150px; padding: 0; border: 0; background: transparent; }
   .dval { color: var(--ink); font-weight: 600; }
+  .hint { font-size: 12px; color: var(--muted); padding-bottom: 8px; visibility: hidden; }
   .derived { font-size: 13px; color: var(--muted); padding-bottom: 6px; }
   .derived b { color: var(--ink); font-size: 15px; }
   .verdict {
@@ -114,6 +115,7 @@
   <label>基准暴伤 %<input id="cd" type="number" step="0.1"></label>
   <div class="derived">双暴分 <b id="score"></b></div>
   <label><span>星扩散直伤占比 <span class="dval" id="dval">100</span>%</span><input id="d" type="range" min="0" max="100" step="1"></label>
+  <div class="hint" id="hint">松开滑动更新绘图</div>
 </div>
 
 <div class="verdict">
@@ -453,7 +455,7 @@ function buildBase(s) {
     colorscale: [[0, '#ededed'], [1, '#ededed']], showscale: false,
   });
 
-  // 最优分配线与等词条线交点（只依赖 s 的标量参数，拖动滑条时可单独重算）
+  // 最优分配线与等词条线交点（只依赖 s 的标量参数，与热力图无关）
   const { revX, revY, crosses } = lineAndCrosses(s);
 
   // 等词条线：n = 10/20/30/40 的预算等值线（橙色虚线；越靠右上 n 越大。
@@ -471,12 +473,8 @@ function buildBase(s) {
     line: { color: '#e8710a', width: 1, dash: 'dash' }, hoverinfo: 'skip', legendrank: 3,
   });
 
-  // 最优分配线（实线；虚线语义留给等词条线）与交点标注。
-  // dyn 记下索引：拖动滑条时只替换这两条 trace（未变的 trace 传同一对象，
-  // Plotly.react 按引用跳过重绘），热力图与等高线留到松手（change）后全量同步。
-  const dyn = { line: traces.length };
+  // 最优分配线（实线；虚线语义留给等词条线）与交点标注
   traces.push(mkRevTrace(revX, revY));
-  dyn.crosses = traces.length;
   traces.push(mkCrossTrace(crosses));
 
   // 基准点
@@ -520,7 +518,7 @@ function buildBase(s) {
 
   // 「基准 ×1.00」画在自绘覆盖层里（要白色描边，Plotly annotation 给不了文字描边）
 
-  return { x0, x1, y0, y1, traces, shapes, annotations, crosses, dyn };
+  return { x0, x1, y0, y1, traces, shapes, annotations, crosses };
 }
 
 /** 组图：基础层按输入缓存；固定点 / 悬浮箭头走 overlay（只 relayout，不重绘热力图）。 */
@@ -538,7 +536,6 @@ function buildPlot(s) {
     margin: { t: 24, r: 24, b: 52, l: 66 }, height: 620,
     hovermode: false, plot_bgcolor: '#fff', paper_bgcolor: '#fff',
   };
-  fieldCache.base.layout = layout;   // 轻量刷新复用同一 layout 对象（引用不变 → Plotly.react 不动布局）
   return { traces: fieldCache.base.traces.slice(), layout };
 }
 
@@ -799,27 +796,12 @@ function render() {
   updateOverlay();
 }
 
-/** 拖动滑条时的轻量刷新：只重算并替换「最优分配线 + 交点」两条 trace（其余 trace 传同一对象，
- *  Plotly.react 按引用跳过重绘），热力图与等高线保持上一次全量结果，松手（change）后再全量同步。 */
-function renderLight() {
+/** 拖动滑条时只更新读数（百分比 / 固定框），完全不碰绘图 ——
+ *  热力图与最优分配线都等松手（change）后一次性重绘，拖动因此不受重绘拖累。 */
+function updateReadouts() {
   const s = readState();
   $('dval').textContent = (s.d * 100).toFixed(0);
-  const base = fieldCache.base;
-  if (!base || !base.layout) { render(); return; }
-  const { revX, revY, crosses } = lineAndCrosses(s);
-  base.traces[base.dyn.line] = mkRevTrace(revX, revY);
-  base.traces[base.dyn.crosses] = mkCrossTrace(crosses);
-  base.crosses = crosses;
-  Plotly.react('plot', base.traces.slice(), base.layout, { responsive: true }).then(queueOverlay);
   updatePinBox(s);
-  updateOverlay();
-}
-
-let lightQueued = false;
-function queueLight() {
-  if (lightQueued) return;
-  lightQueued = true;
-  requestAnimationFrame(() => { lightQueued = false; renderLight(); });
 }
 
 $('bonus').value = DEFAULTS.bonus;
@@ -835,13 +817,19 @@ function queueRender() {
   renderQueued = true;
   requestAnimationFrame(() => { renderQueued = false; render(); });
 }
-// 滑条走轻量路径（拖动中只更新线/点/读数）；松手 change 时置空缓存键 → 全量同步热力图
+// 滑条：拖动中只更新读数（不重绘），松手 change 时置空缓存键 → 全量重绘
 for (const el of document.querySelectorAll('input')) {
   if (el.id === 'd') continue;
   el.addEventListener('input', queueRender);
 }
-$('d').addEventListener('input', queueLight);
+$('d').addEventListener('input', updateReadouts);
 $('d').addEventListener('change', () => { fieldCache.key = null; queueRender(); });
+// 「松开滑动更新绘图」提示只在按住拖动的期间显示（元素常占位，避免面板排版跳动）
+const hintEl = $('hint');
+$('d').addEventListener('pointerdown', () => { hintEl.style.visibility = 'visible'; });
+$('d').addEventListener('change', () => { hintEl.style.visibility = 'hidden'; });
+window.addEventListener('pointerup', () => { hintEl.style.visibility = 'hidden'; });
+window.addEventListener('pointercancel', () => { hintEl.style.visibility = 'hidden'; });
 const wrap = document.querySelector('.plotwrap');
 wrap.addEventListener('mousemove', onWrapMove);
 wrap.addEventListener('mouseleave', onWrapLeave);
