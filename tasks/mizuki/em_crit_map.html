@@ -34,9 +34,17 @@
   .derived { font-size: 13px; color: var(--muted); padding-bottom: 6px; }
   .derived b { color: var(--ink); font-size: 15px; }
   .verdict {
-    border: 1px solid var(--line); border-left: 4px solid #444; border-radius: 6px;
+    border: 1px solid var(--line); border-left: 3px solid #e8710a; border-radius: 6px;
     padding: 12px 16px; margin-bottom: 18px;
   }
+  /* 详情键值网格（键灰、值对齐）；与 hero 倍数之间自带分隔线 */
+  .pin-grid {
+    display: grid; grid-template-columns: auto 1fr; column-gap: 10px; row-gap: 4px;
+    font-size: 12.5px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #ececec;
+  }
+  .pin-grid .k { color: #888; }
+  .pin-grid .s-em { color: #1f7a7a; }
+  .pin-grid .s-cr { color: #9a4f6e; }
   .verdict .ratio { font-size: 14px; color: var(--muted); }
   .verdict .ratio b { color: var(--ink); font-size: 26px; font-variant-numeric: tabular-nums; }
   .verdict .who { font-size: 15px; margin-top: 2px; }
@@ -104,11 +112,13 @@
 
 <div class="verdict">
   <div class="ratio" id="pin-mult">—</div>
-  <div class="who" id="pin-who">点图上任意位置，固定一个点。</div>
-  <div class="split" id="pin-split"></div>
-  <div class="split" id="pin-rolls"></div>
   <div class="split" id="pin-ref"></div>
-  <div class="split" id="pin-next"></div>
+  <div class="who" id="pin-who">点图上任意位置，固定一个点。</div>
+  <div class="pin-grid" id="pin-grid" style="display:none">
+    <span class="k">配平后</span><span id="pin-split"></span>
+    <span class="k">词条</span><span id="pin-rolls"></span>
+    <span class="k">下一词条</span><span id="pin-next"></span>
+  </div>
   <div class="split" id="pin-note"></div>
 </div>
 
@@ -674,12 +684,13 @@ function updatePinBox(s) {
   const mult = $('pin-mult'), who = $('pin-who'), split = $('pin-split');
   const rolls = $('pin-rolls');
   const ref = $('pin-ref'), next = $('pin-next'), note = $('pin-note');
+  const grid = $('pin-grid');
   if (!pin) {
     mult.textContent = '—';
     who.textContent = '点图上任意位置，固定一个点。';
     who.className = 'who';
-    split.textContent = ''; rolls.textContent = '';
-    ref.textContent = ''; next.textContent = ''; note.textContent = '';
+    ref.textContent = ''; note.textContent = '';
+    grid.style.display = 'none';
     return;
   }
   const info = pointInfo(pin.x, pin.y, s);
@@ -687,25 +698,25 @@ function updatePinBox(s) {
     mult.textContent = '无法配平';
     who.innerHTML = '<span class="bad">原因：' + info.reason + '</span>';
     who.className = 'who';
-    split.textContent = `目标：精通 ${info.x.toFixed(0)}　双暴分 ${fmt1(info.y)}`;
-    rolls.textContent = '';
     ref.innerHTML =
       `×${info.mult.toFixed(4)}（相较 0 词条）<br>` +
       `×${info.ref.toFixed(4)}（相较精通 589 双暴 5/50 增伤 0）`;
-    next.textContent = ''; note.textContent = '';
+    note.textContent = `目标：精通 ${info.x.toFixed(0)}　双暴分 ${fmt1(info.y)}`;
+    grid.style.display = 'none';
     return;
   }
   mult.innerHTML = '<b>×' + info.mult.toFixed(4) + '</b>（相较 0 词条）';
+  ref.textContent = `×${info.ref.toFixed(4)}（相较精通 589 双暴 5/50 增伤 0）`;
   who.textContent = `精通 ${info.x.toFixed(0)}　双暴分 ${fmt1(info.y)}`;
   who.className = 'who';
-  split.textContent = `配平后 暴击 ${fmt1(info.rate)}% / 暴伤 ${fmt1(info.dmg)}%`;
-  rolls.textContent = `词条 精通 ${fmt1(info.emRolls)} · 双暴 ${fmt1(info.critRolls)}（共 ${fmt1(info.emRolls + info.critRolls)}）`;
-  ref.textContent = `×${info.ref.toFixed(4)}（相较精通 589 双暴 5/50 增伤 0）`;
+  split.textContent = `暴击 ${fmt1(info.rate)}% / 暴伤 ${fmt1(info.dmg)}%`;
+  rolls.textContent = `精通 ${fmt1(info.emRolls)} · 双暴 ${fmt1(info.critRolls)}（共 ${fmt1(info.emRolls + info.critRolls)}）`;
   const g = nextRollGains(info.x, info.y, s);
-  next.textContent = `下一词条增益：精通 ＋${pct2(g.em)} · 双暴 ＋${pct2(g.crit)}`;
+  next.innerHTML = `<span class="s-em">精通 ＋${pct2(g.em)}</span> · <span class="s-cr">双暴 ＋${pct2(g.crit)}</span>`;
   note.textContent = info.state === 'band'
     ? `注：此双暴分下 1:2 配平不可达，${pinnedSide(s)}压在基准，超额全在${pinnedSide(s) === '暴伤' ? '暴击率' : '暴伤'}。`
     : '';
+  grid.style.display = '';
 }
 
 /** 鼠标位置 → 绘图区内像素；在绘图区外返回 null。 */
