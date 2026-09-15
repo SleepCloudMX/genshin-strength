@@ -24,6 +24,8 @@
     padding: 14px 16px; margin-bottom: 14px;
     display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: flex-end;
   }
+  .panel-note { flex-basis: 100%; font-size: 13px; color: var(--muted); }
+  .panel-note b { color: var(--ink); }
   label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
   input {
     font: inherit; font-size: 14px; color: var(--ink); width: 120px;
@@ -92,6 +94,7 @@
 <div class="sub">橙虚线 = 10 / 20 / 30 / 40 词条的等词条线，与最优分配线的交点即该词条数下的最优拆分（标出该点的倍数）。悬浮出卡片与双箭头（黑 = 最优分配、钢蓝 = 梯度）；点击固定该点并显示标注（点别处即移动）。改下面任意一项，全图即时重算。</div>
 
 <div class="panel">
+  <div class="panel-note"><b>基准面板 = 上完 buff、不含副词条</b> —— 副词条正是这里要分配的东西。</div>
   <label>星扩散增伤 %<input id="bonus" type="number" step="5"></label>
   <label>基准精通（不含副词条）<input id="em" type="number" step="10"></label>
   <label>基准暴击 %<input id="cr" type="number" step="0.1"></label>

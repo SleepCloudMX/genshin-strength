@@ -24,6 +24,8 @@
     padding: 14px 16px; margin-bottom: 14px;
     display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: flex-end;
   }
+  .panel-note { flex-basis: 100%; font-size: 13px; color: var(--muted); }
+  .panel-note b { color: var(--ink); }
   label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
   input {
     font: inherit; font-size: 14px; color: var(--ink); width: 120px;
@@ -53,6 +55,7 @@
 <div class="sub">悬浮图上任意位置可读该点的比值。改下面任意一项，图与结论即时重算。</div>
 
 <div class="panel">
+  <div class="panel-note"><b>以下都填「上完 buff」后的实际数值</b>（含副词条；不含套装特效 —— 两套的套装效果由脚本自动加上）。</div>
   <label>星扩散增伤 %<input id="bonus" type="number" step="5"></label>
   <label>基准精通<input id="em" type="number" step="10"></label>
   <label>双暴分（不含套装特效）<input id="score" type="number" step="1"></label>
