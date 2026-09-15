@@ -1,4 +1,4 @@
-"""血红之证 4 件套 vs 精通 2+2：固定双暴词条预算下的星扩散直伤比。
+"""血红之证 4 件套 vs 精通 2+2：固定双暴分下的星扩散直伤比。
 
 对应 Mathematica 原稿 `docs/ai-ref/瑞希/代码.txt`，
 评审与重构说明见 `docs/ai-output/1-Mizuki/1-code-review.md`。
@@ -34,11 +34,11 @@ TASK = "scarlet_vs_2+2"
 OUT_DIR = Path(__file__).resolve().parents[2] / "output" / "Mizuki" / TASK
 
 EM_RANGE = (0.0, 2000.0)
-BUDGET_RANGE = (0.0, 2.0)
+SCORE_RANGE = (0.0, 4.0)
 GRID_N = 400
 
-#: 参考配装：(双暴词条预算, 图上标注)。25/50 是低配，60/120 是高配。
-REFERENCE_BUILDS = ((0.5, "25/50"), (1.2, "60/120"))
+#: 参考配装：(双暴分, 图上标注)。25/50 是低配，60/120 是高配。
+REFERENCE_BUILDS = ((1.0, "25/50"), (2.4, "60/120"))
 
 
 @dataclass(frozen=True)
@@ -82,8 +82,8 @@ TEAMS = (
 )
 
 
-def damage_ratio(em_base, crit_budget, team, *, a=SCARLET, b=EM_2P2):
-    """固定双暴词条预算下，方案 a 与方案 b 的期望伤害比。大于 1 表示 a 更优。
+def damage_ratio(em_base, crit_score, team, *, a=SCARLET, b=EM_2P2):
+    """固定双暴分下，方案 a 与方案 b 的期望伤害比。大于 1 表示 a 更优。
 
     `em_base` 是两套方案共有的元素精通（武器、主词条、副词条、队友给的）；
     套装本身提供的精通由 `Build.em` 叠加。支持 numpy 数组以做二维扫描。
@@ -94,24 +94,24 @@ def damage_ratio(em_base, crit_budget, team, *, a=SCARLET, b=EM_2P2):
         return (
             em
             * (1 + em_term(em) + team.swirl_bonus + build.swirl_bonus)
-            * crit_zone(crit_budget, build.crit_rate)
+            * crit_zone(crit_score, build.crit_rate)
         )
 
     return expected_damage(a) / expected_damage(b)
 
 
-def break_even(ratio, crit_budget, em_range=EM_RANGE):
-    """该词条预算下，比值为 1 的精通分界点。区间内无解时返回 None。"""
+def break_even(ratio, crit_score, em_range=EM_RANGE):
+    """该双暴分下，比值为 1 的精通分界点。区间内无解时返回 None。"""
     lo, hi = em_range
-    if (ratio(lo, crit_budget) - 1) * (ratio(hi, crit_budget) - 1) > 0:
+    if (ratio(lo, crit_score) - 1) * (ratio(hi, crit_score) - 1) > 0:
         return None
-    return brentq(lambda em: ratio(em, crit_budget) - 1, lo, hi)
+    return brentq(lambda em: ratio(em, crit_score) - 1, lo, hi)
 
 
 def plot_ratio_field(ratio, team, out_path):
     em = np.linspace(*EM_RANGE, GRID_N)
-    budget = np.linspace(*BUDGET_RANGE, GRID_N)
-    field = ratio(em[:, None], budget[None, :])
+    score = np.linspace(*SCORE_RANGE, GRID_N)
+    field = ratio(em[:, None], score[None, :])
 
     # 以 1.0 为中心做分段归一化。这个比值极度不对称（2+2 最多赢一倍以上，
     # 血红最多只赢约 8%），线性色标会让「血红赢」的窄带淹没在无关的渐变里，
@@ -119,16 +119,16 @@ def plot_ratio_field(ratio, team, out_path):
     # 量级由色条上的 1.0 刻度线与黑色分界线共同交代。
     fig, ax = plt.subplots(figsize=(7.8, 6.6), layout="constrained")
     norm = TwoSlopeNorm(vmin=float(field.min()), vcenter=1.0, vmax=float(field.max()))
-    mesh = ax.pcolormesh(em, budget, field.T, cmap="RdBu_r", norm=norm, shading="auto")
+    mesh = ax.pcolormesh(em, score, field.T, cmap="RdBu_r", norm=norm, shading="auto")
 
     # 分界线与十字准线共用同一个求根结果，避免两套数值路径画出来对不上
-    budgets = np.linspace(*BUDGET_RANGE, GRID_N // 2)
-    # 预算很小（b < 0.1）时两套没有交点，留空而不是画一条假线
+    scores = np.linspace(*SCORE_RANGE, GRID_N // 2)
+    # 双暴分很低（b < 0.2）时两套没有交点，留空而不是画一条假线
     roots = np.array([
-        np.nan if (root := break_even(ratio, b)) is None else root for b in budgets
+        np.nan if (root := break_even(ratio, b)) is None else root for b in scores
     ])
     ax.plot(
-        roots, budgets, color="black", lw=2.2, zorder=3,
+        roots, scores, color="black", lw=2.2, zorder=3,
         label="两套等效（分界线）",
     )
 
@@ -137,7 +137,7 @@ def plot_ratio_field(ratio, team, out_path):
         if root is None:
             continue
         ax.plot([EM_RANGE[0], root], [b, b], ":", color="purple", lw=1.8, zorder=4)
-        ax.plot([root, root], [BUDGET_RANGE[0], b], ":", color="purple", lw=1.8, zorder=4)
+        ax.plot([root, root], [SCORE_RANGE[0], b], ":", color="purple", lw=1.8, zorder=4)
         ax.text(
             EM_RANGE[0] + 0.03 * (EM_RANGE[1] - EM_RANGE[0]), b + 0.05, label,
             color="purple", fontsize=12, fontweight="bold",
@@ -148,11 +148,11 @@ def plot_ratio_field(ratio, team, out_path):
         )
 
     ax.set_xlabel("元素精通 / 1000")
-    ax.set_ylabel("暴击 + 暴伤 / 2  （双暴词条预算）")
+    ax.set_ylabel("双暴分（2 × 暴击 + 暴伤）")
     ax.set_title(f"血红之证 vs 精通 2+2\n星扩散增伤来源：{team.label}", fontsize=12)
     ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v / 1000:g}"))
     ax.set_xlim(*EM_RANGE)
-    ax.set_ylim(*BUDGET_RANGE)
+    ax.set_ylim(*SCORE_RANGE)
     ax.set_axisbelow(False)
     ax.grid(color="white", alpha=0.35, lw=0.6)
     ax.legend(loc="upper right", fontsize=10, framealpha=0.9)

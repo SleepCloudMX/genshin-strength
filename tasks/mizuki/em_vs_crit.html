@@ -298,7 +298,7 @@ function buildB(s) {
 // ── 主循环 ──
 function render() {
   const s = readState();
-  $('score').textContent = (s.cr + s.cd / 2).toFixed(1);
+  $('score').textContent = (2 * s.cr + s.cd).toFixed(1);
   const a = buildA(s), b = buildB(s);
   Plotly.react('figA', a.traces, a.layout, { responsive: true });
   Plotly.react('figB', b.traces, b.layout, { responsive: true });

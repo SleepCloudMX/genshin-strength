@@ -121,7 +121,7 @@
 <footer>
   <b>图上</b>：颜色 = 倍数；灰 = 配不出（只有「超过 43 词条」一种，卡片会红字说明）；细点线 = 1:2 配平可达下界，以下能配但配不平（基准的偏斜还没补完）；橙色实线 = 最优分配线（每个词条数 n 的最优位置；线上「词条重要性」恰为 0.50 · 0.50；与「最优分配」页的最优路径一致）；橙色虚线 = 等词条线（10 / 20 / 30 / 40 词条的预算线；右上遮罩边的灰虚线是 43 词条上限），与橙色实线的交点 = 该词条数下的精确最优拆分，交点标出该点的倍数（相较 0 词条）。<br>
   <b>数值</b>：倍数 = 该点伤害 ÷ 基准面板（上完 buff、不含副词条）的伤害，基准点 ×1.00；卡片与固定框里的另一个是固定参照「589 精通、5% 暴击、50% 暴伤、增伤 0%」之比，跨配置可比。每点都假设双暴已按约束最优配平；1 词条 = 20 精通 = 3.3% 暴击 = 6.6% 暴伤。<br>
-  <b>操作</b>：悬浮即出卡片与双箭头（卡片自动避开右上——箭头只在右上，不会遮挡）；点击固定该点，chip 两行 —— <b>归一化梯度</b>（钢蓝，即卡片里的「词条重要性」）与<b>最优的分配</b>（黑）。<b>黑（主）</b> = 「下一词条」的最优分配方向（只拆新的一条：α·20 精通 + (1−α)·3.3 双暴，已有词条不动；α 使落点命中最优分配线，够不到则整条给更值的一侧）；<b>钢蓝（次）</b> = 梯度方向（画面空间每像素增益最大，⊥ 等高线）。两箭头都按两轴刻度映射、长度固定、只指示方向。<br>
+  <b>操作</b>：悬浮即出卡片与双箭头（卡片自动避开右上——箭头只在右上，不会遮挡）；点击固定该点，chip 两行 —— <b>归一化梯度</b>（钢蓝，即卡片里的「词条重要性」）与<b>最优的分配</b>（黑）。<b>黑（主）</b> = 「下一词条」的最优分配方向（只拆新的一条：α·20 精通 + (1−α)·6.6 双暴，已有词条不动；α 使落点命中最优分配线，够不到则整条给更值的一侧）；<b>钢蓝（次）</b> = 梯度方向（画面空间每像素增益最大，⊥ 等高线）。两箭头都按两轴刻度映射、长度固定、只指示方向。<br>
   轴的范围 = 基准 → 上限（+420 精通 / +43 词条）。算的是<b>星扩散直伤</b>（瑞希天赋「廓然梦生」的精通倍率伤害），不是反应星扩散。
   <div class="repo-line">源码与说明：<a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></div>
 </footer>
@@ -136,7 +136,7 @@ const EM_OFFSET = 2000.0;
 
 // 等效词条：1 词条 = 20 精通 = 3.3 暴击 = 6.6 暴伤
 const EM_PER_ROLL = 20.0;
-const CRIT_PER_ROLL = 3.3;
+const CRIT_PER_ROLL = 6.6;   // 1 个双暴词条 = 6.6 双暴分（= 3.3 暴击 = 6.6 暴伤）
 
 // 副词条容量上界（满值口径，见文档 §2.4）
 const ROLL_LIMIT = 43;     // 总词条上界
@@ -150,7 +150,8 @@ const DEFAULTS = { bonus: 100, em: 951, cr: 36, cd: 112.2 };
 // 固定参照面板（不随输入变化）：589 精通 / 5% 暴击 / 50% 暴伤 —— 跨配置比较用的标尺
 const REF_EM = 589, REF_CR = 5, REF_CD = 50;
 
-const baseScore = (cr, cd) => cr + cd / 2;
+// 双暴分 = 2×暴击率 + 暴伤（等效暴伤；1 暴击等效 2 暴伤）
+const baseScore = (cr, cd) => 2 * cr + cd;
 
 const emTerm = (em) => EM_COEF * em / (em + EM_OFFSET);
 
@@ -160,9 +161,9 @@ const damage = (em, bonus, rate, dmg) =>
 
 /** 双暴分 y（总量）按约束下最优拆分 → [暴击率, 暴伤]。仅 y ≥ 基准双暴分 时有解。 */
 function splitAt(y, cr0, cd0) {
-  const upper = Math.min(100, y - cd0 / 2);
-  const r = Math.min(Math.max(y / 2, cr0), upper);
-  return [r, 2 * (y - r)];
+  const upper = Math.min(100, (y - cd0) / 2);
+  const r = Math.min(Math.max(y / 4, cr0), upper);
+  return [r, y - 2 * r];
 }
 
 /** 配不出的原因；能配返回 null。s = { bonus, em, cr, cd }。 */
@@ -176,7 +177,7 @@ function infeasibleReason(x, y, s) {
 }
 
 /** 「配不平」：能配，但 1:2 达不到（最优拆分顶在基准一侧）。 */
-const isPinnedBand = (y, s) => y < Math.max(2 * s.cr, s.cd);
+const isPinnedBand = (y, s) => y < Math.max(4 * s.cr, 2 * s.cd);
 
 /** 配平后顶在基准哪一侧（用于灰字提示）。 */
 const pinnedSide = (s) => (s.cd >= 2 * s.cr ? '暴伤' : '暴击率');
@@ -225,7 +226,7 @@ function nextRollGains(x, y, s) {
   };
 }
 
-/** 「下一词条」的最优分配（已有词条不动）：在 α ∈ [0, 1] 上最大化 D(x + 20α, y + 3.3(1 − α))。
+/** 「下一词条」的最优分配（已有词条不动）：在 α ∈ [0, 1] 上最大化 D(x + 20α, y + 6.6(1 − α))。
  *  目标沿 α 严格凹：α* = 使落下后的点命中最优分配线（边际相等）的拆分；够不到则整条给更值的一侧。
  *  返回词条拆分 { du: α, dv: 1 − α }（恒在 [0, 1]，和 = 1）。 */
 function nextAlloc(x, y, s) {
@@ -254,14 +255,14 @@ function dlnFdx(x, bonus) {
   return 1 / x + dEm / (1 + bonus + emTerm(x));
 }
 
-/** d lnG / dy（中心差分，h = 0.05；G 的一阶导连续，二阶导只在配平带边与 100% 上限处折）。 */
+/** d lnG / dy（中心差分，h = 0.1；G 的一阶导连续，二阶导只在配平带边与 100% 上限处折）。 */
 function dlnGdy(y, cr0, cd0) {
-  const h = 0.05;
+  const h = 0.1;
   return (Math.log(critZone(y + h, cr0, cd0)) - Math.log(critZone(y - h, cr0, cd0))) / (2 * h);
 }
 
 /** 词条重要性：伤害对精通词条数、双暴词条数的梯度归一化
- *  （= normalize(20·∂lnD/∂x, 3.3·∂lnD/∂y)；边际平衡处恰为 0.5 / 0.5）。 */
+ *  （= normalize(20·∂lnD/∂x, 6.6·∂lnD/∂y)；边际平衡处恰为 0.5 / 0.5）。 */
 function importance(x, y, s) {
   const gu = EM_PER_ROLL * dlnFdx(x, s.bonus);
   const gv = CRIT_PER_ROLL * dlnGdy(y, s.cr, s.cd);
@@ -366,7 +367,7 @@ function buildBase(s) {
     colorscale: [[0, '#ededed'], [1, '#ededed']], showscale: false,
   });
 
-  // 最优分配线：同词条最优路径 —— 等词条预算的驻点：20·d(lnF)/dx = 3.3·d(lnG)/dy
+  // 最优分配线：同词条最优路径 —— 等词条预算的驻点：20·d(lnF)/dx = 6.6·d(lnG)/dy
   // （「当前点两个投向的边际增益相等」；与「最优分配」页的最优路径精确一致）
   // 给定 y 解线上的 x（关于 x 严格递减，唯一根）；该行无解返回 null
   const lineX = (y) => {
@@ -466,7 +467,7 @@ function buildBase(s) {
   }
 
   // 配平下界（细点线）
-  const yP = Math.max(2 * s.cr, s.cd);
+  const yP = Math.max(4 * s.cr, 2 * s.cd);
   if (yP > y0 + 0.5 && yP < y1) {
     traces.push({
       type: 'scatter', mode: 'lines',
@@ -492,7 +493,7 @@ function buildPlot(s) {
       xaxis: { title: { text: '元素精通' }, range: [x0, x1],
                tickvals: niceTicks(x0, x1, 100), zeroline: false, gridcolor: '#e8e8e8' },
       yaxis: { title: { text: '双暴分' }, range: [y0, y1],
-               tickvals: niceTicks(y0, y1, 25), gridcolor: '#e8e8e8' },
+               tickvals: niceTicks(y0, y1, 50), gridcolor: '#e8e8e8' },
       shapes: fieldCache.base.shapes.slice(),
       annotations: fieldCache.base.annotations.slice(),
       margin: { t: 24, r: 24, b: 52, l: 66 }, height: 620,
@@ -530,7 +531,7 @@ function arrowAt(parts, px, py, ax, ay, w, h, color, width, marker) {
 }
 
 /** 画双箭头（悬浮与点击共用；两箭头只会指向右上方）：
- *  黑（主）= 「下一词条」最优分配的拆分方向 (du·20, dv·3.3) 按两轴刻度映射；
+ *  黑（主）= 「下一词条」最优分配的拆分方向 (du·20, dv·6.6) 按两轴刻度映射；
  *  钢蓝（次）= 画面空间梯度（每像素 lnD 增益最大，⊥ 等高线）。返回主箭头端点（chip 锚点）。 */
 function drawArrows(parts, px, py, x, y, s, w, h, sx, sy) {
   const al = nextAlloc(x, y, s);

@@ -57,7 +57,7 @@ def alloc_at(b):
     暴击率不能超过 100%。
 
     在 ``b < d0/s − c0/r`` 时 ``a* > b``，只能把词条全投暴击率，此时 c:d ≠ 1:2 ——
-    简化的 ``1 + (3.3b + 92.1)²/20000`` 会高估，`b = 0` 时高 1.44%。
+    简化的 ``1 + (6.6b + 184.2)²/80000`` 会高估，`b = 0` 时高 1.44%。
 
     返回 `(投入暴击率的词条数, 暴击率%, 暴伤%)`。
     """
@@ -157,7 +157,7 @@ def plot_relative_damage():
     ax.legend(loc="upper left", fontsize=10, framealpha=0.92)
 
     fig.supxlabel(
-        "基准：上完 buff、不含副词条的面板 —— 精通 951，双暴分 92.1。\n"
+        "基准：上完 buff、不含副词条的面板 —— 精通 951，双暴分 184.2。\n"
         "菱形点及其「×词条数 (纵轴值)」为该 n 下的最优；虚线弦代表这段区间内伤害仍在最大值的 99% 以上。",
         fontsize=9, color="#555555",
     )
@@ -202,7 +202,7 @@ def plot_optimal_split():
     bottom.set_title("最优点对应的面板", fontsize=11)
 
     fig.supxlabel(
-        "基准：上完 buff、不含副词条的面板 —— 精通 951，双暴分 92.1。\n"
+        "基准：上完 buff、不含副词条的面板 —— 精通 951，双暴分 184.2。\n"
         "n 为副词条中落在精通或双暴上的等效词条总数；只有副词条参与分配。",
         fontsize=9, color="#555555",
     )
@@ -216,8 +216,8 @@ def main():
 
     # 简化的暴击区公式（假定 1:2 恒成立）与本实现的差异
     for b in (0.0, 3.0, 6.0, 10.0, 20.0):
-        equiv = CRIT_RATE_BASE + CRIT_DMG_BASE / 2 + CRIT_RATE_PER_ROLL * b
-        simplified = 1 + equiv**2 / 20000
+        equiv = 2 * CRIT_RATE_BASE + CRIT_DMG_BASE + CRIT_DMG_PER_ROLL * b
+        simplified = 1 + equiv**2 / 80000
         exact = crit_zone_at(b)
         print(f"  b={b:<5} 简化 {simplified:.4f}  实际 {exact:.4f}  差 {(simplified/exact-1)*100:+.2f}%")
     print(f"（b >= {BALANCED_FROM:.1f} 时两者一致）\n")
