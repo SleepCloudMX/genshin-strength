@@ -4,6 +4,20 @@
 <meta charset="utf-8">
 <title>瑞希·星扩散机制</title>
 <link rel="icon" type="image/png" href="https://sleepcloudmx.github.io/Others/Image/kenomimi.png">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  renderMathInElement(document.body, {
+    delimiters: [
+      { left: '$$', right: '$$', display: true },
+      { left: '\\(', right: '\\)', display: false },
+    ],
+    throwOnError: false,
+  });
+});
+</script>
 <style>
   :root { --ink:#222; --muted:#555; --line:#d8d8d8; --bg:#fafafa; }
   * { box-sizing: border-box; }
@@ -15,6 +29,8 @@
   h1 { font-size: 19px; margin: 0; }
   h2 { font-size: 15.5px; margin: 24px 0 8px; }
   .head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 4px; font-size: 13px; }
+  .head .links { white-space: nowrap; }
+  .head .links .repo + .repo { margin-left: 14px; }
   .repo { color: var(--muted); text-decoration: none; white-space: nowrap; }
   .repo:hover { color: var(--ink); text-decoration: underline; }
   .repo svg { width: 1.15em; height: 1.15em; fill: currentColor; vertical-align: -0.18em; margin-right: 4px; }
@@ -26,9 +42,9 @@
   p { font-size: 13.5px; line-height: 1.8; margin: 8px 0; }
   .formula {
     background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
-    padding: 10px 14px; margin: 8px 0; font-size: 13.5px; line-height: 1.9;
+    padding: 8px 14px; margin: 8px 0; font-size: 13.5px; overflow-x: auto;
   }
-  .formula .cap { color: var(--muted); font-size: 12.5px; }
+  .formula .cap { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
   table { border-collapse: collapse; width: 100%; font-size: 13px; margin: 8px 0 4px; }
   th, td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; line-height: 1.7; }
   th { background: var(--bg); font-weight: 600; }
@@ -45,7 +61,7 @@
 <h1>「梦见月瑞希」星扩散机制</h1>
 <span class="links"><a class="repo" href="../../index.html"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 1.6 7.2h1.5v7h3.3v-4.1h3.2v4.1h3.3v-7h1.5L8 1.8z"/></svg>主页</a><a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></span>
 </div>
-<div class="sub">本页只整理<b>确定项</b>：星扩散的机制、三条伤害公式、各乘区，以及三个计算页面共用的口径。公式与数值来自社区解包数据，非官方文本。</div>
+<div class="sub">星扩散的机制、三条伤害公式、各乘区，以及三个计算页面共用的口径。公式与数值来自社区解包数据，非官方文本。</div>
 
 <h2>1. 星扩散是什么</h2>
 <ul>
@@ -62,28 +78,39 @@
 
 <h2>2. 三条公式</h2>
 <div class="formula">
-  反应星扩散（风） = 1446.85 × <b>0.75</b> × (1 + 基础提升%) × (1 + 6·EM / (EM + 2000) + 星扩散增伤%) × 抗性系数 × 暴击区 × 擢升
+  $$\begin{aligned}
+  \text{反应星扩散（风）} = {} & 1446.85 \times 0.75 \times (1 + \text{基础提升}\%) \\
+   & \times \left(1 + \frac{6 \times \text{元素精通}}{\text{元素精通} + 2000} + \text{星扩散增伤}\%\right) \\
+   & \times \text{抗性系数} \times \text{暴击区} \times \text{擢升}
+  \end{aligned}$$
 </div>
 <div class="formula">
-  反应星扩散（冰） = 1446.85 × <b>基础倍率</b> × (1 + 基础提升%) × (1 + 6·EM / (EM + 2000) + 星扩散增伤%) × 抗性系数 × 暴击区 × 擢升<br>
-  <span class="cap">基础倍率：风涡系数 1 ~ 2 → 2；系数 3 ~ 6 → 3</span>
+  $$\begin{aligned}
+  \text{反应星扩散（冰）} = {} & 1446.85 \times \text{基础倍率} \times (1 + \text{基础提升}\%) \\
+   & \times \left(1 + \frac{6 \times \text{元素精通}}{\text{元素精通} + 2000} + \text{星扩散增伤}\%\right) \\
+   & \times \text{抗性系数} \times \text{暴击区} \times \text{擢升}
+  \end{aligned}$$
+  <div class="cap">基础倍率：风涡系数 1 ~ 2 → 2；系数 3 ~ 6 → 3</div>
 </div>
 <div class="formula">
-  星扩散直伤基础 = <b>属性</b> × <b>倍率</b> × (1 + 基础提升%) × (1 + 6·EM / (EM + 2000) + 星扩散增伤%)<br>
-  最终直伤 =（直伤基础 + 额外提升）× 抗性系数 × 暴击区 × 擢升
+  $$\begin{aligned}
+  \text{星扩散直伤基础} = {} & \text{属性} \times \text{倍率} \times (1 + \text{基础提升}\%) \\
+   & \times \left(1 + \frac{6 \times \text{元素精通}}{\text{元素精通} + 2000} + \text{星扩散增伤}\%\right)
+  \end{aligned}$$
+  $$\text{最终直伤} = (\text{直伤基础} + \text{额外提升}) \times \text{抗性系数} \times \text{暴击区} \times \text{擢升}$$
 </div>
 <p>其中 <b>1446.85</b> 是 90 级剧变反应的等级基数，不是星扩散专属常数 —— <b>直伤不用它</b>，直伤直接取角色天赋倍率（基础系数 1.0）。</p>
 
 <h2>3. 各乘区</h2>
 <table>
-<tr><th style="width:150px">乘区</th><th>说明</th></tr>
+<tr><th style="width:130px">乘区</th><th>说明</th></tr>
 <tr><td><b>基础提升%</b></td><td>独立乘区，乘在整个倍率区外面，与任何项都不稀释。来源：奥黛塔固有天赋 3（每 100 攻 +0.7%，上限 <b>14%</b>）、冰主固有天赋（每 100 攻 +0.35%，上限 <b>7%</b>）。</td></tr>
-<tr><td><b>精通项</b><br>6·EM/(EM+2000)</td><td>星扩散的精通系数是 <b>6</b>（传统剧变反应是 16）。与「星扩散增伤%」<b>加在同一个括号里</b>，两者互相稀释。</td></tr>
+<tr><td><b>精通项</b></td><td>\(6 \times \text{元素精通} / (\text{元素精通} + 2000)\) —— 星扩散的精通系数是 <b>6</b>（传统剧变反应是 16）。与「星扩散增伤%」<b>加在同一个括号里</b>，两者互相稀释。</td></tr>
 <tr><td><b>星扩散增伤%</b></td><td>各来源之间<b>加算</b>（不是独立乘区）。例：炉火融炼之心 4 件套 +50%、七七固有天赋 3（谕示强化后）+50%、血红之证 4 件套 +40%、迪奥娜 C6（谕示强化后）+40%、冰主 C6 +5% / 层（上限 40%）、翠绿之影 4 件套 +20%。</td></tr>
-<tr><td><b>抗性系数</b></td><td>通用分段函数：抗性 r &lt; 0 → 1 − r/2；0 ≤ r &lt; 0.75 → 1 − r；r ≥ 0.75 → 1/(4r + 1)。星扩散<b>按伤害元素取抗性</b>（风段用风抗、冰段用冰抗）。<b>反应伤害无防御区</b>。</td></tr>
-<tr><td><b>暴击区</b></td><td>1 + 暴击率 × 暴伤（<b>期望值</b>口径）。暴击率上限 100%，溢出无效。星扩散是可暴击的剧变反应。</td></tr>
+<tr><td><b>抗性系数</b></td><td>通用分段函数（抗性记作 \(r\)）：\(r &lt; 0\) 时 \(1 - r/2\)；\(0 \le r &lt; 0.75\) 时 \(1 - r\)；\(r \ge 0.75\) 时 \(1/(4r+1)\)。星扩散<b>按伤害元素取抗性</b>（风段用风抗、冰段用冰抗）。<b>反应伤害无防御区</b>。</td></tr>
+<tr><td><b>暴击区</b></td><td>\(1 + \text{暴击率} \times \text{暴伤}\)（<b>期望值</b>口径）。暴击率上限 100%，溢出无效。星扩散是可暴击的剧变反应。</td></tr>
 <tr><td><b>额外提升</b></td><td>直伤公式末端的固定加伤项（如某些命座提供），直接加在直伤基础上 —— <b>不吃</b>精通项、也<b>不吃</b>星扩散增伤。</td></tr>
-<tr><td><b>擢升</b></td><td>独立百分比乘区，形态 ×(1 + 擢升%)。来源只有限定五星命座（常见 10% ~ 45%），没有圣遗物 / 武器 / 天赋来源。</td></tr>
+<tr><td><b>擢升</b></td><td>独立百分比乘区，形态 \(\times (1 + \text{擢升}\%)\)。来源只有限定五星命座（常见 10% ~ 45%），没有圣遗物 / 武器 / 天赋来源。</td></tr>
 </table>
 
 <h2>4. 反应伤害的角色分摊</h2>
@@ -91,7 +118,7 @@
 
 <h2>5. 瑞希（本项目的主角）</h2>
 <ul>
-<li>伤害主体是<b>星扩散直伤</b>，来自天赋「<b>廓然梦生</b>」：提升值相当于<b>元素精通的 1000%</b>，每 2.5 秒至多触发一次（内置 CD）。属性 = 元素精通，所以精通在公式里<b>出现两次</b>（一次作线性属性、一次进 6·EM/(EM+2000)）—— 这是精通收益很高的原因。</li>
+<li>伤害主体是<b>星扩散直伤</b>，来自天赋「<b>廓然梦生</b>」：提升值相当于<b>元素精通的 1000%</b>，每 2.5 秒至多触发一次（内置 CD）。属性 = 元素精通，所以精通在公式里<b>出现两次</b>（一次作线性属性、一次进精通项）—— 这是精通收益很高的原因。</li>
 <li>「廓然梦生」同时给全队精通：梦浮时附近<b>队友</b>获得相当于瑞希自身精通 <b>10%</b> 的精通。</li>
 <li>固有天赋「<b>昼想夜梦</b>」：梦浮状态下，队友的火 / 水 / 冰 / 雷攻击命中敌人时，<b>瑞希自身</b>精通 +100，持续 4 秒。</li>
 <li>「<b>名月浮声</b>」：梦浮期间触发扩散 / 星扩散，梦浮时长 +2.5 秒（不给精通）。</li>
@@ -103,12 +130,12 @@
 <li><b>双暴分</b> = 2 × 暴击率 + 暴伤（等效暴伤）。理之冠的暴击 / 暴伤主词条自由选取，两种冠的双暴分相同，所以用它描述基准面板。</li>
 <li><b>基准面板</b> = 上完 buff、不含副词条 —— 副词条正是三个页面里要分配的对象。</li>
 <li>每个点都假设双暴已按 <b>1:2 配平</b>（先补基准的偏斜），暴击区取期望值。</li>
-<li><b>星扩散伤害 = 星扩散直伤（大头）+ 反应星扩散</b>。两条路径共用乘区，合并后可写成（EM + W）的形式（W = 反应折算成多少点精通）。三个页面上的「星扩散直伤占比」滑条按<b>给定常数</b>把反应并入；比例是假设，页面不根据配置推算真实占比。</li>
+<li><b>星扩散伤害 = 星扩散直伤（大头）+ 反应星扩散</b>。两条路径共用乘区，合并后可写成（元素精通 + W）的形式（W = 反应折算成多少点精通）。三个页面上的「星扩散直伤占比」滑条按<b>给定常数</b>把反应并入；比例是假设，页面不根据配置推算真实占比。</li>
 <li>「只换一件装备 / 一套圣遗物」的比值分析里，同队伍下相同的项 —— 倍率、(1 + 基础提升%)、抗性系数、擢升 —— 可以约掉。</li>
 </ul>
 
 <footer>
-  整理自本项目的机制文档（源：玉衡杯数据库 7.0v1 解包数据、biligame WIKI、NGA 数据讨论帖）；<b>只收录确定项</b>，公式与数值为非官方文本，请酌情参考。
+  整理自本项目的机制文档（源：玉衡杯数据库 7.0v1 解包数据、biligame WIKI、NGA 数据讨论帖）；公式与数值为非官方文本，请酌情参考。
   <div class="repo-line">源码与说明：<a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></div>
 </footer>
 </div>
