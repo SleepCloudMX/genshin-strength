@@ -4,7 +4,7 @@
 
 ## 在线页面
 
-**入口页**：[sleepcloudmx.github.io/genshin-strength](https://sleepcloudmx.github.io/genshin-strength/) —— 三张页面的索引，从这里进最方便。
+**入口页**：[sleepcloudmx.github.io/genshin-strength](https://sleepcloudmx.github.io/genshin-strength/) —— 四张页面的索引，从这里进最方便。
 
 ### （1）瑞希
 
