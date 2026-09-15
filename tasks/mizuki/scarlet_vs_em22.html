@@ -147,6 +147,21 @@ function breakEven(score, bonus, d, ref) {
   return { x: (lo + hi) / 2 };
 }
 
+/** 分界线（逐行求根的参数曲线）的坐标。只依赖 s 的标量参数 —— 拖动滑条时只重算它。 */
+function dividerPoints(s) {
+  const bx = [], by = [];
+  for (let j = 0; j <= GRID - 1; j++) {
+    const sc = SCORE_MAX * j / (GRID - 1);
+    const root = breakEven(sc / 100, s.bonus, s.d, s.em);
+    if (root.x !== undefined) { bx.push(root.x); by.push(sc); }
+  }
+  return { bx, by };
+}
+const mkDividerTrace = (bx, by) => ({
+  type: 'scatter', mode: 'lines', x: bx, y: by, name: '两套等效（分界线）',
+  line: { color: '#000', width: 2.4 }, hoverinfo: 'skip',
+});
+
 // ── 状态 ──
 const $ = (id) => document.getElementById(id);
 const num = (id, fallback) => {
@@ -207,17 +222,11 @@ function buildPlot(s) {
     },
   }];
 
-  // 分界线：逐行求根后画参数曲线，不交给 Plotly 的 contour 自己追
-  const bx = [], by = [];
-  for (let j = 0; j <= GRID - 1; j++) {
-    const sc = SCORE_MAX * j / (GRID - 1);
-    const root = breakEven(sc / 100, s.bonus, s.d, s.em);
-    if (root.x !== undefined) { bx.push(root.x); by.push(sc); }
-  }
-  traces.push({
-    type: 'scatter', mode: 'lines', x: bx, y: by, name: '两套等效（分界线）',
-    line: { color: '#000', width: 2.4 }, hoverinfo: 'skip',
-  });
+  // 分界线：逐行求根后画参数曲线，不交给 Plotly 的 contour 自己追。
+  // iDivider 记下索引：拖动滑条时只替换这一条（未变的 trace 传同一对象，react 按引用跳过重绘）。
+  const { bx, by } = dividerPoints(s);
+  const iDivider = traces.length;
+  traces.push(mkDividerTrace(bx, by));
 
   // 输入定位的十字准星
   traces.push({
@@ -241,7 +250,7 @@ function buildPlot(s) {
   }
 
   return {
-    traces, layout: {
+    traces, iDivider, layout: {
       xaxis: { title: { text: '元素精通（刻度 /1000）' }, range: [0, EM_MAX],
                tickvals: [0, 500, 1000, 1500, 2000], ticktext: ['0', '0.5', '1', '1.5', '2'],
                zeroline: false, gridcolor: '#e8e8e8' },
@@ -254,12 +263,10 @@ function buildPlot(s) {
   };
 }
 
-function render() {
-  const s = readState();
+let figCache = { traces: null, layout: null, iDivider: 1 };
 
-  $('dval').textContent = (s.d * 100).toFixed(0);
-  $('score').textContent = s.score.toFixed(1);
-
+/** 结论条（比值 / 谁优 / 分界）—— 轻量路径也要刷新它。 */
+function updateVerdict(s) {
   const r = ratio(s.em, s.score / 100, s.bonus, s.d, s.em);
   $('ratio').textContent = r.toFixed(4);
   const margin = Math.abs(r - 1) * 100;
@@ -271,16 +278,35 @@ function render() {
     $('who').textContent = `${better} 优 ${margin.toFixed(1)}%`;
     $('who').style.color = r > 1 ? '#a03030' : '#2a6099';
   }
-
   const be = breakEven(s.score / 100, s.bonus, s.d, s.em);
   $('split').textContent = be.x !== undefined
     ? `双暴分固定在 ${s.score.toFixed(1)} 时，精通 ${be.x.toFixed(0)} 是分界（你现在 ${s.em.toFixed(0)}）`
     : be.none === 'scarlet'
       ? `双暴分 ${s.score.toFixed(1)} 下，全区间都是血红之证更优`
       : `双暴分 ${s.score.toFixed(1)} 下，全区间都是精通 2+2 更优`;
+}
 
+function render() {
+  const s = readState();
+  $('dval').textContent = (s.d * 100).toFixed(0);
+  $('score').textContent = s.score.toFixed(1);
+  updateVerdict(s);
   const fig = buildPlot(s);
+  figCache = { traces: fig.traces, layout: fig.layout, iDivider: fig.iDivider };
   Plotly.react('plot', fig.traces, fig.layout, { responsive: true });
+}
+
+/** 拖动滑条时的轻量刷新：只重算并替换分界线（其余 trace 传同一对象，react 按引用跳过重绘），
+ *  热力图保持上一次全量结果，松手（change）后再全量同步。 */
+function renderLight() {
+  const s = readState();
+  $('dval').textContent = (s.d * 100).toFixed(0);
+  updateVerdict(s);
+  if (!figCache.traces) { render(); return; }
+  const { bx, by } = dividerPoints(s);
+  const traces = figCache.traces.slice();
+  traces[figCache.iDivider] = mkDividerTrace(bx, by);
+  Plotly.react('plot', traces, figCache.layout, { responsive: true });
 }
 
 $('bonus').value = DEFAULTS.bonus;
@@ -296,7 +322,19 @@ function queueRender() {
   renderQueued = true;
   requestAnimationFrame(() => { renderQueued = false; render(); });
 }
-for (const el of document.querySelectorAll('input')) el.addEventListener('input', queueRender);
+let lightQueued = false;
+function queueLight() {
+  if (lightQueued) return;
+  lightQueued = true;
+  requestAnimationFrame(() => { lightQueued = false; renderLight(); });
+}
+// 滑条走轻量路径（拖动中只更新分界线与结论条）；松手 change 时全量同步热力图
+for (const el of document.querySelectorAll('input')) {
+  if (el.id === 'd') continue;
+  el.addEventListener('input', queueRender);
+}
+$('d').addEventListener('input', queueLight);
+$('d').addEventListener('change', queueRender);   // render() 无缓存，天然全量
 render();
 </script>
 </body>

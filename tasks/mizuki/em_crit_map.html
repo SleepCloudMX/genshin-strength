@@ -300,6 +300,70 @@ function xRight(y, s) {
   );
 }
 
+/** 最优分配线（revX/revY）与等词条线交点（crosses）。只依赖 s 的标量参数、不碰热力图 ——
+ *  拖动「星扩散直伤占比」滑条时只重算这一块，热力图与等高线留到松手后全量同步。 */
+function lineAndCrosses(s) {
+  const y0 = baseScore(s.cr, s.cd), y1 = y0 + ROLL_LIMIT * CRIT_PER_ROLL;
+  const scores = Array.from({ length: GRID }, (_, j) => y0 + (y1 - y0) * j / (GRID - 1));
+
+  // 同词条最优路径 —— 等词条预算的驻点：20·d(lnF)/dx = 6.6·d(lnG)/dy
+  // （「当前点两个投向的边际增益相等」；与「最优分配」页的最优路径精确一致）
+  // 给定 y 解线上的 x（关于 x 严格递减，唯一根）；该行无解返回 null
+  const lineX = (y) => {
+    if (infeasibleReason(s.em, y, s)) return null;   // 该行不可达
+    const rhs = CRIT_PER_ROLL * dlnGdy(y, s.cr, s.cd);
+    const f = (x) => EM_PER_ROLL * dlnFdx(x, s.bonus, s) - rhs;
+    let a = s.em, b = xRight(y, s);
+    if (b <= a || f(a) * f(b) > 0) return null;
+    for (let k = 0; k < 40; k++) {
+      const m = (a + b) / 2;
+      if (f(a) * f(m) <= 0) b = m; else a = m;
+    }
+    return (a + b) / 2;
+  };
+  const revX = [], revY = [];
+  for (const y of scores) {
+    const x = lineX(y);
+    if (x == null) continue;
+    revX.push(x); revY.push(y);
+  }
+
+  // 等词条线 × 最优分配线 = 该词条数预算下的精确最优拆分（沿预算线的最大值点）。
+  // 解析求解：扫 y 上的 n(y) 找跨越 nR 的区间再二分，不用像素求交。
+  const crosses = [];
+  const nOnLine = (y) => { const x = lineX(y); return x == null ? null : (x - s.em) / EM_PER_ROLL + (y - y0) / CRIT_PER_ROLL; };
+  for (const nR of ISO_ROLLS) {
+    let prevY = null, prevN = null;
+    for (let y = y0; y <= y1 + 1e-9; y += 0.5) {
+      const nv = nOnLine(y);
+      if (nv != null && prevN != null && (prevN - nR) * (nv - nR) <= 0) {
+        let lo = prevY, hi = y;
+        for (let k = 0; k < 60; k++) {
+          const m = (lo + hi) / 2;
+          if ((nOnLine(lo) - nR) * (nOnLine(m) - nR) <= 0) hi = m; else lo = m;
+        }
+        const yc = (lo + hi) / 2, xc = lineX(yc);
+        if (xc >= s.em && xc <= s.em + EM_ADD_MAX && yc >= y0 && yc <= y1) {
+          crosses.push({ x: xc, y: yc, n: nR, mult: multiplier(xc, yc, s) });
+        }
+      }
+      prevY = y; prevN = nv;
+    }
+  }
+  return { revX, revY, crosses };
+}
+
+/** 最优分配线 / 交点标注的 trace（拖动滑条时只替换这两条）。 */
+const mkRevTrace = (revX, revY) => ({
+  type: 'scatter', mode: 'lines', x: revX, y: revY, name: '最优分配线',
+  line: { color: '#e8710a', width: 1.6 }, hoverinfo: 'skip', legendrank: 1,
+});
+const mkCrossTrace = (crosses) => ({
+  type: 'scatter', mode: 'markers', x: crosses.map((c) => c.x), y: crosses.map((c) => c.y),
+  marker: { size: 7, color: '#e8710a', line: { color: '#fff', width: 1.5 } },
+  showlegend: false, hoverinfo: 'skip',
+});
+
 /** [lo, hi] 内以 step 为间隔的整齐刻度。 */
 function niceTicks(lo, hi, step) {
   const out = [];
@@ -389,27 +453,8 @@ function buildBase(s) {
     colorscale: [[0, '#ededed'], [1, '#ededed']], showscale: false,
   });
 
-  // 最优分配线：同词条最优路径 —— 等词条预算的驻点：20·d(lnF)/dx = 6.6·d(lnG)/dy
-  // （「当前点两个投向的边际增益相等」；与「最优分配」页的最优路径精确一致）
-  // 给定 y 解线上的 x（关于 x 严格递减，唯一根）；该行无解返回 null
-  const lineX = (y) => {
-    if (infeasibleReason(s.em, y, s)) return null;   // 该行不可达
-    const rhs = CRIT_PER_ROLL * dlnGdy(y, s.cr, s.cd);
-    const f = (x) => EM_PER_ROLL * dlnFdx(x, s.bonus, s) - rhs;
-    let a = s.em, b = xRight(y, s);
-    if (b <= a || f(a) * f(b) > 0) return null;
-    for (let k = 0; k < 40; k++) {
-      const m = (a + b) / 2;
-      if (f(a) * f(m) <= 0) b = m; else a = m;
-    }
-    return (a + b) / 2;
-  };
-  const revX = [], revY = [];
-  for (const y of scores) {
-    const x = lineX(y);
-    if (x == null) continue;
-    revX.push(x); revY.push(y);
-  }
+  // 最优分配线与等词条线交点（只依赖 s 的标量参数，拖动滑条时可单独重算）
+  const { revX, revY, crosses } = lineAndCrosses(s);
 
   // 等词条线：n = 10/20/30/40 的预算等值线（橙色虚线；越靠右上 n 越大。
   // 43 词条上限是右上遮罩边上的灰色虚线，同族的最外一条）
@@ -426,39 +471,13 @@ function buildBase(s) {
     line: { color: '#e8710a', width: 1, dash: 'dash' }, hoverinfo: 'skip', legendrank: 3,
   });
 
-  // 最优分配线（实线；虚线语义留给等词条线）
-  traces.push({
-    type: 'scatter', mode: 'lines', x: revX, y: revY, name: '最优分配线',
-    line: { color: '#e8710a', width: 1.6 }, hoverinfo: 'skip', legendrank: 1,
-  });
-
-  // 等词条线 × 最优分配线 = 该词条数预算下的精确最优拆分（沿预算线的最大值点）。
-  // 解析求解：扫 y 上的 n(y) 找跨越 nR 的区间再二分，不用像素求交。
-  const crosses = [];
-  const nOnLine = (y) => { const x = lineX(y); return x == null ? null : (x - s.em) / EM_PER_ROLL + (y - y0) / CRIT_PER_ROLL; };
-  for (const nR of ISO_ROLLS) {
-    let prevY = null, prevN = null;
-    for (let y = y0; y <= y1 + 1e-9; y += 0.5) {
-      const nv = nOnLine(y);
-      if (nv != null && prevN != null && (prevN - nR) * (nv - nR) <= 0) {
-        let lo = prevY, hi = y;
-        for (let k = 0; k < 60; k++) {
-          const m = (lo + hi) / 2;
-          if ((nOnLine(lo) - nR) * (nOnLine(m) - nR) <= 0) hi = m; else lo = m;
-        }
-        const yc = (lo + hi) / 2, xc = lineX(yc);
-        if (xc >= x0 && xc <= x1 && yc >= y0 && yc <= y1) crosses.push({ x: xc, y: yc, n: nR, mult: multiplier(xc, yc, s) });
-      }
-      prevY = y; prevN = nv;
-    }
-  }
-  if (crosses.length) {
-    traces.push({
-      type: 'scatter', mode: 'markers', x: crosses.map((c) => c.x), y: crosses.map((c) => c.y),
-      marker: { size: 7, color: '#e8710a', line: { color: '#fff', width: 1.5 } },
-      showlegend: false, hoverinfo: 'skip',
-    });
-  }
+  // 最优分配线（实线；虚线语义留给等词条线）与交点标注。
+  // dyn 记下索引：拖动滑条时只替换这两条 trace（未变的 trace 传同一对象，
+  // Plotly.react 按引用跳过重绘），热力图与等高线留到松手（change）后全量同步。
+  const dyn = { line: traces.length };
+  traces.push(mkRevTrace(revX, revY));
+  dyn.crosses = traces.length;
+  traces.push(mkCrossTrace(crosses));
 
   // 基准点
   traces.push({
@@ -501,7 +520,7 @@ function buildBase(s) {
 
   // 「基准 ×1.00」画在自绘覆盖层里（要白色描边，Plotly annotation 给不了文字描边）
 
-  return { x0, x1, y0, y1, traces, shapes, annotations, crosses };
+  return { x0, x1, y0, y1, traces, shapes, annotations, crosses, dyn };
 }
 
 /** 组图：基础层按输入缓存；固定点 / 悬浮箭头走 overlay（只 relayout，不重绘热力图）。 */
@@ -509,19 +528,18 @@ function buildPlot(s) {
   const key = `${s.bonus}|${s.em}|${s.cr}|${s.cd}|${s.d}`;
   if (fieldCache.key !== key) fieldCache = { key, base: buildBase(s) };
   const { x0, x1, y0, y1 } = fieldCache.base;
-  return {
-    traces: fieldCache.base.traces.slice(),
-    layout: {
-      xaxis: { title: { text: '元素精通' }, range: [x0, x1],
-               tickvals: niceTicks(x0, x1, 100), zeroline: false, gridcolor: '#e8e8e8' },
-      yaxis: { title: { text: '双暴分' }, range: [y0, y1],
-               tickvals: niceTicks(y0, y1, 50), gridcolor: '#e8e8e8' },
-      shapes: fieldCache.base.shapes.slice(),
-      annotations: fieldCache.base.annotations.slice(),
-      margin: { t: 24, r: 24, b: 52, l: 66 }, height: 620,
-      hovermode: false, plot_bgcolor: '#fff', paper_bgcolor: '#fff',
-    },
+  const layout = {
+    xaxis: { title: { text: '元素精通' }, range: [x0, x1],
+             tickvals: niceTicks(x0, x1, 100), zeroline: false, gridcolor: '#e8e8e8' },
+    yaxis: { title: { text: '双暴分' }, range: [y0, y1],
+             tickvals: niceTicks(y0, y1, 50), gridcolor: '#e8e8e8' },
+    shapes: fieldCache.base.shapes.slice(),
+    annotations: fieldCache.base.annotations.slice(),
+    margin: { t: 24, r: 24, b: 52, l: 66 }, height: 620,
+    hovermode: false, plot_bgcolor: '#fff', paper_bgcolor: '#fff',
   };
+  fieldCache.base.layout = layout;   // 轻量刷新复用同一 layout 对象（引用不变 → Plotly.react 不动布局）
+  return { traces: fieldCache.base.traces.slice(), layout };
 }
 
 // ── 叠加层：固定点与悬浮箭头，只 shapes / annotations，不重绘热力图 ──
@@ -781,6 +799,29 @@ function render() {
   updateOverlay();
 }
 
+/** 拖动滑条时的轻量刷新：只重算并替换「最优分配线 + 交点」两条 trace（其余 trace 传同一对象，
+ *  Plotly.react 按引用跳过重绘），热力图与等高线保持上一次全量结果，松手（change）后再全量同步。 */
+function renderLight() {
+  const s = readState();
+  $('dval').textContent = (s.d * 100).toFixed(0);
+  const base = fieldCache.base;
+  if (!base || !base.layout) { render(); return; }
+  const { revX, revY, crosses } = lineAndCrosses(s);
+  base.traces[base.dyn.line] = mkRevTrace(revX, revY);
+  base.traces[base.dyn.crosses] = mkCrossTrace(crosses);
+  base.crosses = crosses;
+  Plotly.react('plot', base.traces.slice(), base.layout, { responsive: true }).then(queueOverlay);
+  updatePinBox(s);
+  updateOverlay();
+}
+
+let lightQueued = false;
+function queueLight() {
+  if (lightQueued) return;
+  lightQueued = true;
+  requestAnimationFrame(() => { lightQueued = false; renderLight(); });
+}
+
 $('bonus').value = DEFAULTS.bonus;
 $('em').value = DEFAULTS.em;
 $('cr').value = DEFAULTS.cr;
@@ -794,7 +835,13 @@ function queueRender() {
   renderQueued = true;
   requestAnimationFrame(() => { renderQueued = false; render(); });
 }
-for (const el of document.querySelectorAll('input')) el.addEventListener('input', queueRender);
+// 滑条走轻量路径（拖动中只更新线/点/读数）；松手 change 时置空缓存键 → 全量同步热力图
+for (const el of document.querySelectorAll('input')) {
+  if (el.id === 'd') continue;
+  el.addEventListener('input', queueRender);
+}
+$('d').addEventListener('input', queueLight);
+$('d').addEventListener('change', () => { fieldCache.key = null; queueRender(); });
 const wrap = document.querySelector('.plotwrap');
 wrap.addEventListener('mousemove', onWrapMove);
 wrap.addEventListener('mouseleave', onWrapLeave);
