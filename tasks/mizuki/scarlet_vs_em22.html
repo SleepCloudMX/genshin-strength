@@ -35,6 +35,8 @@
   }
   input[type=range] { width: 150px; padding: 0; border: 0; background: transparent; }
   .dval { color: var(--ink); font-weight: 600; }
+  .derived { font-size: 13px; color: var(--muted); padding-bottom: 6px; }
+  .derived b { color: var(--ink); font-size: 15px; }
   .verdict {
     border: 1px solid var(--line); border-left: 3px solid #e8710a; border-radius: 6px;
     padding: 12px 16px; margin-bottom: 18px;
@@ -63,7 +65,9 @@
   <div class="panel-note"><b>星扩散直伤占比</b>：给定的假定常数（按你填的基准精深处定义），计算中直接采用；本页<b>不</b>根据你的配置推算真实占比 —— 真实占比取决于触发次数等未确认机制。默认 100% = 只看星扩散直伤。社区有「直伤约占九成」的说法（未核实），实战可参考 90% 这一量级。</div>
   <label>星扩散增伤 %<input id="bonus" type="number" step="5"></label>
   <label>基准精通<input id="em" type="number" step="10"></label>
-  <label>双暴分（不含套装特效）<input id="score" type="number" step="1"></label>
+  <label>基准暴击 %<input id="cr" type="number" step="0.1"></label>
+  <label>基准暴伤 %<input id="cd" type="number" step="0.1"></label>
+  <div class="derived">双暴分 <b id="score"></b></div>
   <label><span>星扩散直伤占比 <span class="dval" id="dval">100</span>%</span><input id="d" type="range" min="0" max="100" step="1"></label>
 </div>
 
@@ -76,10 +80,10 @@
 <div id="plot"></div>
 
 <footer>
-  <b>双暴分</b> = 暴击率 × 2 + 暴伤，填<b>不含圣遗物套装特效</b>的总量（自身、武器、主副词条、队友给的都算进去）。
-  血红之证 4 件套的 +16% 暴击由脚本自己加，所以图上血红那一路的双暴分是「你填的值 + 32」。<br>
+  <b>双暴分</b> = 2 × 基准暴击 + 基准暴伤（实时算出），填<b>不含圣遗物套装特效</b>的总量（自身、武器、主副词条、队友给的都算进去）。
+  血红之证 4 件套的 +16% 暴击由脚本自己加，所以图上血红那一路是「你填的暴击 + 16%」（双暴分 +32）。<br>
   两套的精通也不同：精通 2+2 比你填的基准精通多 160。星扩散增伤则是在你填的值上，血红那一路再 +40%。<br>
-  比值 = 两套的期望伤害比，> 1 表示血红更优。倍率、(1 + 基础提升)、抗性系数、擢升在同队伍下相同，已约掉。默认算的是<b>星扩散直伤</b>；拉低「星扩散直伤占比」滑条后，按给定比例把反应星扩散一并计入。
+  比值 = 两套的期望伤害比，> 1 表示血红更优。倍率、(1 + 基础提升)、抗性系数、擢升在同队伍下相同，已约掉。<b>星扩散伤害 = 星扩散直伤（大头）+ 反应星扩散</b>；默认算的是前者，拉低「星扩散直伤占比」滑条后，按给定比例把后者一并计入。
   <div class="repo-line">源码与说明：<a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></div>
 </footer>
 
@@ -91,7 +95,7 @@ const EM_OFFSET = 2000.0;
 const SCARLET = { em: 0,     critRate: 0.16, swirlBonus: 0.40 };  // 血红之证 4 件套
 const EM_2P2  = { em: 160.0, critRate: 0.0,  swirlBonus: 0.0 };   // 精通 2+2
 
-const DEFAULTS = { bonus: 100, em: 939, score: 240, d: 1.00 };
+const DEFAULTS = { bonus: 100, em: 939, cr: 60, cd: 120, d: 1.00 };
 
 const EM_MAX = 2000, SCORE_MAX = 400, GRID = 201;
 
@@ -149,12 +153,15 @@ const num = (id, fallback) => {
   const v = parseFloat($(id).value);
   return Number.isFinite(v) ? v : fallback;
 };
-const readState = () => ({
-  bonus: num('bonus', DEFAULTS.bonus) / 100,
-  em: num('em', DEFAULTS.em),
-  score: num('score', DEFAULTS.score),
-  d: num('d', DEFAULTS.d * 100) / 100,
-});
+const readState = () => {
+  const cr = num('cr', DEFAULTS.cr), cd = num('cd', DEFAULTS.cd);
+  return {
+    bonus: num('bonus', DEFAULTS.bonus) / 100,
+    em: num('em', DEFAULTS.em),
+    score: 2 * cr + cd,      // 双暴分 = 2×暴击 + 暴伤，由输入实时算出
+    d: num('d', DEFAULTS.d * 100) / 100,
+  };
+};
 
 // ── 绘制 ──
 /**
@@ -251,13 +258,19 @@ function render() {
   const s = readState();
 
   $('dval').textContent = (s.d * 100).toFixed(0);
+  $('score').textContent = s.score.toFixed(1);
 
   const r = ratio(s.em, s.score / 100, s.bonus, s.d, s.em);
   $('ratio').textContent = r.toFixed(4);
   const margin = Math.abs(r - 1) * 100;
-  const better = r > 1 ? '血红之证' : '精通 2+2';
-  $('who').textContent = `${better} 优 ${margin.toFixed(1)}%`;
-  $('who').style.color = r > 1 ? '#a03030' : '#2a6099';
+  if (margin.toFixed(1) === '0.0') {          // 差距显示不出来时不写谁优
+    $('who').textContent = '血红之证 = 精通 2+2';
+    $('who').style.color = '';
+  } else {
+    const better = r > 1 ? '血红之证' : '精通 2+2';
+    $('who').textContent = `${better} 优 ${margin.toFixed(1)}%`;
+    $('who').style.color = r > 1 ? '#a03030' : '#2a6099';
+  }
 
   const be = breakEven(s.score / 100, s.bonus, s.d, s.em);
   $('split').textContent = be.x !== undefined
@@ -272,7 +285,8 @@ function render() {
 
 $('bonus').value = DEFAULTS.bonus;
 $('em').value = DEFAULTS.em;
-$('score').value = DEFAULTS.score;
+$('cr').value = DEFAULTS.cr;
+$('cd').value = DEFAULTS.cd;
 $('d').value = DEFAULTS.d * 100;
 
 // 滑条拖动会连续触发 —— 按帧合并，一帧最多重画一次
