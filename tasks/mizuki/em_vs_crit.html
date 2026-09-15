@@ -63,7 +63,6 @@
   <div class="derived">双暴分 <b id="score"></b></div>
   <label>星扩散增伤 %<input id="bonus" type="number" step="1"></label>
   <label><span>星扩散直伤占比 <span class="dval" id="dval">100</span>%</span><input id="d" type="range" min="0" max="100" step="1"></label>
-  <div class="derived" id="caliber"></div>
   <label>曲线取哪些 n<input id="ns" type="text"></label>
   <label>平台阈值 %<input id="level" type="number" step="0.5"></label>
 </div>
@@ -321,9 +320,6 @@ function render() {
   const s = readState();
   $('score').textContent = (2 * s.cr + s.cd).toFixed(1);
   $('dval').textContent = (s.d * 100).toFixed(0);
-  $('caliber').innerHTML = s.d >= 1
-    ? '当前口径：<b>星扩散直伤</b>'
-    : '当前口径：<b>星扩散直伤 + 反应星扩散</b>（占比为给定假定常数）';
   const a = buildA(s), b = buildB(s);
   const note = $('lossNote');
   if (s.d >= 1) {

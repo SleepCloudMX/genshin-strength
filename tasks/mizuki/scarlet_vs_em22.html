@@ -35,8 +35,6 @@
   }
   input[type=range] { width: 150px; padding: 0; border: 0; background: transparent; }
   .dval { color: var(--ink); font-weight: 600; }
-  .derived { font-size: 13px; color: var(--muted); padding-bottom: 6px; }
-  .derived b { color: var(--ink); font-size: 15px; }
   .verdict {
     border: 1px solid var(--line); border-left: 3px solid #e8710a; border-radius: 6px;
     padding: 12px 16px; margin-bottom: 18px;
@@ -67,7 +65,6 @@
   <label>基准精通<input id="em" type="number" step="10"></label>
   <label>双暴分（不含套装特效）<input id="score" type="number" step="1"></label>
   <label><span>星扩散直伤占比 <span class="dval" id="dval">100</span>%</span><input id="d" type="range" min="0" max="100" step="1"></label>
-  <div class="derived" id="caliber"></div>
 </div>
 
 <div class="verdict">
@@ -254,9 +251,6 @@ function render() {
   const s = readState();
 
   $('dval').textContent = (s.d * 100).toFixed(0);
-  $('caliber').innerHTML = s.d >= 1
-    ? '当前口径：<b>星扩散直伤</b>'
-    : '当前口径：<b>星扩散直伤 + 反应星扩散</b>（占比为给定假定常数）';
 
   const r = ratio(s.em, s.score / 100, s.bonus, s.d, s.em);
   $('ratio').textContent = r.toFixed(4);
