@@ -424,7 +424,7 @@ function buildBase(s) {
           if ((nOnLine(lo) - nR) * (nOnLine(m) - nR) <= 0) hi = m; else lo = m;
         }
         const yc = (lo + hi) / 2, xc = lineX(yc);
-        if (xc >= x0 && xc <= x1 && yc >= y0 && yc <= y1) crosses.push({ x: xc, y: yc, n: nR });
+        if (xc >= x0 && xc <= x1 && yc >= y0 && yc <= y1) crosses.push({ x: xc, y: yc, n: nR, mult: multiplier(xc, yc, s) });
       }
       prevY = y; prevN = nv;
     }
@@ -445,21 +445,8 @@ function buildBase(s) {
 
   const shapes = [];
   const annotations = [];
-
-  // 交点标注：只标该点的倍数（相较 0 词条），橙色字。位置按各点的几何单独让开：
-  // 默认贴右上；10 词条交点右侧紧邻橙线的陡升段、30 词条交点右侧有等高线数字，向右多让；
-  // 40 词条交点夹在橙线回折段与 43 词条遮罩之间，贴左下。
-  const OFF = { 10: [20, 6], 20: [8, 3], 30: [22, 3], 40: [-26, -8] };
-  for (const c of crosses) {
-    const [dx, dy] = OFF[c.n] || [8, 3];
-    const rightSide = dx >= 0;
-    annotations.push({
-      x: c.x + dx, y: c.y + dy,
-      xanchor: rightSide ? 'left' : 'right', yanchor: rightSide ? 'bottom' : 'top',
-      text: '×' + multiplier(c.x, c.y, s).toFixed(3),
-      showarrow: false, font: { size: 11, color: '#e8710a' },
-    });
-  }
+  // 交点的倍数标注（「×1.638 (20 词)」）不在这里画：要白色描边（Plotly annotation 给不了），
+  // 画在自绘覆盖层里，见 updateOverlay；交点数据随 crosses 返回。
 
   // 遮罩边界：43 词条斜线（画布其余边界就是可达域边界本身）
   const yMeet = y0 + (ROLL_LIMIT - EM_ADD_MAX / EM_PER_ROLL) * CRIT_PER_ROLL;
@@ -491,7 +478,7 @@ function buildBase(s) {
 
   // 「基准 ×1.00」画在自绘覆盖层里（要白色描边，Plotly annotation 给不了文字描边）
 
-  return { x0, x1, y0, y1, traces, shapes, annotations };
+  return { x0, x1, y0, y1, traces, shapes, annotations, crosses };
 }
 
 /** 组图：基础层按输入缓存；固定点 / 悬浮箭头走 overlay（只 relayout，不重绘热力图）。 */
@@ -621,6 +608,12 @@ function updateOverlay() {
     '</defs>'];
   // 基准点在左下角、底色深紫，文字加白色描边才读得清
   parts.push(`<text x="3" y="${h - 7}" font-size="11" fill="#111" stroke="#fff" stroke-width="3" stroke-linejoin="round" style="paint-order:stroke">基准 ×1.00</text>`);
+  // 交点倍数标注：紧贴交点右上（白描边压过橙线与等高线仍可读）
+  for (const c of (base.crosses || [])) {
+    const cx = (c.x - base.x0) / (base.x1 - base.x0) * w + 7;
+    const cy = (base.y1 - c.y) / (base.y1 - base.y0) * h + 4;
+    parts.push(`<text x="${cx.toFixed(1)}" y="${cy.toFixed(1)}" font-size="11" fill="#e8710a" stroke="#fff" stroke-width="3" stroke-linejoin="round" style="paint-order:stroke">×${c.mult.toFixed(3)} (${c.n} 词)</text>`);
+  }
   const chipPin = $('chip-pin');
   chipPin.style.display = 'none';
 
