@@ -33,6 +33,10 @@
     font: inherit; font-size: 14px; color: var(--ink); width: 120px;
     padding: 5px 8px; border: 1px solid var(--line); border-radius: 5px; background: #fff;
   }
+  input[type=range] { width: 150px; padding: 0; border: 0; background: transparent; }
+  .dval { color: var(--ink); font-weight: 600; }
+  .derived { font-size: 13px; color: var(--muted); padding-bottom: 6px; }
+  .derived b { color: var(--ink); font-size: 15px; }
   .verdict {
     border: 1px solid var(--line); border-left: 3px solid #e8710a; border-radius: 6px;
     padding: 12px 16px; margin-bottom: 18px;
@@ -58,9 +62,12 @@
 
 <div class="panel">
   <div class="panel-note"><b>以下都填「上完 buff」后的实际数值</b>（含副词条；不含套装特效 —— 两套的套装效果由脚本自动加上）。</div>
+  <div class="panel-note"><b>星扩散直伤占比</b>：给定的假定常数（按你填的基准精深处定义），计算中直接采用；本页<b>不</b>根据你的配置推算真实占比 —— 真实占比取决于触发次数等未确认机制。默认 100% = 只看星扩散直伤。社区有「直伤约占九成」的说法（未核实），实战可参考 90% 这一量级。</div>
   <label>星扩散增伤 %<input id="bonus" type="number" step="5"></label>
   <label>基准精通<input id="em" type="number" step="10"></label>
   <label>双暴分（不含套装特效）<input id="score" type="number" step="1"></label>
+  <label><span>星扩散直伤占比 <span class="dval" id="dval">100</span>%</span><input id="d" type="range" min="0" max="100" step="1"></label>
+  <div class="derived" id="caliber"></div>
 </div>
 
 <div class="verdict">
@@ -75,7 +82,7 @@
   <b>双暴分</b> = 暴击率 × 2 + 暴伤，填<b>不含圣遗物套装特效</b>的总量（自身、武器、主副词条、队友给的都算进去）。
   血红之证 4 件套的 +16% 暴击由脚本自己加，所以图上血红那一路的双暴分是「你填的值 + 32」。<br>
   两套的精通也不同：精通 2+2 比你填的基准精通多 160。星扩散增伤则是在你填的值上，血红那一路再 +40%。<br>
-  比值 = 两套的期望伤害比，> 1 表示血红更优。倍率、(1 + 基础提升)、抗性系数、擢升在同队伍下相同，已约掉。
+  比值 = 两套的期望伤害比，> 1 表示血红更优。倍率、(1 + 基础提升)、抗性系数、擢升在同队伍下相同，已约掉。默认算的是<b>星扩散直伤</b>；拉低「星扩散直伤占比」滑条后，按给定比例把反应星扩散一并计入。
   <div class="repo-line">源码与说明：<a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></div>
 </footer>
 
@@ -87,7 +94,7 @@ const EM_OFFSET = 2000.0;
 const SCARLET = { em: 0,     critRate: 0.16, swirlBonus: 0.40 };  // 血红之证 4 件套
 const EM_2P2  = { em: 160.0, critRate: 0.0,  swirlBonus: 0.0 };   // 精通 2+2
 
-const DEFAULTS = { bonus: 100, em: 939, score: 240 };
+const DEFAULTS = { bonus: 100, em: 939, score: 240, d: 1.00 };
 
 const EM_MAX = 2000, SCORE_MAX = 400, GRID = 201;
 
@@ -114,25 +121,29 @@ function critZone(budget, extraCritRate) {
   return 1 + rate * dmg;
 }
 
-/** 血红之证 / 精通 2+2 的期望伤害比。score 为双暴分小数，不含套装特效。 */
-function ratio(em, score, bonus) {
+/** 血红之证 / 精通 2+2 的期望伤害比。score 为双暴分小数，不含套装特效。
+ *  d = 星扩散直伤占比，定义在 ref 处（该处直伤占比 = d ↔ 反应折算精通 W = ref·(1−d)/d）；
+ *  线性项写作 d·e + (1−d)·ref（= (e + W)·d，与 W 写法等价，且 d = 0 时不除零）。 */
+function ratio(em, score, bonus, d, ref) {
   const hit = (build) => {
     const e = em + build.em;
-    return e * (1 + emTerm(e) + bonus + build.swirlBonus) * critZone(score, build.critRate);
+    const lin = d * e + (1 - d) * ref;
+    return lin * (1 + emTerm(e) + bonus + build.swirlBonus) * critZone(score, build.critRate);
   };
   return hit(SCARLET) / hit(EM_2P2);
 }
 
-/** 该双暴分下比值为 1 的精通。区间内两套无交点时返回 null。 */
-function breakEven(score, bonus) {
-  const f = (em) => ratio(em, score, bonus) - 1;
-  if (f(EM_MAX) <= 0) return null;         // 全区间都是 2+2 更优
-  let lo = 0, hi = EM_MAX;                 // f(0) = -1，f(hi) > 0
+/** 该双暴分下比值为 1 的精通。区间内无交点时返回 { none: 'scarlet' | 'em22' }。 */
+function breakEven(score, bonus, d, ref) {
+  const f = (em) => ratio(em, score, bonus, d, ref) - 1;
+  if (f(0) > 0) return { none: 'scarlet' };    // 起始端就已血红更优（低占比时出现）
+  if (f(EM_MAX) <= 0) return { none: 'em22' }; // 全区间都是 2+2 更优
+  let lo = 0, hi = EM_MAX;                     // f(0) ≤ 0 < f(hi)
   for (let i = 0; i < 60; i++) {
     const mid = (lo + hi) / 2;
     if (f(mid) < 0) lo = mid; else hi = mid;
   }
-  return (lo + hi) / 2;
+  return { x: (lo + hi) / 2 };
 }
 
 // ── 状态 ──
@@ -145,6 +156,7 @@ const readState = () => ({
   bonus: num('bonus', DEFAULTS.bonus) / 100,
   em: num('em', DEFAULTS.em),
   score: num('score', DEFAULTS.score),
+  d: num('d', DEFAULTS.d * 100) / 100,
 });
 
 // ── 绘制 ──
@@ -171,7 +183,7 @@ function makeColorMap(values) {
 function buildPlot(s) {
   const ems = Array.from({ length: GRID }, (_, i) => EM_MAX * i / (GRID - 1));
   const scores = Array.from({ length: GRID }, (_, j) => SCORE_MAX * j / (GRID - 1));
-  const raw = scores.map((sc) => ems.map((em) => ratio(em, sc / 100, s.bonus)));
+  const raw = scores.map((sc) => ems.map((em) => ratio(em, sc / 100, s.bonus, s.d, s.em)));
 
   const cmap = makeColorMap(raw);
   const z = raw.map((row) => row.map(cmap.toT));
@@ -195,8 +207,8 @@ function buildPlot(s) {
   const bx = [], by = [];
   for (let j = 0; j <= GRID - 1; j++) {
     const sc = SCORE_MAX * j / (GRID - 1);
-    const root = breakEven(sc / 100, s.bonus);
-    if (root !== null) { bx.push(root); by.push(sc); }
+    const root = breakEven(sc / 100, s.bonus, s.d, s.em);
+    if (root.x !== undefined) { bx.push(root.x); by.push(sc); }
   }
   traces.push({
     type: 'scatter', mode: 'lines', x: bx, y: by, name: '两套等效（分界线）',
@@ -241,17 +253,24 @@ function buildPlot(s) {
 function render() {
   const s = readState();
 
-  const r = ratio(s.em, s.score / 100, s.bonus);
+  $('dval').textContent = (s.d * 100).toFixed(0);
+  $('caliber').innerHTML = s.d >= 1
+    ? '当前口径：<b>星扩散直伤</b>'
+    : '当前口径：<b>星扩散直伤 + 反应星扩散</b>（占比为给定假定常数）';
+
+  const r = ratio(s.em, s.score / 100, s.bonus, s.d, s.em);
   $('ratio').textContent = r.toFixed(4);
   const margin = Math.abs(r - 1) * 100;
   const better = r > 1 ? '血红之证' : '精通 2+2';
   $('who').textContent = `${better} 优 ${margin.toFixed(1)}%`;
   $('who').style.color = r > 1 ? '#a03030' : '#2a6099';
 
-  const be = breakEven(s.score / 100, s.bonus);
-  $('split').textContent = be === null
-    ? `双暴分 ${s.score.toFixed(1)} 下，全区间都是精通 2+2 更优`
-    : `双暴分固定在 ${s.score.toFixed(1)} 时，精通 ${be.toFixed(0)} 是分界（你现在 ${s.em.toFixed(0)}）`;
+  const be = breakEven(s.score / 100, s.bonus, s.d, s.em);
+  $('split').textContent = be.x !== undefined
+    ? `双暴分固定在 ${s.score.toFixed(1)} 时，精通 ${be.x.toFixed(0)} 是分界（你现在 ${s.em.toFixed(0)}）`
+    : be.none === 'scarlet'
+      ? `双暴分 ${s.score.toFixed(1)} 下，全区间都是血红之证更优`
+      : `双暴分 ${s.score.toFixed(1)} 下，全区间都是精通 2+2 更优`;
 
   const fig = buildPlot(s);
   Plotly.react('plot', fig.traces, fig.layout, { responsive: true });
@@ -260,8 +279,16 @@ function render() {
 $('bonus').value = DEFAULTS.bonus;
 $('em').value = DEFAULTS.em;
 $('score').value = DEFAULTS.score;
+$('d').value = DEFAULTS.d * 100;
 
-for (const el of document.querySelectorAll('input')) el.addEventListener('input', render);
+// 滑条拖动会连续触发 —— 按帧合并，一帧最多重画一次
+let renderQueued = false;
+function queueRender() {
+  if (renderQueued) return;
+  renderQueued = true;
+  requestAnimationFrame(() => { renderQueued = false; render(); });
+}
+for (const el of document.querySelectorAll('input')) el.addEventListener('input', queueRender);
 render();
 </script>
 </body>

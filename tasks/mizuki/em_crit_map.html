@@ -33,6 +33,8 @@
     font: inherit; font-size: 14px; color: var(--ink); width: 120px;
     padding: 5px 8px; border: 1px solid var(--line); border-radius: 5px; background: #fff;
   }
+  input[type=range] { width: 150px; padding: 0; border: 0; background: transparent; }
+  .dval { color: var(--ink); font-weight: 600; }
   .derived { font-size: 13px; color: var(--muted); padding-bottom: 6px; }
   .derived b { color: var(--ink); font-size: 15px; }
   .verdict {
@@ -105,11 +107,14 @@
 
 <div class="panel">
   <div class="panel-note"><b>基准面板 = 上完 buff、不含副词条</b> —— 副词条正是这里要分配的东西。</div>
+  <div class="panel-note"><b>星扩散直伤占比</b>：给定的假定常数（按基准分配处定义），计算中直接采用；本页<b>不</b>根据你的配置推算真实占比 —— 真实占比取决于触发次数等未确认机制。默认 100% = 只看星扩散直伤。社区有「直伤约占九成」的说法（未核实），实战可参考 90% 这一量级。</div>
   <label>星扩散增伤 %<input id="bonus" type="number" step="5"></label>
   <label>基准精通（不含副词条）<input id="em" type="number" step="10"></label>
   <label>基准暴击 %<input id="cr" type="number" step="0.1"></label>
   <label>基准暴伤 %<input id="cd" type="number" step="0.1"></label>
   <div class="derived">双暴分 <b id="score"></b></div>
+  <label><span>星扩散直伤占比 <span class="dval" id="dval">100</span>%</span><input id="d" type="range" min="0" max="100" step="1"></label>
+  <div class="derived" id="caliber"></div>
 </div>
 
 <div class="verdict">
@@ -135,9 +140,9 @@
 
 <footer>
   <b>图上</b>：颜色 = 倍数；灰 = 配不出（只有「超过 43 词条」一种，卡片会红字说明）；细点线 = 1:2 配平可达下界，以下能配但配不平（基准的偏斜还没补完）；橙色实线 = 最优分配线（每个词条数 n 的最优位置；线上「词条重要性」恰为 0.50 · 0.50；与「最优分配」页的最优路径一致）；橙色虚线 = 等词条线（10 / 20 / 30 / 40 词条的预算线；右上遮罩边的灰虚线是 43 词条上限），与橙色实线的交点 = 该词条数下的精确最优拆分，交点标出该点的倍数（相较 0 词条）。<br>
-  <b>数值</b>：倍数 = 该点伤害 ÷ 基准面板（上完 buff、不含副词条）的伤害，基准点 ×1.00；卡片与固定框里的另一个是固定参照「589 精通、5% 暴击、50% 暴伤、增伤 0%」之比，跨配置可比。每点都假设双暴已按约束最优配平；1 词条 = 20 精通 = 3.3% 暴击 = 6.6% 暴伤。<br>
+  <b>数值</b>：倍数 = 该点伤害 ÷ 基准面板（上完 buff、不含副词条）的伤害，基准点 ×1.00；卡片与固定框里的另一个是固定参照「589 精通、5% 暴击、50% 暴伤、增伤 0%」之比，跨配置可比（标尺同样按当前口径计算；占比 < 100% 时，跨配置比较需在相同占比下进行）。每点都假设双暴已按约束最优配平；1 词条 = 20 精通 = 3.3% 暴击 = 6.6% 暴伤。<br>
   <b>操作</b>：悬浮即出卡片与双箭头（卡片自动避开右上——箭头只在右上，不会遮挡）；点击固定该点，chip 两行 —— <b>归一化梯度</b>（钢蓝，即卡片里的「词条重要性」）与<b>最优的分配</b>（黑）。<b>黑（主）</b> = 「下一词条」的最优分配方向（只拆新的一条：α·20 精通 + (1−α)·6.6 双暴，已有词条不动；α 使落点命中最优分配线，够不到则整条给更值的一侧）；<b>钢蓝（次）</b> = 梯度方向（画面空间每像素增益最大，⊥ 等高线）。两箭头都按两轴刻度映射、长度固定、只指示方向。<br>
-  轴的范围 = 基准 → 上限（+420 精通 / +43 词条）。算的是<b>星扩散直伤</b>（瑞希天赋「廓然梦生」的精通倍率伤害），不是反应星扩散。
+  轴的范围 = 基准 → 上限（+420 精通 / +43 词条）。默认算的是<b>星扩散直伤</b>（瑞希天赋「廓然梦生」的精通倍率伤害），不是反应星扩散；拉低「星扩散直伤占比」滑条后，按给定比例把反应星扩散一并计入。
   <div class="repo-line">源码与说明：<a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></div>
 </footer>
 
@@ -160,7 +165,7 @@ const ISO_ROLLS = [10, 20, 30, 40];   // 图上画出的等词条线（总词条
 
 // 画布
 const GRID = 201;
-const DEFAULTS = { bonus: 100, em: 951, cr: 36, cd: 112.2 };
+const DEFAULTS = { bonus: 100, em: 951, cr: 36, cd: 112.2, d: 1.00 };
 
 // 固定参照面板（不随输入变化）：589 精通 / 5% 暴击 / 50% 暴伤 —— 跨配置比较用的标尺
 const REF_EM = 589, REF_CR = 5, REF_CD = 50;
@@ -170,9 +175,11 @@ const baseScore = (cr, cd) => 2 * cr + cd;
 
 const emTerm = (em) => EM_COEF * em / (em + EM_OFFSET);
 
-/** 伤害（公共常数已约掉）：精通 ×（1 + 增伤 + 精通项）× 暴击区。rate/dmg 为百分数。 */
-const damage = (em, bonus, rate, dmg) =>
-  em * (1 + bonus + emTerm(em)) * (1 + (rate / 100) * (dmg / 100));
+/** 伤害（公共常数已约掉）：[d·精通 + (1−d)·基准精通] ×（1 + 增伤 + 精通项）× 暴击区。
+ *  d = 星扩散直伤占比（按基准面板处定义，口径见 4-em-crit-map.md）；d = 1 即纯直伤。
+ *  该线性项 = (精通 + W)·d（W = 反应折算精通）；比值里 d 约掉。rate/dmg 为百分数。 */
+const damage = (em, bonus, rate, dmg, s) =>
+  ((1 - s.d) * s.em + s.d * em) * (1 + bonus + emTerm(em)) * (1 + (rate / 100) * (dmg / 100));
 
 /** 双暴分 y（总量）按约束下最优拆分 → [暴击率, 暴伤]。仅 y ≥ 基准双暴分 时有解。 */
 function splitAt(y, cr0, cd0) {
@@ -200,13 +207,13 @@ const pinnedSide = (s) => (s.cd >= 2 * s.cr ? '暴伤' : '暴击率');
 /** 倍数 = D(x, y) / D(基准)。仅在能配时调用。 */
 function multiplier(x, y, s) {
   const [r, d] = splitAt(y, s.cr, s.cd);
-  return damage(x, s.bonus, r, d) / damage(s.em, s.bonus, s.cr, s.cd);
+  return damage(x, s.bonus, r, d, s) / damage(s.em, s.bonus, s.cr, s.cd, s);
 }
 
 /** 参照倍数 = D(x, y) / D(参照面板)。参照面板固定：589 精通 / 5% 暴击 / 50% 暴伤 / 增伤 0%，不随输入变化。 */
 function refMultiplier(x, y, s) {
   const [r, d] = splitAt(y, s.cr, s.cd);
-  return damage(x, s.bonus, r, d) / damage(REF_EM, 0, REF_CR, REF_CD);
+  return damage(x, s.bonus, r, d, s) / damage(REF_EM, 0, REF_CR, REF_CD, s);
 }
 
 /** 悬浮 / 结果框的内容。state: 'ok' | 'band' | 'bad'。 */
@@ -233,11 +240,11 @@ function pointInfo(x, y, s) {
 /** 下一个等效词条两个投向的增益（相对当前伤害）。仅在能配时调用。 */
 function nextRollGains(x, y, s) {
   const [r, d] = splitAt(y, s.cr, s.cd);
-  const D0 = damage(x, s.bonus, r, d);
+  const D0 = damage(x, s.bonus, r, d, s);
   const [r2, d2] = splitAt(y + CRIT_PER_ROLL, s.cr, s.cd);
   return {
-    em: damage(x + EM_PER_ROLL, s.bonus, r, d) / D0 - 1,
-    crit: damage(x, s.bonus, r2, d2) / D0 - 1,
+    em: damage(x + EM_PER_ROLL, s.bonus, r, d, s) / D0 - 1,
+    crit: damage(x, s.bonus, r2, d2, s) / D0 - 1,
   };
 }
 
@@ -245,7 +252,7 @@ function nextRollGains(x, y, s) {
  *  目标沿 α 严格凹：α* = 使落下后的点命中最优分配线（边际相等）的拆分；够不到则整条给更值的一侧。
  *  返回词条拆分 { du: α, dv: 1 − α }（恒在 [0, 1]，和 = 1）。 */
 function nextAlloc(x, y, s) {
-  const f = (a) => EM_PER_ROLL * dlnFdx(x + EM_PER_ROLL * a, s.bonus)
+  const f = (a) => EM_PER_ROLL * dlnFdx(x + EM_PER_ROLL * a, s.bonus, s)
                 - CRIT_PER_ROLL * dlnGdy(y + CRIT_PER_ROLL * (1 - a), s.cr, s.cd);
   if (f(0) <= 0) return { du: 0, dv: 1 };   // 全给双暴
   if (f(1) >= 0) return { du: 1, dv: 0 };   // 全给精通
@@ -264,10 +271,10 @@ function critZone(y, cr0, cd0) {
   return 1 + (r / 100) * (d / 100);
 }
 
-/** d lnF / dx（解析）：F = x·(1 + 增伤 + 6x/(x+2000))。 */
-function dlnFdx(x, bonus) {
+/** d lnF / dx（解析）：F = [d·x + (1−d)·基准精通]·(1 + 增伤 + 6x/(x+2000))。 */
+function dlnFdx(x, bonus, s) {
   const dEm = EM_COEF * EM_OFFSET / ((x + EM_OFFSET) * (x + EM_OFFSET));
-  return 1 / x + dEm / (1 + bonus + emTerm(x));
+  return s.d / ((1 - s.d) * s.em + s.d * x) + dEm / (1 + bonus + emTerm(x));
 }
 
 /** d lnG / dy（中心差分，h = 0.1；G 的一阶导连续，二阶导只在配平带边与 100% 上限处折）。 */
@@ -279,7 +286,7 @@ function dlnGdy(y, cr0, cd0) {
 /** 词条重要性：伤害对精通词条数、双暴词条数的梯度归一化
  *  （= normalize(20·∂lnD/∂x, 6.6·∂lnD/∂y)；边际平衡处恰为 0.5 / 0.5）。 */
 function importance(x, y, s) {
-  const gu = EM_PER_ROLL * dlnFdx(x, s.bonus);
+  const gu = EM_PER_ROLL * dlnFdx(x, s.bonus, s);
   const gv = CRIT_PER_ROLL * dlnGdy(y, s.cr, s.cd);
   const t = gu + gv;
   return { em: gu / t, crit: gv / t };
@@ -328,6 +335,7 @@ function readState() {
     em: num('em', DEFAULTS.em),
     cr: num('cr', DEFAULTS.cr),
     cd: num('cd', DEFAULTS.cd),
+    d: num('d', DEFAULTS.d * 100) / 100,
   };
 }
 
@@ -388,7 +396,7 @@ function buildBase(s) {
   const lineX = (y) => {
     if (infeasibleReason(s.em, y, s)) return null;   // 该行不可达
     const rhs = CRIT_PER_ROLL * dlnGdy(y, s.cr, s.cd);
-    const f = (x) => EM_PER_ROLL * dlnFdx(x, s.bonus) - rhs;
+    const f = (x) => EM_PER_ROLL * dlnFdx(x, s.bonus, s) - rhs;
     let a = s.em, b = xRight(y, s);
     if (b <= a || f(a) * f(b) > 0) return null;
     for (let k = 0; k < 40; k++) {
@@ -431,7 +439,7 @@ function buildBase(s) {
   const nOnLine = (y) => { const x = lineX(y); return x == null ? null : (x - s.em) / EM_PER_ROLL + (y - y0) / CRIT_PER_ROLL; };
   for (const nR of ISO_ROLLS) {
     let prevY = null, prevN = null;
-    for (let y = y0; y <= Math.min(200, y1) + 1e-9; y += 0.5) {
+    for (let y = y0; y <= y1 + 1e-9; y += 0.5) {
       const nv = nOnLine(y);
       if (nv != null && prevN != null && (prevN - nR) * (nv - nR) <= 0) {
         let lo = prevY, hi = y;
@@ -499,7 +507,7 @@ function buildBase(s) {
 
 /** 组图：基础层按输入缓存；固定点 / 悬浮箭头走 overlay（只 relayout，不重绘热力图）。 */
 function buildPlot(s) {
-  const key = `${s.bonus}|${s.em}|${s.cr}|${s.cd}`;
+  const key = `${s.bonus}|${s.em}|${s.cr}|${s.cd}|${s.d}`;
   if (fieldCache.key !== key) fieldCache = { key, base: buildBase(s) };
   const { x0, x1, y0, y1 } = fieldCache.base;
   return {
@@ -554,7 +562,7 @@ function drawArrows(parts, px, py, x, y, s, w, h, sx, sy) {
     al.du * EM_PER_ROLL * w / sx, al.dv * CRIT_PER_ROLL * h / sy,
     w, h, '#111', 2.2, 'ovl-arrow-p');
   arrowAt(parts, px, py,
-    dlnFdx(x, s.bonus) * sx / w, dlnGdy(y, s.cr, s.cd) * sy / h,
+    dlnFdx(x, s.bonus, s) * sx / w, dlnGdy(y, s.cr, s.cd) * sy / h,
     w, h, '#4a6fa5', 1.6, 'ovl-arrow-g');
   return t;
 }
@@ -761,6 +769,10 @@ function onWrapClick(e) {
 function render() {
   const s = readState();
   $('score').textContent = fmt1(baseScore(s.cr, s.cd));
+  $('dval').textContent = (s.d * 100).toFixed(0);
+  $('caliber').innerHTML = s.d >= 1
+    ? '当前口径：<b>星扩散直伤</b>'
+    : '当前口径：<b>星扩散直伤 + 反应星扩散</b>（占比为给定假定常数）';
   const fig = buildPlot(s);
   Plotly.react('plot', fig.traces, fig.layout, { responsive: true }).then(() => {
     if (!afterplotHooked) {
@@ -777,8 +789,16 @@ $('bonus').value = DEFAULTS.bonus;
 $('em').value = DEFAULTS.em;
 $('cr').value = DEFAULTS.cr;
 $('cd').value = DEFAULTS.cd;
+$('d').value = DEFAULTS.d * 100;
 
-for (const el of document.querySelectorAll('input')) el.addEventListener('input', render);
+// 滑条拖动会连续触发 —— 按帧合并，一帧最多重画一次
+let renderQueued = false;
+function queueRender() {
+  if (renderQueued) return;
+  renderQueued = true;
+  requestAnimationFrame(() => { renderQueued = false; render(); });
+}
+for (const el of document.querySelectorAll('input')) el.addEventListener('input', queueRender);
 const wrap = document.querySelector('.plotwrap');
 wrap.addEventListener('mousemove', onWrapMove);
 wrap.addEventListener('mouseleave', onWrapLeave);
