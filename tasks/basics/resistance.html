@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>抗性区·减抗收益</title>
+<link rel="icon" type="image/png" href="https://sleepcloudmx.github.io/Others/Image/kenomimi.png">
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  renderMathInElement(document.body, {
+    delimiters: [
+      { left: '$$', right: '$$', display: true },
+      { left: '\\(', right: '\\)', display: false },
+    ],
+    throwOnError: false,
+  });
+});
+</script>
+<style>
+  :root { --ink:#222; --muted:#555; --line:#d8d8d8; --bg:#fafafa; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px 24px 40px; background: #fff; color: var(--ink);
+    font-family: "Microsoft YaHei", "SimHei", system-ui, sans-serif;
+  }
+  .wrap { max-width: 960px; }
+  h1 { font-size: 19px; margin: 0; }
+  h2 { font-size: 13.5px; margin: 20px 0 4px; color: var(--muted); font-weight: 600; }
+  .head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 4px; font-size: 13px; }
+  .head .links { white-space: nowrap; }
+  .head .links .repo + .repo { margin-left: 14px; }
+  .repo { color: var(--muted); text-decoration: none; white-space: nowrap; }
+  .repo:hover { color: var(--ink); text-decoration: underline; }
+  .repo svg { width: 1.15em; height: 1.15em; fill: currentColor; vertical-align: -0.18em; margin-right: 4px; }
+  .repo-line { margin-top: 8px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+  .panel {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+    padding: 14px 16px; margin-bottom: 12px;
+    display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: flex-end;
+  }
+  .panel-note { flex-basis: 100%; font-size: 13px; color: var(--muted); line-height: 1.75; }
+  .panel-note b { color: var(--ink); }
+  label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+  input[type=range] { width: 260px; padding: 0; border: 0; background: transparent; }
+  .dval { color: var(--ink); font-weight: 600; }
+  .qlabel { font-size: 12px; color: var(--muted); padding-bottom: 7px; }
+  .quick { display: flex; gap: 6px; padding-bottom: 4px; }
+  .quick button {
+    font: inherit; font-size: 13px; color: var(--muted); background: #fff;
+    border: 1px solid var(--line); border-radius: 5px; padding: 4px 10px; cursor: pointer;
+  }
+  .quick button:hover { color: var(--ink); border-color: #aaa; }
+  .derived { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
+  .derived b { color: var(--ink); font-size: 15px; }
+  .plot { width: 100%; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 22px; }
+  @media (max-width: 780px) { .grid2 { grid-template-columns: 1fr; } }
+  .formula {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+    padding: 6px 14px; margin: 8px 0; font-size: 13.5px; overflow-x: auto;
+  }
+  footer {
+    margin-top: 24px; padding-top: 14px; border-top: 1px solid var(--line);
+    font-size: 12px; color: var(--muted); line-height: 1.7;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<div class="head">
+<h1>抗性区：减抗收益</h1>
+<span class="links"><a class="repo" href="../../index.html"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 1.6 7.2h1.5v7h3.3v-4.1h3.2v4.1h3.3v-7h1.5L8 1.8z"/></svg>主页</a><a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></span>
+</div>
+<div class="sub">看一档减抗对不同抗性敌人的收益倍数：横轴是怪物抗性，拖动滑动条换减抗量，曲线与读数即时更新；悬浮曲线可看每个点的具体数值。</div>
+
+<div class="panel">
+  <div class="panel-note"><b>收益倍数 = 减抗后的抗性系数 ÷ 减抗前的抗性系数</b>，即相对「不减抗」的伤害倍数。<b>怪物抗性不可改变</b> —— 横轴是一排待查的敌人（查你打的那只落在哪）；减抗来自队伍、按整数档处理。减抗可以把抗性削成<b>负数</b>，负数区每点只值一半。多个减抗来源的叠加按「直接相加」处理（社区口径，本项目未核实）。</div>
+  <label><span>减抗量 <span class="dval" id="sval">30</span>%</span><input id="s" type="range" min="0" max="100" step="1" value="30"></label>
+  <span class="qlabel">常用档</span>
+  <div class="quick">
+    <button type="button" data-s="20">20%</button>
+    <button type="button" data-s="30">30%</button>
+    <button type="button" data-s="40">40%</button>
+  </div>
+</div>
+<div class="derived" id="peak"></div>
+
+<div id="plot" class="plot"></div>
+
+<div class="grid2">
+  <div>
+    <h2>抗性系数 κ(r) —— 曲线形状</h2>
+    <div id="kappa" class="plot"></div>
+  </div>
+  <div>
+    <h2>边际收益 —— 每 1 点减抗值多少</h2>
+    <div id="mplot" class="plot"></div>
+  </div>
+</div>
+
+<footer>
+  术语：\(r_0\) = 怪物基础抗性（减抗前）；\(S\) = 减抗量；\(\kappa\) = 抗性系数；收益倍数 \(G = \kappa(r_0 - S) / \kappa(r_0)\)。
+  <div class="formula">
+  $$\kappa(r) = \begin{cases}
+  1 - \dfrac{r}{2} & r &lt; 0 \\[2mm]
+  1 - r & 0 \le r &lt; 0.75 \\[2mm]
+  \dfrac{1}{4r + 1} & r \ge 0.75
+  \end{cases}$$
+  </div>
+  由分段函数可得：固定减抗 \(S\) 的最大收益为 \(1 + 4S\)，出现在 \(r_0 = \max(75\%,\ S)\)（小减抗落在 75% 抗性的敌人身上，大减抗落在「恰好被削到 0」的敌人身上）。
+  公式与数值为社区 / 解包数据，非官方文本，请酌情参考。
+  <div class="repo-line">源码与说明：<a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></div>
+</footer>
+</div>
+
+<script>
+// ── 抗性区公式（来源：docs/ai-output/2-basics/1-抗性区.md，与 0-mechanism §3.4 同源）──
+const KNEE = 0.75;
+const kappa = (r) => (r < 0 ? 1 - r / 2 : (r < KNEE ? 1 - r : 1 / (4 * r + 1)));
+const gain = (r0, S) => kappa(r0 - S) / kappa(r0);
+
+const $ = (id) => document.getElementById(id);
+
+// 三段配色：负区 / 线性区 / 高抗区
+const C_NEG = '#2e8b57', C_LIN = '#2f6f9f', C_HIGH = '#e07b39';
+const C_MAIN = '#d62728';
+
+// ── 主图：收益倍数随怪物基础抗性 ──
+const X0 = 0, X1 = 1.2, XN = 480;
+
+function buildMain(sf) {
+  const xs = [], ys = [], cd = [];
+  for (let i = 0; i <= XN; i++) {
+    const x = X0 + (X1 - X0) * i / XN;
+    const g = gain(x, sf);
+    xs.push(x); ys.push(g); cd.push([g - 1]);
+  }
+  const peakX = Math.max(KNEE, sf);
+  const peakG = 1 + 4 * sf;
+  const ymax = Math.max(1.35, peakG * 1.06);
+
+  const traces = [
+    { type: 'scatter', mode: 'lines', x: xs, y: ys, customdata: cd,
+      line: { color: C_MAIN, width: 2.6 },
+      hovertemplate: '敌人抗性 %{x:.0%}<br>收益 ×%{y:.3f}　相对 +%{customdata[0]:.1%}<extra></extra>' },
+    { type: 'scatter', mode: 'markers', x: [peakX], y: [peakG],
+      marker: { color: C_MAIN, size: 10, symbol: 'diamond', line: { color: '#fff', width: 1.3 } },
+      hoverinfo: 'skip', showlegend: false },
+  ];
+
+  const shapes = [
+    { type: 'line', x0: X0, x1: X1, y0: 1, y1: 1, line: { color: '#bbb', width: 1.1, dash: 'dot' } },
+    { type: 'line', x0: KNEE, x1: KNEE, y0: 1, y1: ymax, line: { color: '#999', width: 1.2, dash: 'dash' } },
+  ];
+  const annos = [
+    { x: KNEE, y: ymax, xanchor: 'center', yanchor: 'top', yshift: -3, showarrow: false,
+      font: { size: 11.5, color: '#777' }, text: '75%' },
+  ];
+  if (sf > 0.005) {
+    shapes.push({ type: 'line', x0: sf, x1: sf, y0: 1, y1: ymax,
+                  line: { color: C_NEG, width: 1.2, dash: 'dash' } });
+    annos.push({ x: sf, y: 1, xanchor: 'center', yanchor: 'bottom', yshift: 4, showarrow: false,
+                 font: { size: 11, color: C_NEG }, text: '削到 0' });
+    if (KNEE + sf <= X1) {
+      shapes.push({ type: 'line', x0: KNEE + sf, x1: KNEE + sf, y0: 1, y1: ymax,
+                    line: { color: C_HIGH, width: 1.2, dash: 'dash' } });
+      annos.push({ x: KNEE + sf, y: 1, xanchor: 'center', yanchor: 'bottom', yshift: 4, showarrow: false,
+                   font: { size: 11, color: C_HIGH }, text: '削后 75%' });
+    }
+  }
+  annos.push({ x: peakX, y: peakG, xanchor: peakX > 0.92 ? 'right' : 'left',
+               xshift: peakX > 0.92 ? -10 : 10, yanchor: 'middle',
+               yshift: peakG <= 1.02 ? 18 : 0, showarrow: false,
+               font: { size: 12.5, color: C_MAIN }, bgcolor: 'rgba(255,255,255,0.85)',
+               borderpad: 2, text: `峰值 ×${peakG.toFixed(2)}` });
+
+  return { traces, layout: {
+    xaxis: { title: { text: '怪物基础抗性（减抗前）' }, range: [X0, X1], tickformat: '.0%',
+             zeroline: false, gridcolor: '#e8e8e8' },
+    yaxis: { title: { text: '收益倍数（相对不减抗）' }, range: [1, ymax], gridcolor: '#e8e8e8' },
+    shapes, annotations: annos, showlegend: false,
+    margin: { t: 22, r: 24, b: 48, l: 64 }, height: 400,
+    hovermode: 'closest', plot_bgcolor: '#fff', paper_bgcolor: '#fff',
+  } };
+}
+
+// ── 辅助图 1：抗性系数曲线 ──
+function buildKappa() {
+  const xs = [], ys = [];
+  for (let i = 0; i <= 480; i++) { const r = -0.4 + 2.0 * i / 480; xs.push(r); ys.push(kappa(r)); }
+
+  const traces = [
+    { type: 'scatter', mode: 'lines', x: xs, y: ys, line: { color: '#333', width: 2.4 }, hoverinfo: 'skip' },
+    { type: 'scatter', mode: 'lines', x: [KNEE, 1.0], y: [0.25, 0],
+      line: { color: '#aaa', width: 1.4, dash: 'dot' }, hoverinfo: 'skip' },
+    { type: 'scatter', mode: 'markers', x: [0, KNEE, 1.0], y: [1, 0.25, 0.2],
+      marker: { color: '#333', size: 7, line: { color: '#fff', width: 1.1 } }, hoverinfo: 'skip' },
+  ];
+  const shapes = [
+    { type: 'rect', x0: -0.4, x1: 0, y0: 0, y1: 1.4, fillcolor: 'rgba(46,139,87,0.07)', line: { width: 0 } },
+    { type: 'rect', x0: 0, x1: KNEE, y0: 0, y1: 1.4, fillcolor: 'rgba(47,111,159,0.07)', line: { width: 0 } },
+    { type: 'rect', x0: KNEE, x1: 1.6, y0: 0, y1: 1.4, fillcolor: 'rgba(224,123,57,0.09)', line: { width: 0 } },
+  ];
+  const annos = [
+    { x: KNEE, y: 0.25, xanchor: 'right', xshift: -8, yanchor: 'top', yshift: -4, showarrow: false,
+      font: { size: 11, color: '#777' }, text: '75% → ×0.25' },
+    { x: 1.0, y: 0.2, xanchor: 'left', xshift: 8, yanchor: 'bottom', yshift: 6, showarrow: false,
+      font: { size: 11, color: '#777' }, text: '100% → ×0.20' },
+    { x: -0.38, y: 0.55, xanchor: 'left', yanchor: 'middle', showarrow: false,
+      font: { size: 11, color: C_NEG }, text: '负区：每点半价' },
+    { x: 0.08, y: 0.55, xanchor: 'left', yanchor: 'middle', showarrow: false,
+      font: { size: 11, color: C_LIN }, text: '线性段 1−r' },
+    { x: 0.80, y: 0.55, xanchor: 'left', yanchor: 'middle', showarrow: false,
+      font: { size: 11, color: C_HIGH }, text: '高抗段 1/(4r+1)' },
+  ];
+
+  return { traces, layout: {
+    xaxis: { title: { text: '抗性 r' }, range: [-0.4, 1.6], tickformat: '.0%',
+             zeroline: false, gridcolor: '#ececec' },
+    yaxis: { title: { text: 'κ(r)' }, range: [0, 1.35], gridcolor: '#ececec' },
+    shapes, annotations: annos, showlegend: false,
+    margin: { t: 16, r: 14, b: 42, l: 52 }, height: 300,
+    hovermode: false, plot_bgcolor: '#fff', paper_bgcolor: '#fff',
+  } };
+}
+
+// ── 辅助图 2：边际收益（每 1 点减抗的相对收益）──
+function buildM() {
+  const seg = (lo, hi, f) => {
+    const xs = [], ys = [];
+    for (let i = 0; i <= 200; i++) { const r = lo + (hi - lo) * i / 200; xs.push(r); ys.push(f(r)); }
+    return { xs, ys };
+  };
+  const a = seg(-0.4, 0, (r) => 0.5 / (1 - r / 2));
+  const b = seg(0, KNEE, (r) => 1 / (1 - r));
+  const c = seg(KNEE, 1.6, (r) => 4 / (4 * r + 1));
+
+  const traces = [
+    { type: 'scatter', mode: 'lines', x: a.xs, y: a.ys, line: { color: C_NEG, width: 2.4 }, hoverinfo: 'skip' },
+    { type: 'scatter', mode: 'lines', x: b.xs, y: b.ys, line: { color: C_LIN, width: 2.4 }, hoverinfo: 'skip' },
+    { type: 'scatter', mode: 'lines', x: c.xs, y: c.ys, line: { color: C_HIGH, width: 2.4 }, hoverinfo: 'skip' },
+    { type: 'scatter', mode: 'markers', x: [0, 0, KNEE, KNEE, 1.0],
+      y: [0.5, 1.0, 4.0, 1.0, 0.8], marker: { color: '#555', size: 6 }, hoverinfo: 'skip' },
+  ];
+  const shapes = [
+    { type: 'line', x0: 0, x1: 0, y0: 0, y1: 4.4, line: { color: '#bbb', width: 1.1, dash: 'dash' } },
+    { type: 'line', x0: KNEE, x1: KNEE, y0: 0, y1: 4.4, line: { color: '#bbb', width: 1.1, dash: 'dash' } },
+  ];
+  const annos = [
+    { x: 0, y: 0.5, xanchor: 'right', xshift: -8, yanchor: 'middle', showarrow: false,
+      font: { size: 11, color: C_NEG }, text: '0.50%' },
+    { x: 0, y: 1.0, xanchor: 'left', xshift: 8, yanchor: 'top', yshift: -2, showarrow: false,
+      font: { size: 11, color: C_LIN }, text: '1.00%' },
+    { x: KNEE, y: 4.0, xanchor: 'right', xshift: -8, yanchor: 'middle', showarrow: false,
+      font: { size: 11, color: C_LIN }, text: '4.00%' },
+    { x: 1.0, y: 0.8, xanchor: 'left', xshift: 6, yanchor: 'bottom', yshift: 4, showarrow: false,
+      font: { size: 11, color: C_HIGH }, text: '100%→0.80%' },
+  ];
+
+  return { traces, layout: {
+    xaxis: { title: { text: '抗性 r' }, range: [-0.4, 1.6], tickformat: '.0%',
+             zeroline: false, gridcolor: '#ececec' },
+    yaxis: { title: { text: '每 1 点的相对收益 %' }, range: [0, 4.4], gridcolor: '#ececec' },
+    shapes, annotations: annos, showlegend: false,
+    margin: { t: 16, r: 14, b: 42, l: 56 }, height: 300,
+    hovermode: false, plot_bgcolor: '#fff', paper_bgcolor: '#fff',
+  } };
+}
+
+// ── 主循环 ──
+function renderMain() {
+  const sf = Number($('s').value) / 100;
+  $('sval').textContent = (sf * 100).toFixed(0);
+  const peakX = Math.max(KNEE, sf);
+  const peakG = 1 + 4 * sf;
+  $('peak').innerHTML = sf === 0
+    ? '减抗 0：收益恒为 ×1.000。'
+    : `峰值 <b>×${peakG.toFixed(2)}</b>，出现在怪物抗性 ${(peakX * 100).toFixed(0)}%；` +
+      `对 0% 抗性的敌人 ×${gain(0, sf).toFixed(3)}（削到负区，每点只值一半）。`;
+  const { traces, layout } = buildMain(sf);
+  Plotly.react('plot', traces, layout, { responsive: true });
+}
+
+let pending = false;
+function queueMain() {
+  if (pending) return;
+  pending = true;
+  requestAnimationFrame(() => { pending = false; renderMain(); });
+}
+
+$('s').addEventListener('input', queueMain);
+for (const btn of document.querySelectorAll('.quick button')) {
+  btn.addEventListener('click', () => {
+    $('s').value = btn.dataset.s;
+    queueMain();
+  });
+}
+
+{
+  const k = buildKappa(), m = buildM();
+  Plotly.newPlot('kappa', k.traces, k.layout, { responsive: true });
+  Plotly.newPlot('mplot', m.traces, m.layout, { responsive: true });
+}
+renderMain();
+</script>
+</body>
+</html>
