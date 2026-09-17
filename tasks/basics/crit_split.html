@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>暴击·分配</title>
+<link rel="icon" type="image/png" href="https://sleepcloudmx.github.io/Others/Image/kenomimi.png">
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+<style>
+  :root { --ink:#222; --muted:#555; --line:#d8d8d8; --bg:#fafafa; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px 24px 40px; background: #fff; color: var(--ink);
+    font-family: "Microsoft YaHei", "SimHei", system-ui, sans-serif;
+  }
+  h1 { font-size: 19px; margin: 0; }
+  h2 { font-size: 13.5px; margin: 20px 0 4px; color: var(--muted); font-weight: 600; }
+  h2 b { color: var(--ink); }
+  .head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 4px; font-size: 13px; }
+  .head .links { white-space: nowrap; }
+  .head .links .repo + .repo { margin-left: 14px; }
+  .repo { color: var(--muted); text-decoration: none; white-space: nowrap; }
+  .repo:hover { color: var(--ink); text-decoration: underline; }
+  .repo svg { width: 1.15em; height: 1.15em; fill: currentColor; vertical-align: -0.18em; margin-right: 4px; }
+  .repo-line { margin-top: 8px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; line-height: 1.7; }
+  .panel {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+    padding: 14px 16px; margin-bottom: 12px;
+    display: flex; flex-wrap: wrap; gap: 12px 22px; align-items: flex-end;
+  }
+  .panel-note { flex-basis: 100%; font-size: 13px; color: var(--muted); line-height: 1.75; }
+  .panel-note b { color: var(--ink); }
+  label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+  input[type=number], input[type=text] {
+    font: inherit; font-size: 13.5px; color: var(--ink);
+    padding: 3px 6px; border: 1px solid var(--line); border-radius: 5px; background: #fff;
+  }
+  input[type=number] { width: 78px; }
+  input[type=text] { width: 180px; }
+  .derived { font-size: 13px; color: var(--muted); margin: 0 0 12px; line-height: 1.9; }
+  .derived b { color: var(--ink); font-size: 14px; }
+  .rdtab { border-collapse: collapse; font-size: 13px; margin: 4px 0 12px; }
+  .rdtab th, .rdtab td {
+    border: 1px solid var(--line); padding: 5px 12px; white-space: nowrap;
+    text-align: right; font-weight: normal;
+  }
+  .rdtab th { background: var(--bg); color: var(--muted); }
+  .rdtab th:first-child, .rdtab td:first-child { text-align: left; }
+  .rdtab td { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .rdtab td b { font-size: 14px; }
+  .rdtab .dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 2px;
+    margin-right: 7px; vertical-align: 1px;
+  }
+  .plot { width: 100%; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 22px; }
+  @media (max-width: 780px) { .grid2 { grid-template-columns: 1fr; } }
+  footer {
+    margin-top: 24px; padding-top: 14px; border-top: 1px solid var(--line);
+    font-size: 12px; color: var(--muted); line-height: 1.8;
+  }
+  footer b { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<div class="head">
+<h1>暴击：分配</h1>
+<span class="links"><a class="repo" href="../../index.html"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 1.6 7.2h1.5v7h3.3v-4.1h3.2v4.1h3.3v-7h1.5L8 1.8z"/></svg>主页</a><a class="repo" href="crit_dist.html">波动</a><a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></span>
+</div>
+<div class="sub">双暴分固定的前提下，<b>按分位数而不是按期望</b>把暴击率 / 暴伤重新分配：逐档给出「前 q 可达伤害」的最优 CR / CD、分位增益与均值代价。改任一项即时重算，悬浮可读各档数值。伤害单位 <b>w = 万</b>。</div>
+
+<h2>固定双暴分，按<b>分位数</b>而不是期望分配 CR / CD</h2>
+<div class="panel">
+  <div class="panel-note"><b>双暴分 = 2 × 暴击率 + 暴伤</b>，扫描时它固定不变、只在 CR 与 CD 之间重新分：横轴扫 CR，CD 随之由约束推出（顶轴是对应的 CD）。<b>分位 q</b> 越大越赌（看前 1−q 的最好情况），越小越稳（看兜底）。单段模型：单次伤害 × 次数。分位最优常是<b>刀锋解</b>（曲线呈锯齿），读数按网格取整。</div>
+  <label>双暴分<input id="bV" type="number" step="10" min="10" value="320"></label>
+  <label>单次未暴击伤害 w<input id="bnon" type="number" step="1" min="0" value="20"></label>
+  <label>伤害次数<input id="bn" type="number" step="1" min="1" value="30"></label>
+  <label>分位档 %<input id="bq" type="text" value="50, 80, 90, 95, 99"></label>
+</div>
+<div class="derived" id="rd"></div>
+<div id="plot1" class="plot"></div>
+<div class="grid2">
+  <div>
+    <h2>最优暴击率随分位 —— 越赌越低、越稳越高</h2>
+    <div id="plot2" class="plot"></div>
+  </div>
+  <div>
+    <h2>偏离 1:2 的收益与代价</h2>
+    <div id="plot3" class="plot"></div>
+  </div>
+</div>
+
+<footer>
+  分位：<b>Q<sub>q</sub> = min{ x : F(x) ≥ q }</b>（F 为累积分布，定义与分布算法见<a class="repo" href="crit_dist.html">波动</a>页）；<b>「前 α 可达伤害」= Q<sub>1−α</sub></b>。
+  <br>分配：双暴分 V = 2·CR + CD 固定，扫 CR、CD = V − 2·CR。均值最优在 CR = V/4（即 1:2）；<b>分位增益</b> = Q<sub>q</sub>(最优) / Q<sub>q</sub>(1:2) − 1，<b>均值代价</b> = E(最优) / E(1:2) − 1 —— 1:2 只是「期望」口径的最优。
+  <br>曲线为什么是锯齿：双暴分守恒（CR 涨 1 点、CD 必降 2 点）+「前 q 需要几次暴击」是<b>整数</b>：齿内同一个暴击数、伤害沿直线缓降，跨齿门槛多要一次暴击、跳升一次。
+  <br>数值只是算术演示，不代表任何实际配置；公式与口径为社区数据，非官方文本。推导见 <span style="font-family:monospace">docs/ai-output/2-basics/2-crit.md</span>。
+  <div class="repo-line">源码与说明：<a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></div>
+</footer>
+
+<script>
+// ══════════ 数学（来源：docs/ai-output/2-basics/2-crit.md）══════════
+// 每段：n 次独立判定，暴击次数 ~ Binomial(n, p)；损伤 = V0 * (n + d*b)
+
+// 二项 PMF：log 空间递推（(1-p)^n 在 n 大 / p 高时下溢）
+function binomPMF(n, p) {
+  const a = new Float64Array(n + 1);
+  if (p <= 0) { a[0] = 1; return a; }
+  if (p >= 1) { a[n] = 1; return a; }
+  const lg = new Float64Array(n + 1);
+  lg[0] = n * Math.log1p(-p);
+  const step = Math.log(p) - Math.log1p(-p);
+  let mx = lg[0];
+  for (let k = 0; k < n; k++) {
+    lg[k + 1] = lg[k] + Math.log((n - k) / (k + 1)) + step;
+    if (lg[k + 1] > mx) mx = lg[k + 1];
+  }
+  let s = 0;
+  for (let k = 0; k <= n; k++) { a[k] = Math.exp(lg[k] - mx); s += a[k]; }
+  for (let k = 0; k <= n; k++) a[k] /= s;
+  return a;
+}
+
+function cumOf(pmf) {
+  const c = new Float64Array(pmf.length);
+  let acc = 0;
+  for (let i = 0; i < pmf.length; i++) { acc += pmf[i]; c[i] = acc; }
+  return c;
+}
+
+// 最小 b 使 F(b) >= q（F 单调，二分）
+function firstAtLeast(cum, q) {
+  if (q <= 0) return 0;
+  let lo = 0, hi = cum.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (cum[mid] >= q - 1e-12) hi = mid; else lo = mid + 1;
+  }
+  return lo;
+}
+
+// 分配扫描：固定双暴分 V（小数），扫 CR = c，CD = V - 2c；返回每个 q 的 Q(c)（单位为 V0）
+function sweepB(V, n, qList) {
+  const cmax = Math.min(1, V / 2), M = 4000;
+  const cgrid = new Float64Array(M + 1), mean = new Float64Array(M + 1);
+  const qv = qList.map(() => new Float64Array(M + 1));
+  for (let i = 0; i <= M; i++) {
+    const c = cmax * i / M, d = V - 2 * c;
+    cgrid[i] = c;
+    mean[i] = n * (1 + c * d);
+    const cum = cumOf(binomPMF(n, c));
+    for (let j = 0; j < qList.length; j++) qv[j][i] = n + d * firstAtLeast(cum, qList[j]);
+  }
+  return { cmax, cgrid, mean, qv };
+}
+
+// 单个 (c = V/4) 处的 Q，用于「1:2 的对照」
+function qAt12(V, n, q) {
+  const c = Math.min(V / 4, 1), d = V - 2 * c;
+  const cum = cumOf(binomPMF(n, c));
+  return n + d * firstAtLeast(cum, q);
+}
+
+function optimalOf(arr, cgrid) {
+  let best = -Infinity, c = 0;
+  for (let i = 0; i < arr.length; i++) if (arr[i] > best + 1e-12) { best = arr[i]; c = cgrid[i]; }
+  return { Q: best, c };
+}
+
+// ══════════ 页面 ══════════
+const $ = (id) => document.getElementById(id);
+const W = 1e4;                     // 万：输入与显示的单位
+const S = 1 / W;                   // 显示缩放（数据 → w）
+const QPAL = ['#2f6f9f', '#2e8b57', '#e07b39', '#7b5ea7', '#c2453a', '#5a7d9a'];
+const qColor = (i) => QPAL[i % QPAL.length];
+
+// 数值（w 单位）：13680000 → 1,368w；114000 → 11.4w；5842 → 0.58w
+function fmtW(v) {
+  const w = v / W, a = Math.abs(w);
+  if (a >= 100) return `${Math.round(w).toLocaleString('en-US')}w`;
+  if (a >= 10) return `${parseFloat(w.toFixed(1))}w`;
+  return `${parseFloat(w.toFixed(2))}w`;
+}
+const signed = (v) => `${v >= 0 ? '+' : '−'}${(Math.abs(v) * 100).toFixed(2)}%`;
+const qLabel = (q) => {
+  const v = q * 100;
+  return (Math.abs(v - Math.round(v)) < 1e-9 ? String(Math.round(v)) : v.toFixed(1)) + '%';
+};
+// 等宽补位（悬浮标签对齐用；CJK 按 2 个拉丁字符宽计）
+const vlen = (s) => Array.from(s).reduce((n, c) => n + (c.charCodeAt(0) > 0x2000 ? 2 : 1), 0);
+const padL = (s, w) => `<span style="font-family:monospace">${' '.repeat(Math.max(0, w - vlen(s)))}</span>${s}`;
+
+// 分位档：文本解析（非法与重复的忽略；空 = 不画）
+function parseList(str, lo, hi) {
+  const seen = new Set(), out = [];
+  for (const tok of str.split(/[^0-9.]+/)) {
+    const v = parseFloat(tok);
+    if (!Number.isFinite(v) || v <= lo || v >= hi) continue;
+    if (seen.has(v)) continue;
+    seen.add(v); out.push(v);
+  }
+  return out.sort((a, b) => a - b);
+}
+
+// 分位网格（横轴上取 50%–99.9% 与 5%–50% 两侧）
+const QGRID = [];
+for (let i = 5; i <= 49; i++) QGRID.push(i / 100);
+for (let i = 50; i <= 98; i++) QGRID.push(i / 100);
+for (let i = 990; i <= 999; i++) QGRID.push(i / 1000);
+
+// 分位横轴：按 q/(1−q) 拉开（等距的 80% / 90% / 95% / 99% 不再挤在一起）
+const LOGIT = (q) => Math.log(q / (1 - q));
+const QTICKS = [0.05, 0.1, 0.2, 0.5, 0.8, 0.9, 0.95, 0.99, 0.999];
+const qAxis = () => ({
+  title: { text: '分位 q（越大越赌）' },
+  range: [LOGIT(0.05), LOGIT(0.999)],
+  tickvals: QTICKS.map(LOGIT), ticktext: QTICKS.map(qLabel),
+  gridcolor: '#ececec', zeroline: false,
+});
+
+// ══════════ 图 1：分位曲线族 ══════════
+function build1(V, n, V0, qs, sw, idxOf) {
+  const cxs = Array.from(sw.cgrid, (c) => c * 100);   // 百分数
+  const cdOf = (cPct) => V * 100 - 2 * cPct;
+  const names = qs.map((q) => `分位 ${qLabel(q)}`).concat(['期望']);
+  const wN = Math.max(...names.map(vlen));
+  const trac = (arr, name, color, width) => ({
+    type: 'scatter', mode: 'lines', x: cxs, y: Array.from(arr, (v) => v * V0 * S),
+    customdata: cxs.map((c, i) => [`${cdOf(c).toFixed(1)}%`, fmtW(arr[i] * V0)]),
+    hovertemplate: `${padL(name, wN)}　暴伤 %{customdata[0]}　伤害 %{customdata[1]}<extra></extra>`,
+    line: { color, width }, name, showlegend: true,
+  });
+  const traces = qs.map((q, i) => trac(sw.qv[idxOf.get(q)], `分位 ${qLabel(q)}`, qColor(i), 1.8));
+  traces.push(trac(sw.mean, '期望', '#333', 2));
+  traces[traces.length - 1].line.dash = 'dash';
+
+  let lo = Infinity, hi = -Infinity;
+  for (const t of traces) for (const v of t.y) { if (v < lo) lo = v; if (v > hi) hi = v; }
+  const padY = (hi - lo) * 0.05 || 1;
+
+  const shapes = [], annos = [];
+  const c12 = Math.min(V / 4, 1) * 100;
+  shapes.push({ type: 'line', x0: c12, x1: c12, yref: 'paper', y0: 0, y1: 1,
+                line: { color: '#999', width: 1.2, dash: 'dash' } });
+  annos.push({ x: c12, y: 0, yref: 'paper', xanchor: 'left', xshift: 6, yanchor: 'bottom', yshift: 4,
+               showarrow: false, font: { size: 11, color: '#777' }, text: '1:2（均值最优）' });
+
+  qs.forEach((q, i) => {
+    const o = optimalOf(sw.qv[idxOf.get(q)], sw.cgrid);
+    traces.push({ type: 'scatter', mode: 'markers', x: [o.c * 100], y: [o.Q * V0 * S],
+      marker: { color: qColor(i), size: 9, line: { color: '#fff', width: 1.2 } }, hoverinfo: 'skip', showlegend: false });
+    annos.push({ x: o.c * 100, y: o.Q * V0 * S, xanchor: 'center', yanchor: i % 2 ? 'top' : 'bottom',
+                 yshift: i % 2 ? -9 : 9, showarrow: false, font: { size: 11.5, color: qColor(i) },
+                 text: qLabel(q) });
+  });
+
+  return { traces, layout: {
+    xaxis: { title: { text: '暴击率 %' }, range: [0, sw.cmax * 100], gridcolor: '#e8e8e8', zeroline: false, hoverformat: '.1f' },
+    xaxis2: { title: { text: '暴伤 %' }, overlaying: 'x', side: 'top', range: [V * 100, (V - 2 * sw.cmax) * 100],
+              showgrid: false, zeroline: false, tickformat: '.0f' },
+    yaxis: { title: { text: '伤害（w）' }, range: [lo - padY, hi + padY * 1.6], gridcolor: '#e8e8e8' },
+    shapes, annotations: annos,
+    legend: { x: 0.01, y: 0.99, xanchor: 'left', yanchor: 'top', font: { size: 11 }, bgcolor: 'rgba(255,255,255,0.85)' },
+    margin: { t: 58, r: 24, b: 44, l: 74 }, height: 420,
+    hovermode: 'x unified', plot_bgcolor: '#fff', paper_bgcolor: '#fff',
+  } };
+}
+
+// ══════════ 图 2：最优 CR 随分位 ══════════
+function build2(V, n, sw, idxOf, qs) {
+  const xs = [], ys = [], cd = [];
+  for (const q of QGRID) {
+    const o = optimalOf(sw.qv[idxOf.get(q)], sw.cgrid);
+    xs.push(LOGIT(q)); ys.push(o.c * 100); cd.push(qLabel(q));
+  }
+  const c12 = Math.min(V / 4, 1) * 100;
+  const ht = '分位 %{customdata}　最优 CR %{y:.1f}%<extra></extra>';
+  const traces = [
+    { type: 'scatter', mode: 'lines', x: xs, y: ys, customdata: cd,
+      line: { color: '#2f6f9f', width: 2 }, hovertemplate: ht, showlegend: false },
+    { type: 'scatter', mode: 'markers', x: qs.map(LOGIT),
+      y: qs.map((q) => optimalOf(sw.qv[idxOf.get(q)], sw.cgrid).c * 100),
+      customdata: qs.map(qLabel), marker: { color: '#2f6f9f', size: 7, line: { color: '#fff', width: 1 } },
+      hovertemplate: ht, showlegend: false },
+  ];
+  const shapes = [
+    { type: 'line', xref: 'paper', x0: 0, x1: 1, y0: c12, y1: c12, line: { color: '#999', width: 1.1, dash: 'dash' } },
+    { type: 'line', xref: 'paper', x0: 0, x1: 1, y0: sw.cmax * 100, y1: sw.cmax * 100, line: { color: '#ddd', width: 1 } },
+  ];
+  return { traces, layout: {
+    xaxis: qAxis(),
+    yaxis: { title: { text: '最优暴击率 %' }, range: [0, 102], gridcolor: '#ececec' },
+    shapes, annotations: [{ x: 1, xref: 'paper', y: c12, yanchor: 'bottom', xanchor: 'right', yshift: 3,
+      showarrow: false, font: { size: 11, color: '#777' }, text: `1:2（${c12.toFixed(0)}%）` }],
+    showlegend: false, margin: { t: 16, r: 24, b: 46, l: 60 }, height: 300,
+    hovermode: 'closest', plot_bgcolor: '#fff', paper_bgcolor: '#fff',
+  } };
+}
+
+// ══════════ 图 3：收益与代价 ══════════
+function build3(V, n, sw, idxOf, qs) {
+  const xs = [], gain = [], loss = [], cd = [];
+  const meanAt = (c) => n * (1 + c * (V - 2 * c));
+  const m12 = meanAt(Math.min(V / 4, 1));
+  for (const q of QGRID) {
+    const o = optimalOf(sw.qv[idxOf.get(q)], sw.cgrid);
+    xs.push(LOGIT(q));
+    gain.push((o.Q / qAt12(V, n, q) - 1) * 100);
+    loss.push((meanAt(o.c) / m12 - 1) * 100);
+    cd.push(qLabel(q));
+  }
+  const traces = [
+    { type: 'scatter', mode: 'lines', x: xs, y: gain, customdata: cd, line: { color: '#2e8b57', width: 2 }, name: '分位增益',
+      hovertemplate: '分位 %{customdata}　分位增益 %{y:.2f}%<extra></extra>', showlegend: true },
+    { type: 'scatter', mode: 'lines', x: xs, y: loss, customdata: cd, line: { color: '#c2453a', width: 2 }, name: '均值代价',
+      hovertemplate: '分位 %{customdata}　均值代价 %{y:.2f}%<extra></extra>', showlegend: true },
+    { type: 'scatter', mode: 'markers', x: qs.map(LOGIT),
+      y: qs.map((q) => (optimalOf(sw.qv[idxOf.get(q)], sw.cgrid).Q / qAt12(V, n, q) - 1) * 100),
+      marker: { color: '#2e8b57', size: 7, line: { color: '#fff', width: 1 } }, hoverinfo: 'skip', showlegend: false },
+    { type: 'scatter', mode: 'markers', x: qs.map(LOGIT),
+      y: qs.map((q) => { const c = optimalOf(sw.qv[idxOf.get(q)], sw.cgrid).c; return (meanAt(c) / m12 - 1) * 100; }),
+      marker: { color: '#c2453a', size: 7, line: { color: '#fff', width: 1 } }, hoverinfo: 'skip', showlegend: false },
+  ];
+  return { traces, layout: {
+    xaxis: qAxis(),
+    yaxis: { title: { text: '%（相对 1:2）' }, gridcolor: '#ececec', zeroline: true, zerolinecolor: '#bbb' },
+    legend: { x: 0.01, y: 0.99, xanchor: 'left', yanchor: 'top', font: { size: 11 }, bgcolor: 'rgba(255,255,255,0.85)' },
+    showlegend: true, margin: { t: 16, r: 24, b: 46, l: 60 }, height: 300,
+    hovermode: 'closest', plot_bgcolor: '#fff', paper_bgcolor: '#fff',
+  } };
+}
+
+function render() {
+  const V = parseFloat($('bV').value) / 100;
+  const V0 = parseFloat($('bnon').value) * W, n = Math.round(parseFloat($('bn').value));
+  if (![V, V0, n].every(Number.isFinite) || V <= 0 || V0 < 0 || n < 1) return;
+  const qs = parseList($('bq').value, 0, 100).map((v) => v / 100);
+  const qList = Array.from(new Set([...QGRID, ...qs])).sort((a, b) => a - b);
+  const sw = sweepB(V, n, qList);
+  const idxOf = new Map(qList.map((q, i) => [q, i]));
+  const c12 = Math.min(V / 4, 1);
+  const meanAt = (c) => n * (1 + c * (V - 2 * c));
+
+  $('rd').innerHTML =
+    `双暴分 <b>${(V * 100).toFixed(1)}</b>　单段：<b>${n}</b> 次 × ${fmtW(V0)}　` +
+    `1:2（均值最优）= <b>${(c12 * 100).toFixed(1)}% / ${((V - 2 * c12) * 100).toFixed(1)}%</b>`;
+
+  const rows = qs.map((q, i) => {
+    const o = optimalOf(sw.qv[idxOf.get(q)], sw.cgrid);
+    const q12 = qAt12(V, n, q);
+    const gain = o.Q / q12 - 1, loss = meanAt(o.c) / meanAt(c12) - 1;
+    return `<tr><td><span class="dot" style="background:${qColor(i)}"></span>${qLabel(q)}</td>` +
+      `<td><b>${(o.c * 100).toFixed(1)}%</b></td><td><b>${((V - 2 * o.c) * 100).toFixed(1)}%</b></td>` +
+      `<td>${fmtW(q12 * V0).replace(/w$/, '')}</td><td>${signed(gain)}</td><td>${signed(loss)}</td></tr>`;
+  }).join('');
+  $('rd').innerHTML +=
+    `<table class="rdtab"><tr><th>分位 q</th><th>最优 CR</th><th>最优 CD</th><th>1:2 处的值（w）</th>` +
+    `<th>分位增益</th><th>均值代价</th></tr>${rows}</table>`;
+
+  const g1 = build1(V, n, V0, qs, sw, idxOf);
+  const g2 = build2(V, n, sw, idxOf, qs);
+  const g3 = build3(V, n, sw, idxOf, qs);
+  Plotly.react('plot1', g1.traces, g1.layout, { responsive: true });
+  Plotly.react('plot2', g2.traces, g2.layout, { responsive: true });
+  Plotly.react('plot3', g3.traces, g3.layout, { responsive: true });
+}
+
+// ── 输入事件（rAF 合并；无头驱动脚本请直接调 render）──
+let pend = false;
+function queue() {
+  if (pend) return;
+  pend = true;
+  requestAnimationFrame(() => { pend = false; render(); });
+}
+for (const id of ['bV', 'bnon', 'bn', 'bq']) $(id).addEventListener('input', queue);
+
+render();
+</script>
+</body>
+</html>
