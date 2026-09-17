@@ -68,11 +68,11 @@
 <h1>暴击：分配</h1>
 <span class="links"><a class="repo" href="../../index.html"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 1.6 7.2h1.5v7h3.3v-4.1h3.2v4.1h3.3v-7h1.5L8 1.8z"/></svg>主页</a><a class="repo" href="crit_dist.html">波动</a><a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></span>
 </div>
-<div class="sub">双暴分固定的前提下，<b>按分位数而不是按期望</b>把暴击率 / 暴伤重新分配：逐档给出「前 q 可达伤害」的最优 CR / CD、分位增益与均值代价。改任一项即时重算，悬浮可读各档数值。伤害单位 <b>w = 万</b>。</div>
+<div class="sub">双暴分固定的前提下，<b>按分位数而不是按期望</b>把暴击率 / 暴伤重新分配：逐档给出「前 q 可达伤害」的最优暴击率 / 暴伤、分位增益与均值代价。改任一项即时重算，悬浮可读各档数值。伤害单位 <b>w = 万</b>。</div>
 
-<h2>固定双暴分，按<b>分位数</b>而不是期望分配 CR / CD</h2>
+<h2>固定双暴分，按<b>分位数</b>而不是期望分配暴击率 / 暴伤</h2>
 <div class="panel">
-  <div class="panel-note"><b>双暴分 = 2 × 暴击率 + 暴伤</b>，扫描时它固定不变、只在 CR 与 CD 之间重新分：横轴扫 CR，CD 随之由约束推出（顶轴是对应的 CD）。<b>分位 q</b> 越大越赌（看前 1−q 的最好情况），越小越稳（看兜底）。单段模型：单次伤害 × 次数。分位最优常是<b>刀锋解</b>（曲线呈锯齿），读数按网格取整。</div>
+  <div class="panel-note"><b>双暴分 = 2 × 暴击率 + 暴伤</b>，扫描时它固定不变、只在暴击率与暴伤之间重新分：横轴扫暴击率，暴伤随之由约束推出（顶轴是对应的暴伤）。<b>分位 q</b> 越大越赌（看前 1−q 的最好情况），越小越稳（看兜底）。单段模型：单次伤害 × 次数。分位最优常是<b>刀锋解</b>（曲线呈锯齿），读数按网格取整。</div>
   <label>双暴分<input id="bV" type="number" step="10" min="10" value="320"></label>
   <label>单次未暴击伤害 w<input id="bnon" type="number" step="1" min="0" value="20"></label>
   <label>伤害次数<input id="bn" type="number" step="1" min="1" value="30"></label>
@@ -93,8 +93,8 @@
 
 <footer>
   分位：<b>Q<sub>q</sub> = min{ x : F(x) ≥ q }</b>（F 为累积分布，定义与分布算法见<a class="repo" href="crit_dist.html">波动</a>页）；<b>「前 α 可达伤害」= Q<sub>1−α</sub></b>。
-  <br>分配：双暴分 V = 2·CR + CD 固定，扫 CR、CD = V − 2·CR。均值最优在 CR = V/4（即 1:2）；<b>分位增益</b> = Q<sub>q</sub>(最优) / Q<sub>q</sub>(1:2) − 1，<b>均值代价</b> = E(最优) / E(1:2) − 1 —— 1:2 只是「期望」口径的最优。
-  <br>曲线为什么是锯齿：双暴分守恒（CR 涨 1 点、CD 必降 2 点）+「前 q 需要几次暴击」是<b>整数</b>：齿内同一个暴击数、伤害沿直线缓降，跨齿门槛多要一次暴击、跳升一次。
+  <br>分配：双暴分 V = 2·暴击率 + 暴伤 固定，扫暴击率、暴伤 = V − 2·暴击率。均值最优在暴击率 = V/4（即 1:2）；<b>分位增益</b> = Q<sub>q</sub>(最优) / Q<sub>q</sub>(1:2) − 1，<b>均值代价</b> = E(最优) / E(1:2) − 1 —— 1:2 只是「期望」口径的最优。
+  <br>曲线为什么是锯齿：双暴分守恒（暴击率涨 1 点、暴伤必降 2 点）+「前 q 需要几次暴击」是<b>整数</b>：齿内同一个暴击数、伤害沿直线缓降，跨齿门槛多要一次暴击、跳升一次。
   <br>数值只是算术演示，不代表任何实际配置；公式与口径为社区数据，非官方文本。推导见 <span style="font-family:monospace">docs/ai-output/2-basics/2-crit.md</span>。
   <div class="repo-line">源码与说明：<a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></div>
 </footer>
@@ -140,7 +140,7 @@ function firstAtLeast(cum, q) {
   return lo;
 }
 
-// 分配扫描：固定双暴分 V（小数），扫 CR = c，CD = V - 2c；返回每个 q 的 Q(c)（单位为 V0）
+// 分配扫描：固定双暴分 V（小数），扫暴击率 = c，暴伤 = V − 2c；返回每个 q 的 Q(c)（单位为 V0）
 function sweepB(V, n, qList) {
   const cmax = Math.min(1, V / 2), M = 4000;
   const cgrid = new Float64Array(M + 1), mean = new Float64Array(M + 1);
@@ -267,7 +267,7 @@ function build1(V, n, V0, qs, sw, idxOf) {
   } };
 }
 
-// ══════════ 图 2：最优 CR 随分位 ══════════
+// ══════════ 图 2：最优暴击率随分位 ══════════
 function build2(V, n, sw, idxOf, qs) {
   const xs = [], ys = [], cd = [];
   for (const q of QGRID) {
@@ -275,7 +275,7 @@ function build2(V, n, sw, idxOf, qs) {
     xs.push(LOGIT(q)); ys.push(o.c * 100); cd.push(qLabel(q));
   }
   const c12 = Math.min(V / 4, 1) * 100;
-  const ht = '分位 %{customdata}　最优 CR %{y:.1f}%<extra></extra>';
+  const ht = '分位 %{customdata}　最优暴击率 %{y:.1f}%<extra></extra>';
   const traces = [
     { type: 'scatter', mode: 'lines', x: xs, y: ys, customdata: cd,
       line: { color: '#2f6f9f', width: 2 }, hovertemplate: ht, showlegend: false },
@@ -355,7 +355,7 @@ function render() {
       `<td>${fmtW(q12 * V0).replace(/w$/, '')}</td><td>${signed(gain)}</td><td>${signed(loss)}</td></tr>`;
   }).join('');
   $('rd').innerHTML +=
-    `<table class="rdtab"><tr><th>分位 q</th><th>最优 CR</th><th>最优 CD</th><th>1:2 处的值（w）</th>` +
+    `<table class="rdtab"><tr><th>分位 q</th><th>最优暴击率</th><th>最优暴伤</th><th>1:2 处的值（w）</th>` +
     `<th>分位增益</th><th>均值代价</th></tr>${rows}</table>`;
 
   const g1 = build1(V, n, V0, qs, sw, idxOf);
