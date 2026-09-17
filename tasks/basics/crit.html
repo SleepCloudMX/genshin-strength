@@ -55,10 +55,19 @@
   .add:hover { border-color: #999; }
   .derived { font-size: 13px; color: var(--muted); margin: 0 0 12px; line-height: 1.9; }
   .derived b { color: var(--ink); font-size: 14px; }
-  .rdtab { border-collapse: collapse; font-size: 13px; margin: 2px 0 12px; }
-  .rdtab th, .rdtab td { padding: 3px 14px 3px 0; text-align: left; font-weight: normal; color: var(--muted); }
-  .rdtab th { color: var(--ink); border-bottom: 1px solid var(--line); padding-bottom: 5px; }
-  .rdtab td b { color: var(--ink); font-size: 14px; }
+  .rdtab { border-collapse: collapse; font-size: 13px; margin: 4px 0 12px; }
+  .rdtab th, .rdtab td {
+    border: 1px solid var(--line); padding: 5px 12px; white-space: nowrap;
+    text-align: right; font-weight: normal;
+  }
+  .rdtab th { background: var(--bg); color: var(--muted); }
+  .rdtab th:first-child, .rdtab td:first-child { text-align: left; }
+  .rdtab td { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .rdtab td b { font-size: 14px; }
+  .rdtab .dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 2px;
+    margin-right: 7px; vertical-align: 1px;
+  }
   .plot { width: 100%; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 22px; }
   @media (max-width: 780px) { .grid2 { grid-template-columns: 1fr; } }
@@ -635,12 +644,13 @@ function renderB() {
     const o = optimalOf(sw.qv[idxOf.get(q)], sw.cgrid);
     const q12 = qAt12(V, n, q);
     const gain = o.Q / q12 - 1, loss = meanAt(o.c) / meanAt(c12) - 1;
-    return `<tr><td><span style="color:${qColor(i)}">■</span> ${qLabel(q)}</td>` +
-      `<td><b>${(o.c * 100).toFixed(1)}% / ${((V - 2 * o.c) * 100).toFixed(1)}%</b></td>` +
-      `<td>${signed(gain)}</td><td>${signed(loss)}</td><td>${fmtW(q12 * V0)}</td></tr>`;
+    return `<tr><td><span class="dot" style="background:${qColor(i)}"></span>${qLabel(q)}</td>` +
+      `<td><b>${(o.c * 100).toFixed(1)}%</b></td><td><b>${((V - 2 * o.c) * 100).toFixed(1)}%</b></td>` +
+      `<td>${fmtW(q12 * V0).replace(/w$/, '')}</td><td>${signed(gain)}</td><td>${signed(loss)}</td></tr>`;
   }).join('');
   $('rdB').innerHTML +=
-    `<table class="rdtab"><tr><th>分位 q</th><th>最优 CR / CD</th><th>分位增益</th><th>均值代价</th><th>1:2 处的值</th></tr>${rows}</table>`;
+    `<table class="rdtab"><tr><th>分位 q</th><th>最优 CR</th><th>最优 CD</th><th>1:2 处的值（w）</th>` +
+    `<th>分位增益</th><th>均值代价</th></tr>${rows}</table>`;
 
   const b1 = buildB1(V, n, V0, qs, sw, idxOf);
   const b2 = buildB2(V, n, sw, idxOf, qs);
