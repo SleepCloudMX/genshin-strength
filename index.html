@@ -44,6 +44,8 @@
   .s3 { background: linear-gradient(90deg, #440154, #31688e, #35b779, #fde725); }
   .s4 { background: linear-gradient(90deg, #e8710a, #f7b799, #d8d8d8); }
   .s5 { background: linear-gradient(90deg, #2e8b57, #2f6f9f, #bac5d0, #d62728, #e07b39); }
+  .s6 { background: linear-gradient(90deg, #3d6f96, #6f9ec2, #bac5d0, #e3e8ec); }
+  .s7 { background: linear-gradient(90deg, #2f6f9f, #2e8b57, #e07b39, #7b5ea7, #c2453a); }
 </style>
 </head>
 <body>
@@ -95,6 +97,20 @@
     <div class="strip s5"></div>
     <div class="desc">两张曲线图：上为收益倍数（相对不减抗），下为等效血量（相对 10% 抗性敌人）。滑动条设减抗量（也可直接填更大的值），红曲线 = 当前档、灰蓝曲线 = 自填的对比档位；横轴范围可调（默认 0 ~ 150%），并给出 10% / 70% 抗性敌人的逐档读数。下方另有抗性系数 κ(r) 与边际收益两张说明图。</div>
     <div class="take">固定减抗的收益峰值 = <b>1 + 4S</b>（落在 75% 抗性的敌人身上）；抗性过了 75%，收益反而回落。</div>
+  </a>
+
+  <a class="card" href="tasks/basics/crit_dist.html">
+    <h2>暴击：波动 —— 一次尝试的 DPS 分布<span class="arrow">→</span></h2>
+    <div class="strip s6"></div>
+    <div class="desc">伤害段可增删（次数、时间、暴击率 / 暴伤各自填）：未满暴时反复打，DPS 是一个<b>精确可算的分布</b>（各段二项分布卷积，不用正态近似）。给出期望、σ、μ ± σ / μ ± 3σ 的实际覆盖率、分位档，以及「打 K 次取最好」的累积曲线。</div>
+    <div class="take">「打 7 次取最好」≈ 看<b>前 9.4%</b> 的分位；μ + 3σ 常常超过伤害上限 —— 正态近似在这里会骗人。</div>
+  </a>
+
+  <a class="card" href="tasks/basics/crit_split.html">
+    <h2>暴击：分配 —— 按分位数分 CR / CD<span class="arrow">→</span></h2>
+    <div class="strip s7"></div>
+    <div class="desc">双暴分固定，在暴击率与暴伤之间重新分：逐档给出「前 q 可达伤害」的最优 CR / CD、分位增益与均值代价，另有分位曲线族（锯齿如实画）、最优 CR 随分位、收益与代价三张图。</div>
+    <div class="take">1 : 2 只是<b>均值</b>口径的最优 —— 越赌（看前 10%）最优暴击率越低，越稳则越高。</div>
   </a>
 </div>
 
