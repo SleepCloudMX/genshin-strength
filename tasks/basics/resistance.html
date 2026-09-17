@@ -135,13 +135,16 @@ const fmtS = (v) => {
   return Number.isInteger(r) ? String(r) : r.toFixed(1);
 };
 const labelOf = (v) => `${fmtS(v)}%`;
-// 悬浮读数：档位标签右对齐（等宽空格补在「减抗」之前），各行 ×值 成列，
-// 同时「减抗」与数字保持紧贴
-function hoverLabel(v, w) {
+// 档位标签右对齐（等宽空格补在「减抗」之前），×值 成列，同时「减抗」与数字保持紧贴
+function labelPad(v, w) {
   const s = labelOf(v);
   return `<span style="font-family:monospace">${' '.repeat(Math.max(0, w - s.length))}</span>` +
-         `减抗 <span style="font-family:monospace">${s}</span>　×%{y:.3f}<extra></extra>`;
+         `减抗 <span style="font-family:monospace">${s}</span>`;
 }
+const hoverLabel = (v, w) => `${labelPad(v, w)}　×%{y:.3f}<extra></extra>`;
+
+// 大多数敌人的抗性：横轴上单独标出来
+const R_COMMON = 0.10;
 // 对比档位的色阶：浅 → 深（减抗越多越深）
 function rampColor(t) {
   const a = [186, 197, 208], b = [74, 102, 128];
@@ -188,6 +191,10 @@ function buildMain(sf, refs) {
     line: { color: rampColor(others.length === 1 ? 0.5 : i / (others.length - 1)), width: 1.4 },
     hovertemplate: hoverLabel(c.S * 100, labelW), showlegend: false,
   }));
+  // 10% 抗性处：红曲线上一个点 + 左上角的各档收益
+  traces.push({ type: 'scatter', mode: 'markers', x: [R_COMMON], y: [gain(R_COMMON, sf)],
+    marker: { color: C_MAIN, size: 8.5, line: { color: '#fff', width: 1.2 } },
+    hoverinfo: 'skip', showlegend: false });
   if (peakOn) {
     traces.push({ type: 'scatter', mode: 'markers', x: [peakX], y: [peakG],
       marker: { color: C_MAIN, size: 10, symbol: 'diamond', line: { color: '#fff', width: 1.3 } },
@@ -196,11 +203,22 @@ function buildMain(sf, refs) {
 
   const shapes = [
     { type: 'line', x0: X0, x1: X1, y0: 1, y1: 1, line: { color: '#bbb', width: 1.1, dash: 'dot' } },
+    { type: 'line', x0: R_COMMON, x1: R_COMMON, y0: 1, y1: ymax, line: { color: '#9a9a9a', width: 1.1, dash: 'dot' } },
     { type: 'line', x0: KNEE, x1: KNEE, y0: 1, y1: ymax, line: { color: '#999', width: 1.2, dash: 'dash' } },
   ];
+  const rows = [sf, ...others.map((c) => c.S)].map((S, i) =>
+    (i === 0 ? `<span style="color:${C_MAIN}">` : '') +
+    `${labelPad(S * 100, labelW)}　×${gain(R_COMMON, S).toFixed(3)}` +
+    (i === 0 ? '</span>' : '')).join('<br>');
+
   const annos = [
     { x: KNEE, y: ymax, xanchor: 'center', yanchor: 'top', yshift: -3, showarrow: false,
       font: { size: 11.5, color: '#777' }, text: '75%' },
+    { x: 0.01, xref: 'paper', y: 1, yref: 'paper', xanchor: 'left', yanchor: 'top',
+      yshift: -6, align: 'left', showarrow: false,
+      font: { size: 11.5, color: '#333' }, bgcolor: 'rgba(255,255,255,0.92)',
+      bordercolor: '#ddd', borderwidth: 1, borderpad: 6,
+      text: `<b>10% 抗性敌人</b><br>${rows}` },
   ];
   const kink = (x, color, label) => {
     const atEdge = x > X1 - 0.05;
