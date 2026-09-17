@@ -46,10 +46,12 @@ document.addEventListener('DOMContentLoaded', () => {
   label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
   .srow { display: flex; align-items: center; gap: 8px; }
   input[type=range] { width: 260px; padding: 0; border: 0; background: transparent; }
-  input[type=number] {
-    font: inherit; font-size: 13.5px; color: var(--ink); width: 68px;
+  input[type=number], input[type=text] {
+    font: inherit; font-size: 13.5px; color: var(--ink);
     padding: 3px 6px; border: 1px solid var(--line); border-radius: 5px; background: #fff;
   }
+  input[type=number] { width: 68px; }
+  input[type=text] { width: 180px; }
   .derived { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
   .derived b { color: var(--ink); font-size: 15px; }
   .plot { width: 100%; }
@@ -71,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <h1>抗性区：减抗收益</h1>
 <span class="links"><a class="repo" href="../../index.html"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 1.6 7.2h1.5v7h3.3v-4.1h3.2v4.1h3.3v-7h1.5L8 1.8z"/></svg>主页</a><a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></span>
 </div>
-<div class="sub">看一档减抗对不同抗性敌人的收益倍数：横轴是怪物抗性，拖动滑动条换减抗量，曲线与读数即时更新；悬浮曲线可看每个点的具体数值。</div>
+<div class="sub">看一档减抗对不同抗性敌人的收益倍数：横轴是怪物抗性，红曲线 = 当前减抗量，灰蓝曲线 = 对比档位；改减抗或对比档位即时重算，悬浮可一次对照各档数值。</div>
 
 <div class="panel">
   <div class="panel-note"><b>收益倍数 = 减抗后的抗性系数 ÷ 减抗前的抗性系数</b>，即相对「不减抗」的伤害倍数。<b>怪物抗性不可改变</b> —— 横轴是一排待查的敌人（查你打的那只落在哪）；减抗来自队伍、按整数档处理。减抗可以把抗性削成<b>负数</b>，负数区每点只值一半。多个减抗来源的叠加按「直接相加」处理（社区口径，本项目未核实）。</div>
@@ -81,6 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <input id="sn" type="number" min="0" step="1" value="30">
     </span>
   </label>
+  <label>对比档位 %<input id="ks" type="text" value="20, 40, 60, 80, 100"></label>
 </div>
 <div class="derived" id="peak"></div>
 
@@ -123,25 +126,58 @@ const $ = (id) => document.getElementById(id);
 const C_NEG = '#2e8b57', C_LIN = '#2f6f9f', C_HIGH = '#e07b39';
 const C_MAIN = '#d62728';
 
-// ── 主图：收益倍数随怪物基础抗性 ──
+// ── 主图：收益倍数随怪物基础抗性（红 = 当前档，灰蓝 = 对比档位）──
 const X0 = 0, X1 = 1.2, XN = 480;
+const Y_TOP = 5;   // 纵轴上限：曲线都在 5 以内时固定，超了才放大
 
-function buildMain(sf) {
-  const xs = [], ys = [];
-  for (let i = 0; i <= XN; i++) {
-    const x = X0 + (X1 - X0) * i / XN;
-    xs.push(x); ys.push(gain(x, sf));
+const fmtS = (v) => {
+  const r = Math.round(v * 10) / 10;
+  return Number.isInteger(r) ? String(r) : r.toFixed(1);
+};
+// 对比档位的色阶：浅 → 深（减抗越多越深）
+function rampColor(t) {
+  const a = [186, 197, 208], b = [74, 102, 128];
+  return `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(',')})`;
+}
+
+// 一条曲线在图上能到的最高点（峰值在轴外时取右端）
+function curveMax(S, ys) {
+  return Math.max(KNEE, S) <= X1 ? 1 + 4 * S : ys[XN];
+}
+
+const XS = [];
+for (let i = 0; i <= XN; i++) XS.push(X0 + (X1 - X0) * i / XN);
+
+// 对比档位的曲线只在档位文本变化时重算，拖滑动条时直接复用
+let refKey = null, refCurves = [];
+
+function buildMain(sf, refs) {
+  const xs = XS;
+  const yAct = xs.map((x) => gain(x, sf));
+  const key = refs.join(',');
+  if (key !== refKey) {
+    refKey = key;
+    refCurves = refs.map((v) => ({ S: v / 100, ys: xs.map((x) => gain(x, v / 100)) }));
   }
+  const others = refCurves.filter((c) => Math.abs(c.S - sf) > 1e-9);
+
   const peakX = Math.max(KNEE, sf);
   const peakG = 1 + 4 * sf;
   const peakOn = peakX <= X1;
-  const ymax = Math.max(1.35, (peakOn ? peakG : Math.max(ys[0], ys[XN])) * 1.06);
+  let top = curveMax(sf, yAct);
+  for (const c of others) top = Math.max(top, curveMax(c.S, c.ys));
+  const ymax = top > Y_TOP ? top * 1.06 : Y_TOP;
 
-  const traces = [
-    { type: 'scatter', mode: 'lines', x: xs, y: ys,
-      line: { color: C_MAIN, width: 2.6 },
-      hovertemplate: '抗性 %{x:.0%}　收益 ×%{y:.3f}<extra></extra>' },
-  ];
+  // 当前档排第一位：统一悬浮按 trace 顺序列出，它在最前；S 不同则曲线互相嵌套、不会交叉，
+  // 所以先画（在参照曲线下层）也压不到线
+  const traces = [{ type: 'scatter', mode: 'lines', x: xs, y: yAct,
+    line: { color: C_MAIN, width: 2.6 },
+    hovertemplate: `减抗 ${fmtS(sf * 100)}%（当前）　×%{y:.3f}<extra></extra>`, showlegend: false }];
+  others.forEach((c, i) => traces.push({
+    type: 'scatter', mode: 'lines', x: xs, y: c.ys,
+    line: { color: rampColor(others.length === 1 ? 0.5 : i / (others.length - 1)), width: 1.4 },
+    hovertemplate: `减抗 ${fmtS(c.S * 100)}%　×%{y:.3f}<extra></extra>`, showlegend: false,
+  }));
   if (peakOn) {
     traces.push({ type: 'scatter', mode: 'markers', x: [peakX], y: [peakG],
       marker: { color: C_MAIN, size: 10, symbol: 'diamond', line: { color: '#fff', width: 1.3 } },
@@ -166,20 +202,22 @@ function buildMain(sf) {
   if (sf > 0.005 && sf <= X1) kink(sf, C_NEG, '削到 0');
   if (sf > 0.005 && KNEE + sf <= X1) kink(KNEE + sf, C_HIGH, '削后 75%');
   if (peakOn) {
+    const nearTop = peakG > ymax - 0.14;   // 贴到上边缘时标注改到点下方
     annos.push({ x: peakX, y: peakG, xanchor: peakX > 0.92 ? 'right' : 'left',
-                 xshift: peakX > 0.92 ? -10 : 10, yanchor: 'middle',
-                 yshift: peakG <= 1.02 ? 18 : 0, showarrow: false,
+                 xshift: peakX > 0.92 ? -10 : 10,
+                 yanchor: nearTop ? 'top' : 'middle',
+                 yshift: nearTop ? -9 : (peakG <= 1.02 ? 18 : 0), showarrow: false,
                  font: { size: 12.5, color: C_MAIN }, bgcolor: 'rgba(255,255,255,0.85)',
                  borderpad: 2, text: `峰值 ×${peakG.toFixed(2)}` });
   }
 
   return { traces, layout: {
     xaxis: { title: { text: '怪物基础抗性（减抗前）' }, range: [X0, X1], tickformat: '.0%',
-             zeroline: false, gridcolor: '#e8e8e8' },
+             hoverformat: '.0%', zeroline: false, gridcolor: '#e8e8e8' },
     yaxis: { title: { text: '收益倍数（相对不减抗）' }, range: [1, ymax], gridcolor: '#e8e8e8' },
     shapes, annotations: annos, showlegend: false,
     margin: { t: 22, r: 24, b: 48, l: 64 }, height: 400,
-    hovermode: 'closest', plot_bgcolor: '#fff', paper_bgcolor: '#fff',
+    hovermode: 'x unified', plot_bgcolor: '#fff', paper_bgcolor: '#fff',
   } };
 }
 
@@ -273,6 +311,16 @@ function readSf() {
   return Number.isFinite(v) && v > 0 ? v / 100 : 0;
 }
 
+function parseRefs() {
+  const seen = new Set(), out = [];
+  for (const tok of $('ks').value.split(/[^0-9.]+/)) {
+    const v = parseFloat(tok);
+    if (!Number.isFinite(v) || v <= 0 || seen.has(v)) continue;
+    seen.add(v); out.push(v);
+  }
+  return out.sort((a, b) => a - b);
+}
+
 function renderMain() {
   const sf = readSf();
   const peakX = Math.max(KNEE, sf);
@@ -281,7 +329,7 @@ function renderMain() {
     ? '减抗 0：收益恒为 ×1.000。'
     : `峰值 <b>×${peakG.toFixed(2)}</b>，出现在怪物抗性 ${(peakX * 100).toFixed(0)}%；` +
       `对 0% 抗性的敌人 ×${gain(0, sf).toFixed(3)}（削到负区，每点只值一半）。`;
-  const { traces, layout } = buildMain(sf);
+  const { traces, layout } = buildMain(sf, parseRefs());
   Plotly.react('plot', traces, layout, { responsive: true });
 }
 
@@ -301,6 +349,7 @@ $('sn').addEventListener('input', () => {
   if (Number.isFinite(v) && v >= 0) $('s').value = Math.min(100, v);
   queueMain();
 });
+$('ks').addEventListener('input', queueMain);
 
 {
   const k = buildKappa(), m = buildM();
