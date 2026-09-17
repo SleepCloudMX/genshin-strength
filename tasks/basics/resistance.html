@@ -52,6 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   input[type=number] { width: 68px; }
   input[type=text] { width: 180px; }
+  .dash { color: var(--muted); font-size: 12px; }
   .derived { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
   .derived b { color: var(--ink); font-size: 15px; }
   .plot { width: 100%; }
@@ -84,6 +85,13 @@ document.addEventListener('DOMContentLoaded', () => {
     </span>
   </label>
   <label>对比档位 %<input id="ks" type="text" value="20, 40, 60, 80, 100"></label>
+  <label><span>横轴范围 %</span>
+    <span class="srow">
+      <input id="x0" type="number" step="10" value="0">
+      <span class="dash">~</span>
+      <input id="x1" type="number" step="10" value="120">
+    </span>
+  </label>
 </div>
 <div class="derived" id="peak"></div>
 
@@ -131,7 +139,15 @@ const C_NEG = '#2e8b57', C_LIN = '#2f6f9f', C_HIGH = '#e07b39';
 const C_MAIN = '#d62728';
 
 // ── 主图：收益倍数随怪物基础抗性（红 = 当前档，灰蓝 = 对比档位）──
-const X0 = 0, X1 = 1.2, XN = 480;
+const XN = 480;
+let X0 = 0, X1 = 1.2, XS = [];   // 两张图共用的横轴范围
+function setRange(lo, hi) {
+  X0 = lo; X1 = hi;
+  XS = [];
+  for (let i = 0; i <= XN; i++) XS.push(X0 + (X1 - X0) * i / XN);
+}
+setRange(X0, X1);
+
 const Y_TOP = 5;   // 纵轴上限：曲线都在 5 以内时固定，超了才放大
 
 const fmtS = (v) => {
@@ -157,18 +173,12 @@ function rampColor(t) {
   return `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(',')})`;
 }
 
-// 一条曲线在图上能到的最高点（峰值在轴外时取右端）
-function curveMax(S, ys) {
-  return Math.max(KNEE, S) <= X1 ? 1 + 4 * S : ys[XN];
-}
+const inRange = (x) => x >= X0 && x <= X1;
 
-const XS = [];
-for (let i = 0; i <= XN; i++) XS.push(X0 + (X1 - X0) * i / XN);
-
-// 对比档位的曲线只在档位文本变化时重算，拖滑动条时直接复用（两张图共用）
+// 对比档位的曲线只在档位文本或横轴范围变化时重算，拖滑动条时直接复用（两张图共用）
 let refKey = null, refCurves = [];
 function refsFor(refs) {
-  const key = refs.join(',');
+  const key = `${refs.join(',')}|${X0}|${X1}`;
   if (key !== refKey) {
     refKey = key;
     refCurves = refs.map((v) => ({
@@ -190,9 +200,10 @@ function buildMain(sf, refs) {
 
   const peakX = Math.max(KNEE, sf);
   const peakG = 1 + 4 * sf;
-  const peakOn = peakX <= X1;
-  let top = curveMax(sf, yAct);
-  for (const c of others) top = Math.max(top, curveMax(c.S, c.ys));
+  const peakOn = inRange(peakX);
+  const commonOn = inRange(R_COMMON);
+  let top = Math.max(...yAct);
+  for (const c of others) top = Math.max(top, Math.max(...c.ys));
   const ymax = top > Y_TOP ? top * 1.06 : Y_TOP;
 
   const labelW = tierLabelW(sf, others);
@@ -207,48 +218,56 @@ function buildMain(sf, refs) {
     line: { color: rampColor(others.length === 1 ? 0.5 : i / (others.length - 1)), width: 1.4 },
     hovertemplate: hoverLabel(c.S * 100, labelW), showlegend: false,
   }));
-  // 10% 抗性处：红曲线上一个点 + 左上角的各档收益
-  traces.push({ type: 'scatter', mode: 'markers', x: [R_COMMON], y: [gain(R_COMMON, sf)],
-    marker: { color: C_MAIN, size: 8.5, line: { color: '#fff', width: 1.2 } },
-    hoverinfo: 'skip', showlegend: false });
+  // 10% 抗性处（在横轴范围外时不画）：红曲线上一个点 + 左上角的各档收益
+  if (commonOn) {
+    traces.push({ type: 'scatter', mode: 'markers', x: [R_COMMON], y: [gain(R_COMMON, sf)],
+      marker: { color: C_MAIN, size: 8.5, line: { color: '#fff', width: 1.2 } },
+      hoverinfo: 'skip', showlegend: false });
+  }
   if (peakOn) {
     traces.push({ type: 'scatter', mode: 'markers', x: [peakX], y: [peakG],
       marker: { color: C_MAIN, size: 10, symbol: 'diamond', line: { color: '#fff', width: 1.3 } },
       hoverinfo: 'skip', showlegend: false });
   }
 
+  const span = X1 - X0;
   const shapes = [
     { type: 'line', x0: X0, x1: X1, y0: 1, y1: 1, line: { color: '#bbb', width: 1.1, dash: 'dot' } },
-    { type: 'line', x0: R_COMMON, x1: R_COMMON, y0: 1, y1: ymax, line: { color: '#9a9a9a', width: 1.1, dash: 'dot' } },
-    { type: 'line', x0: KNEE, x1: KNEE, y0: 1, y1: ymax, line: { color: '#999', width: 1.2, dash: 'dash' } },
   ];
-  const rows = [sf, ...others.map((c) => c.S)].map((S, i) =>
-    (i === 0 ? `<span style="color:${C_MAIN}">` : '') +
-    `${labelPad(S * 100, labelW)}　×${gain(R_COMMON, S).toFixed(3)}` +
-    (i === 0 ? '</span>' : '')).join('<br>');
-
-  const annos = [
-    { x: KNEE, y: ymax, xanchor: 'center', yanchor: 'top', yshift: -3, showarrow: false,
-      font: { size: 11.5, color: '#777' }, text: '75%' },
-    { x: 0.01, xref: 'paper', y: 1, yref: 'paper', xanchor: 'left', yanchor: 'top',
+  const annos = [];
+  if (commonOn) {
+    shapes.push({ type: 'line', x0: R_COMMON, x1: R_COMMON, y0: 1, y1: ymax,
+                  line: { color: '#9a9a9a', width: 1.1, dash: 'dot' } });
+    const rows = [sf, ...others.map((c) => c.S)].map((S, i) =>
+      (i === 0 ? `<span style="color:${C_MAIN}">` : '') +
+      `${labelPad(S * 100, labelW)}　×${gain(R_COMMON, S).toFixed(3)}` +
+      (i === 0 ? '</span>' : '')).join('<br>');
+    annos.push({ x: 0.01, xref: 'paper', y: 1, yref: 'paper', xanchor: 'left', yanchor: 'top',
       yshift: -6, align: 'left', showarrow: false,
       font: { size: 11.5, color: '#333' }, bgcolor: 'rgba(255,255,255,0.92)',
       bordercolor: '#ddd', borderwidth: 1, borderpad: 6,
-      text: `<b>10% 抗性敌人</b><br>${rows}` },
-  ];
+      text: `<b>10% 抗性敌人</b><br>${rows}` });
+  }
+  if (inRange(KNEE)) {
+    shapes.push({ type: 'line', x0: KNEE, x1: KNEE, y0: 1, y1: ymax,
+                  line: { color: '#999', width: 1.2, dash: 'dash' } });
+    annos.push({ x: KNEE, y: ymax, xanchor: 'center', yanchor: 'top', yshift: -3, showarrow: false,
+                 font: { size: 11.5, color: '#777' }, text: '75%' });
+  }
   const kink = (x, color, label) => {
-    const atEdge = x > X1 - 0.05;
+    const atEdge = x > X1 - span * 0.04;
     shapes.push({ type: 'line', x0: x, x1: x, y0: 1, y1: ymax, line: { color, width: 1.2, dash: 'dash' } });
     annos.push({ x, y: 1, xanchor: atEdge ? 'right' : 'center', xshift: atEdge ? -3 : 0,
                  yanchor: 'bottom', yshift: 4, showarrow: false,
                  font: { size: 11, color }, text: label });
   };
-  if (sf > 0.005 && sf <= X1) kink(sf, C_NEG, '削到 0');
-  if (sf > 0.005 && KNEE + sf <= X1) kink(KNEE + sf, C_HIGH, '削后 75%');
+  if (sf > 0.005 && inRange(sf)) kink(sf, C_NEG, '削到 0');
+  if (sf > 0.005 && inRange(KNEE + sf)) kink(KNEE + sf, C_HIGH, '削后 75%');
   if (peakOn) {
     const nearTop = peakG > ymax - 0.14;   // 贴到上边缘时标注改到点下方
-    annos.push({ x: peakX, y: peakG, xanchor: peakX > 0.92 ? 'right' : 'left',
-                 xshift: peakX > 0.92 ? -10 : 10,
+    const atRight = peakX > X0 + span * 0.77;
+    annos.push({ x: peakX, y: peakG, xanchor: atRight ? 'right' : 'left',
+                 xshift: atRight ? -10 : 10,
                  yanchor: nearTop ? 'top' : 'middle',
                  yshift: nearTop ? -9 : (peakG <= 1.02 ? 18 : 0), showarrow: false,
                  font: { size: 12.5, color: C_MAIN }, bgcolor: 'rgba(255,255,255,0.85)',
@@ -266,14 +285,19 @@ function buildMain(sf, refs) {
 }
 
 // ── 等效血量图：同一减抗下各敌人相对 10% 抗性敌人的倍数 ──
-// 纵轴固定：全档位全抗性段的实测范围是 ×0.90 ~ ×5.40
-const EQ_Y = [0.8, 5.5];
-
+// 纵轴默认固定 ×0.8 ~ ×5.5（0~120% 抗性、任意减抗下的实测范围是 ×0.90 ~ ×5.40），
+// 横轴范围拉开后才按曲线放大
 function buildEq(sf, refs) {
   const xs = XS;
   const yAct = xs.map((x) => eqHp(x, sf));
   const others = shownRefs(sf, refs);
   const labelW = tierLabelW(sf, others);
+  let lo = Math.max(...yAct), hi = Math.min(...yAct);
+  for (const c of others) {
+    hi = Math.max(hi, Math.max(...c.eq));
+    lo = Math.min(lo, Math.min(...c.eq));
+  }
+  const ylo = Math.min(0.8, lo * 0.97), yhi = Math.max(5.5, hi * 1.06);
 
   const traces = [{ type: 'scatter', mode: 'lines', x: xs, y: yAct,
     line: { color: C_MAIN, width: 2.6 },
@@ -286,14 +310,16 @@ function buildEq(sf, refs) {
 
   const shapes = [
     { type: 'line', x0: X0, x1: X1, y0: 1, y1: 1, line: { color: '#bbb', width: 1.1, dash: 'dot' } },
-    { type: 'line', x0: R_COMMON, x1: R_COMMON, y0: EQ_Y[0], y1: EQ_Y[1],
-      line: { color: '#9a9a9a', width: 1.1, dash: 'dot' } },
   ];
+  if (inRange(R_COMMON)) {
+    shapes.push({ type: 'line', x0: R_COMMON, x1: R_COMMON, y0: ylo, y1: yhi,
+                  line: { color: '#9a9a9a', width: 1.1, dash: 'dot' } });
+  }
 
   return { traces, layout: {
     xaxis: { title: { text: '怪物基础抗性（减抗前）' }, range: [X0, X1], tickformat: '.0%',
              hoverformat: '.0%', zeroline: false, gridcolor: '#e8e8e8' },
-    yaxis: { title: { text: '等效血量倍数' }, range: EQ_Y, gridcolor: '#e8e8e8' },
+    yaxis: { title: { text: '等效血量倍数' }, range: [ylo, yhi], gridcolor: '#e8e8e8' },
     shapes, showlegend: false,
     margin: { t: 22, r: 24, b: 48, l: 64 }, height: 400,
     hovermode: 'x unified', plot_bgcolor: '#fff', paper_bgcolor: '#fff',
@@ -432,6 +458,17 @@ $('sn').addEventListener('input', () => {
   queueMain();
 });
 $('ks').addEventListener('input', queueMain);
+
+// 横轴范围：两个框都给出合法值（左 < 右）才生效，否则沿用上一次的范围
+function applyRange() {
+  const lo = parseFloat($('x0').value), hi = parseFloat($('x1').value);
+  if (!Number.isFinite(lo) || !Number.isFinite(hi) || lo >= hi) return;
+  if (lo === X0 * 100 && hi === X1 * 100) return;
+  setRange(lo / 100, hi / 100);
+  queueMain();
+}
+$('x0').addEventListener('input', applyRange);
+$('x1').addEventListener('input', applyRange);
 
 {
   const k = buildKappa(), m = buildM();
