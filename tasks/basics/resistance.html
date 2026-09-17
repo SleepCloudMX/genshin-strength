@@ -89,6 +89,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <div id="plot" class="plot"></div>
 
+<h2>等效血量 —— 同一减抗下，各敌人相对 10% 抗性敌人的倍数</h2>
+<div id="eqplot" class="plot"></div>
+
 <div class="grid2">
   <div>
     <h2>抗性系数 κ(r) —— 曲线形状</h2>
@@ -101,7 +104,8 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 
 <footer>
-  术语：\(r_0\) = 怪物基础抗性（减抗前）；\(S\) = 减抗量；\(\kappa\) = 抗性系数；收益倍数 \(G = \kappa(r_0 - S) / \kappa(r_0)\)。
+  术语：\(r_0\) = 怪物基础抗性（减抗前）；\(S\) = 减抗量；\(\kappa\) = 抗性系数；收益倍数 \(G = \kappa(r_0 - S) / \kappa(r_0)\)；
+  等效血量 \(H = \kappa(10\% - S) / \kappa(r_0 - S)\)（同一减抗下、相对 10% 抗性敌人的倍数）。
   <div class="formula">
   $$\kappa(r) = \begin{cases}
   1 - \dfrac{r}{2} & r &lt; 0 \\[2mm]
@@ -143,8 +147,10 @@ function labelPad(v, w) {
 }
 const hoverLabel = (v, w) => `${labelPad(v, w)}　×%{y:.3f}<extra></extra>`;
 
-// 大多数敌人的抗性：横轴上单独标出来
+// 大多数敌人的抗性：横轴上单独标出来，也是等效血量的基准
 const R_COMMON = 0.10;
+// 等效血量：同一减抗下，r0 抗性敌人相对 10% 抗性敌人的倍数
+const eqHp = (r0, S) => kappa(R_COMMON - S) / kappa(r0 - S);
 // 对比档位的色阶：浅 → 深（减抗越多越深）
 function rampColor(t) {
   const a = [186, 197, 208], b = [74, 102, 128];
@@ -159,18 +165,28 @@ function curveMax(S, ys) {
 const XS = [];
 for (let i = 0; i <= XN; i++) XS.push(X0 + (X1 - X0) * i / XN);
 
-// 对比档位的曲线只在档位文本变化时重算，拖滑动条时直接复用
+// 对比档位的曲线只在档位文本变化时重算，拖滑动条时直接复用（两张图共用）
 let refKey = null, refCurves = [];
+function refsFor(refs) {
+  const key = refs.join(',');
+  if (key !== refKey) {
+    refKey = key;
+    refCurves = refs.map((v) => ({
+      S: v / 100,
+      ys: XS.map((x) => gain(x, v / 100)),
+      eq: XS.map((x) => eqHp(x, v / 100)),
+    }));
+  }
+  return refCurves;
+}
+const shownRefs = (sf, refs) => refsFor(refs).filter((c) => Math.abs(c.S - sf) > 1e-9);
+const tierLabelW = (sf, others) =>
+  Math.max(...[sf, ...others.map((c) => c.S)].map((S) => labelOf(S * 100).length));
 
 function buildMain(sf, refs) {
   const xs = XS;
   const yAct = xs.map((x) => gain(x, sf));
-  const key = refs.join(',');
-  if (key !== refKey) {
-    refKey = key;
-    refCurves = refs.map((v) => ({ S: v / 100, ys: xs.map((x) => gain(x, v / 100)) }));
-  }
-  const others = refCurves.filter((c) => Math.abs(c.S - sf) > 1e-9);
+  const others = shownRefs(sf, refs);
 
   const peakX = Math.max(KNEE, sf);
   const peakG = 1 + 4 * sf;
@@ -179,7 +195,7 @@ function buildMain(sf, refs) {
   for (const c of others) top = Math.max(top, curveMax(c.S, c.ys));
   const ymax = top > Y_TOP ? top * 1.06 : Y_TOP;
 
-  const labelW = Math.max(...[sf, ...others.map((c) => c.S)].map((S) => labelOf(S * 100).length));
+  const labelW = tierLabelW(sf, others);
 
   // 当前档排第一位：统一悬浮按 trace 顺序列出，它在最前；S 不同则曲线互相嵌套、不会交叉，
   // 所以先画（在参照曲线下层）也压不到线
@@ -244,6 +260,41 @@ function buildMain(sf, refs) {
              hoverformat: '.0%', zeroline: false, gridcolor: '#e8e8e8' },
     yaxis: { title: { text: '收益倍数（相对不减抗）' }, range: [1, ymax], gridcolor: '#e8e8e8' },
     shapes, annotations: annos, showlegend: false,
+    margin: { t: 22, r: 24, b: 48, l: 64 }, height: 400,
+    hovermode: 'x unified', plot_bgcolor: '#fff', paper_bgcolor: '#fff',
+  } };
+}
+
+// ── 等效血量图：同一减抗下各敌人相对 10% 抗性敌人的倍数 ──
+// 纵轴固定：全档位全抗性段的实测范围是 ×0.90 ~ ×5.40
+const EQ_Y = [0.8, 5.5];
+
+function buildEq(sf, refs) {
+  const xs = XS;
+  const yAct = xs.map((x) => eqHp(x, sf));
+  const others = shownRefs(sf, refs);
+  const labelW = tierLabelW(sf, others);
+
+  const traces = [{ type: 'scatter', mode: 'lines', x: xs, y: yAct,
+    line: { color: C_MAIN, width: 2.6 },
+    hovertemplate: hoverLabel(sf * 100, labelW), showlegend: false }];
+  others.forEach((c, i) => traces.push({
+    type: 'scatter', mode: 'lines', x: xs, y: c.eq,
+    line: { color: rampColor(others.length === 1 ? 0.5 : i / (others.length - 1)), width: 1.4 },
+    hovertemplate: hoverLabel(c.S * 100, labelW), showlegend: false,
+  }));
+
+  const shapes = [
+    { type: 'line', x0: X0, x1: X1, y0: 1, y1: 1, line: { color: '#bbb', width: 1.1, dash: 'dot' } },
+    { type: 'line', x0: R_COMMON, x1: R_COMMON, y0: EQ_Y[0], y1: EQ_Y[1],
+      line: { color: '#9a9a9a', width: 1.1, dash: 'dot' } },
+  ];
+
+  return { traces, layout: {
+    xaxis: { title: { text: '怪物基础抗性（减抗前）' }, range: [X0, X1], tickformat: '.0%',
+             hoverformat: '.0%', zeroline: false, gridcolor: '#e8e8e8' },
+    yaxis: { title: { text: '等效血量倍数' }, range: EQ_Y, gridcolor: '#e8e8e8' },
+    shapes, showlegend: false,
     margin: { t: 22, r: 24, b: 48, l: 64 }, height: 400,
     hovermode: 'x unified', plot_bgcolor: '#fff', paper_bgcolor: '#fff',
   } };
@@ -357,8 +408,11 @@ function renderMain() {
     ? '减抗 0：收益恒为 ×1.000。'
     : `峰值 <b>×${peakG.toFixed(2)}</b>，出现在怪物抗性 ${(peakX * 100).toFixed(0)}%；` +
       `对 0% 抗性的敌人 ×${gain(0, sf).toFixed(3)}（削到负区，每点只值一半）。`;
-  const { traces, layout } = buildMain(sf, parseRefs());
-  Plotly.react('plot', traces, layout, { responsive: true });
+  const refs = parseRefs();
+  const main = buildMain(sf, refs);
+  Plotly.react('plot', main.traces, main.layout, { responsive: true });
+  const eq = buildEq(sf, refs);
+  Plotly.react('eqplot', eq.traces, eq.layout, { responsive: true });
 }
 
 let pending = false;
