@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>暴击·波动与分配</title>
+<link rel="icon" type="image/png" href="https://sleepcloudmx.github.io/Others/Image/kenomimi.png">
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+<style>
+  :root { --ink:#222; --muted:#555; --line:#d8d8d8; --bg:#fafafa; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px 24px 40px; background: #fff; color: var(--ink);
+    font-family: "Microsoft YaHei", "SimHei", system-ui, sans-serif;
+  }
+  h1 { font-size: 19px; margin: 0; }
+  h2 { font-size: 13.5px; margin: 20px 0 4px; color: var(--muted); font-weight: 600; }
+  h2 b { color: var(--ink); }
+  .head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 4px; font-size: 13px; }
+  .head .links { white-space: nowrap; }
+  .head .links .repo + .repo { margin-left: 14px; }
+  .repo { color: var(--muted); text-decoration: none; white-space: nowrap; }
+  .repo:hover { color: var(--ink); text-decoration: underline; }
+  .repo svg { width: 1.15em; height: 1.15em; fill: currentColor; vertical-align: -0.18em; margin-right: 4px; }
+  .repo-line { margin-top: 8px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; line-height: 1.7; }
+  .panel {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+    padding: 14px 16px; margin-bottom: 12px;
+    display: flex; flex-wrap: wrap; gap: 12px 22px; align-items: flex-end;
+  }
+  .panel-note { flex-basis: 100%; font-size: 13px; color: var(--muted); line-height: 1.75; }
+  .panel-note b { color: var(--ink); }
+  label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+  input[type=number], input[type=text] {
+    font: inherit; font-size: 13.5px; color: var(--ink);
+    padding: 3px 6px; border: 1px solid var(--line); border-radius: 5px; background: #fff;
+  }
+  input[type=number] { width: 78px; }
+  input[type=text] { width: 180px; }
+  .segs { flex-basis: 100%; display: flex; flex-direction: column; gap: 8px; }
+  .seg {
+    display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-end;
+    background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px;
+  }
+  .seg .del {
+    margin-left: auto; align-self: center; cursor: pointer;
+    font: inherit; font-size: 15px; line-height: 1; color: var(--muted);
+    background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 4px 9px;
+  }
+  .seg .del:hover { color: #c2453a; border-color: #c2453a; }
+  .add {
+    font: inherit; font-size: 13px; color: var(--ink); cursor: pointer;
+    background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 5px 12px;
+  }
+  .add:hover { border-color: #999; }
+  .derived { font-size: 13px; color: var(--muted); margin: 0 0 12px; line-height: 1.9; }
+  .derived b { color: var(--ink); font-size: 14px; }
+  .rdtab { border-collapse: collapse; font-size: 13px; margin: 2px 0 12px; }
+  .rdtab th, .rdtab td { padding: 3px 14px 3px 0; text-align: left; font-weight: normal; color: var(--muted); }
+  .rdtab th { color: var(--ink); border-bottom: 1px solid var(--line); padding-bottom: 5px; }
+  .rdtab td b { color: var(--ink); font-size: 14px; }
+  .plot { width: 100%; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 22px; }
+  @media (max-width: 780px) { .grid2 { grid-template-columns: 1fr; } }
+  footer {
+    margin-top: 24px; padding-top: 14px; border-top: 1px solid var(--line);
+    font-size: 12px; color: var(--muted); line-height: 1.8;
+  }
+  footer b { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<div class="head">
+<h1>暴击：波动与分配</h1>
+<span class="links"><a class="repo" href="../../index.html"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 1.6 7.2h1.5v7h3.3v-4.1h3.2v4.1h3.3v-7h1.5L8 1.8z"/></svg>主页</a><a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></span>
+</div>
+<div class="sub">上块：<b>一次尝试的 DPS 分布</b> —— 精确计算（不是正态近似），给出期望、σ、分位与「K 次取最好」；下块：<b>双暴分固定时按分位数分配</b>暴击率 / 暴伤 —— 而不是按期望。改任一项即时重算，悬浮可读各档数值。</div>
+
+<h2>1 · 一次尝试的 <b>DPS 分布</b></h2>
+<div class="panel">
+  <div class="panel-note"><b>每段 = 一串伤害实例</b>（同暴击率、同暴伤、同次数）。未暴击 / 暴击伤害两个框按「暴击 = 未暴击 × (1 + 暴伤)」互推，<b>以最近编辑的为准</b>；总 DPS = Σ（各段伤害 ÷ 各自时间）。<b>分位档</b>如 90% = 前 10% 的好情况能达到的伤害（越大越看最好情况）；<b>尝试次数</b>画「打 K 次取最好」的累积曲线。默认是一组示例常数。</div>
+  <div class="segs" id="segs"></div>
+  <div><button class="add" id="addseg" type="button">＋ 添加伤害段</button></div>
+  <label>分位档 %<input id="qa" type="text" value="80, 90, 99"></label>
+  <label>尝试次数<input id="ka" type="text" value="1, 5, 10"></label>
+</div>
+<div class="derived" id="rdA"></div>
+<div id="plotA1" class="plot"></div>
+<div id="plotA2" class="plot"></div>
+
+<h2>2 · 固定双暴分，按<b>分位数</b>而不是期望分配 CR / CD</h2>
+<div class="panel">
+  <div class="panel-note">两个框给出<b>双暴分</b>（= 2 × 暴击率 + 暴伤），扫描时它固定不变、只在 CR 与 CD 之间重新分：横轴扫 CR，CD 随之由约束推出（顶轴是对应的 CD）。<b>分位 q</b> 越大越赌（看前 1−q 的最好情况），越小越稳（看兜底）。单段模型：单次伤害 × 次数。分位最优常是<b>刀锋解</b>（曲线呈锯齿），读数按网格取整。</div>
+  <label>暴击率 %<input id="bcr" type="number" step="1" min="0" max="100" value="80"></label>
+  <label>暴伤 %<input id="bcd" type="number" step="1" min="0" value="160"></label>
+  <label>单次未暴击伤害<input id="bnon" type="number" step="10" min="0" value="1000"></label>
+  <label>伤害次数<input id="bn" type="number" step="1" min="1" value="25"></label>
+  <label>分位档 %<input id="bq" type="text" value="50, 80, 90, 95, 99"></label>
+</div>
+<div class="derived" id="rdB"></div>
+<div id="plotB1" class="plot"></div>
+<div class="grid2">
+  <div>
+    <h2>最优暴击率随分位 —— 越赌越低、越稳越高</h2>
+    <div id="plotB2" class="plot"></div>
+  </div>
+  <div>
+    <h2>偏离 1:2 的收益与代价</h2>
+    <div id="plotB3" class="plot"></div>
+  </div>
+</div>
+
+<footer>
+  一次尝试的总 DPS <b>Y = Σ V<sub>0</sub>(n + d·B) / T</b>（对段求和），其中 <b>B ~ Binomial(n, p)</b> 为该段的暴击次数；分布 = 各段二项分布的卷积，<b>精确</b>，不用正态近似。支撑集 = [全不暴, 全暴]（有限区间）。
+  <br>分位：<b>Q<sub>q</sub> = min{ x : F(x) ≥ q }</b>（F 为累积分布），<b>「前 α 可达伤害」= Q<sub>1−α</sub></b>；阅读约定：Q<sub>q</sub> 处「不低于它」的概率至少 1 − q。
+  <br>K 次尝试取最好：分布 = F(x)<sup>K</sup>（精确），<b>中位数 = Q<sub>0.5^(1/K)</sub></b> —— 打 7 次取最好 ≈ 看前 9.4% 的分位。
+  <br>分配：双暴分 V = 2·CR + CD 固定，扫 CR、CD = V − 2·CR。均值最优在 CR = V/4（即 1:2）；<b>分位增益</b> = Q<sub>q</sub>(最优) / Q<sub>q</sub>(1:2) − 1，<b>均值代价</b> = E(最优) / E(1:2) − 1 —— 1:2 只是「期望」口径的最优。
+  <br>数值只是算术演示，不代表任何实际配置；公式与口径为社区数据，非官方文本。详见 <span style="font-family:monospace">docs/ai-output/2-basics/2-crit.md</span>。
+  <div class="repo-line">源码与说明：<a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></div>
+</footer>
+
+<script>
+// ══════════ 数学（来源：docs/ai-output/2-basics/2-crit.md）══════════
+// 每段：n 次独立判定，暴击次数 ~ Binomial(n, p)；损伤 = V0 * (n + d*b)
+// 多段：各段分布的卷积（精确）。读数为概率质量的直接求和。
+
+// 二项 PMF：log 空间递推（(1-p)^n 在 n 大 / p 高时下溢）
+function binomPMF(n, p) {
+  const a = new Float64Array(n + 1);
+  if (p <= 0) { a[0] = 1; return a; }
+  if (p >= 1) { a[n] = 1; return a; }
+  const lg = new Float64Array(n + 1);
+  lg[0] = n * Math.log1p(-p);
+  const step = Math.log(p) - Math.log1p(-p);
+  let mx = lg[0];
+  for (let k = 0; k < n; k++) {
+    lg[k + 1] = lg[k] + Math.log((n - k) / (k + 1)) + step;
+    if (lg[k + 1] > mx) mx = lg[k + 1];
+  }
+  let s = 0;
+  for (let k = 0; k <= n; k++) { a[k] = Math.exp(lg[k] - mx); s += a[k]; }
+  for (let k = 0; k <= n; k++) a[k] /= s;
+  return a;
+}
+
+function cumOf(pmf) {
+  const c = new Float64Array(pmf.length);
+  let acc = 0;
+  for (let i = 0; i < pmf.length; i++) { acc += pmf[i]; c[i] = acc; }
+  return c;
+}
+
+// 最小 b 使 F(b) >= q（F 单调，二分；离散分布的分位约定见页脚）
+function firstAtLeast(cum, q) {
+  if (q <= 0) return 0;
+  let lo = 0, hi = cum.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (cum[mid] >= q - 1e-12) hi = mid; else lo = mid + 1;
+  }
+  return lo;
+}
+
+// 一次尝试的 DPS 分布：segs = [{non, cd, cr, n, t}] → 值/概率/累积/期望/σ
+function buildDist(segs) {
+  let map = new Map([[0, 1]]);
+  for (const s of segs) {
+    const pmf = binomPMF(s.n, s.cr);
+    const base = (s.non * s.n) / s.t, step = (s.non * s.cd) / s.t;
+    const next = new Map();
+    for (const [k, p] of map) {
+      for (let b = 0; b <= s.n; b++) {
+        const w = pmf[b];
+        if (w === 0) continue;
+        const key = k + Math.round((base + step * b) * 1e6);
+        next.set(key, (next.get(key) || 0) + p * w);
+      }
+    }
+    if (next.size > 2e6) return null;
+    map = next;
+  }
+  const keys = Array.from(map.keys()).sort((a, b) => a - b);
+  const xs = new Float64Array(keys.length), ps = new Float64Array(keys.length);
+  for (let i = 0; i < keys.length; i++) { xs[i] = keys[i] / 1e6; ps[i] = map.get(keys[i]); }
+  const cum = new Float64Array(keys.length);
+  let acc = 0;
+  for (let i = 0; i < keys.length; i++) { acc += ps[i]; cum[i] = acc; }
+  let mean = 0, v2 = 0;
+  for (let i = 0; i < xs.length; i++) mean += xs[i] * ps[i];
+  for (let i = 0; i < xs.length; i++) v2 += ps[i] * (xs[i] - mean) * (xs[i] - mean);
+  return { xs, ps, cum, mean, sd: Math.sqrt(v2), min: xs[0], max: xs[xs.length - 1] };
+}
+
+// 分配扫描：固定双暴分 V（小数），扫 CR = c，CD = V - 2c；返回每个 q 的 Q(c)（单位为 V0）
+function sweepB(V, n, qList) {
+  const cmax = Math.min(1, V / 2), M = 4000;
+  const cgrid = new Float64Array(M + 1), mean = new Float64Array(M + 1);
+  const qv = qList.map(() => new Float64Array(M + 1));
+  for (let i = 0; i <= M; i++) {
+    const c = cmax * i / M, d = V - 2 * c;
+    cgrid[i] = c;
+    mean[i] = n * (1 + c * d);
+    const cum = cumOf(binomPMF(n, c));
+    for (let j = 0; j < qList.length; j++) qv[j][i] = n + d * firstAtLeast(cum, qList[j]);
+  }
+  return { cmax, cgrid, mean, qv };
+}
+
+// 单个 (c = V/4) 处的 Q，用于「1:2 的对照」
+function qAt12(V, n, q) {
+  const c = Math.min(V / 4, 1), d = V - 2 * c;
+  const cum = cumOf(binomPMF(n, c));
+  return n + d * firstAtLeast(cum, q);
+}
+
+// ══════════ 页面 ══════════
+const $ = (id) => document.getElementById(id);
+const QPAL = ['#2f6f9f', '#2e8b57', '#e07b39', '#7b5ea7', '#c2453a', '#5a7d9a'];
+const qColor = (i) => QPAL[i % QPAL.length];
+function kRamp(t) {
+  const a = [186, 197, 208], b = [47, 111, 159];
+  return `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(',')})`;
+}
+
+function fmtN(v) {
+  const a = Math.abs(v);
+  if (a >= 1000) return Math.round(v).toLocaleString('en-US');
+  if (a >= 100) return v.toFixed(0);
+  if (a >= 10) return v.toFixed(1);
+  return v.toFixed(2);
+}
+const pct1 = (v) => `${(v * 100).toFixed(1)}%`;
+const signed = (v) => `${v >= 0 ? '+' : '−'}${(Math.abs(v) * 100).toFixed(2)}%`;
+
+// 分位档 / 次数档：文本解析（非法与重复的忽略；空 = 不画）
+function parseList(str, lo, hi, int) {
+  const seen = new Set(), out = [];
+  for (const tok of str.split(/[^0-9.]+/)) {
+    const v = parseFloat(tok);
+    if (!Number.isFinite(v) || v <= lo || v >= hi) continue;
+    const val = int ? Math.round(v) : v;
+    if (seen.has(val)) continue;
+    seen.add(val); out.push(val);
+  }
+  return out.sort((a, b) => a - b);
+}
+
+// ── 分布取样工具 ──
+function lastLE(xs, x) {
+  let lo = 0, hi = xs.length - 1, ans = -1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (xs[mid] <= x) { ans = mid; lo = mid + 1; } else hi = mid - 1;
+  }
+  return ans;
+}
+function covBetween(dist, lo, hi) {
+  const { xs, cum, ps } = dist;
+  // 容差：μ±kσ 与支撑点常恰好重合，浮点误差会把它挤出区间
+  const eps = (xs[xs.length - 1] - xs[0]) * 1e-9 + 1e-12;
+  const hiI = lastLE(xs, hi + eps), loI = lastLE(xs, lo - eps);
+  let c = (hiI >= 0 ? cum[hiI] : 0) - (loI >= 0 ? cum[loI] : 0);
+  if (loI >= 0 && xs[loI] >= lo - eps) c += ps[loI];
+  return Math.min(1, Math.max(0, c));
+}
+
+// ── 伤害段（可增删；输入框是唯一取值来源）──
+const SEG0 = { non: 1000, cd: 1.6, cr: 0.8, n: 25, t: 20 };
+function addSeg(v = SEG0) {
+  const el = document.createElement('div');
+  el.className = 'seg';
+  el.innerHTML = `
+    <label>未暴击伤害<input class="f-non" type="number" step="10" min="0" value="${v.non}"></label>
+    <label>暴击伤害<input class="f-crit" type="number" step="10" min="0" value="${parseFloat((v.non * (1 + v.cd)).toFixed(6))}"></label>
+    <label>暴击率 %<input class="f-cr" type="number" step="1" min="0" max="100" value="${v.cr * 100}"></label>
+    <label>暴伤 %<input class="f-cd" type="number" step="1" min="0" value="${v.cd * 100}"></label>
+    <label>次数<input class="f-n" type="number" step="1" min="1" value="${v.n}"></label>
+    <label>时间 s<input class="f-t" type="number" step="1" min="0.1" value="${v.t}"></label>
+    <button class="del" type="button" title="删除本段">×</button>`;
+  const g = (s) => el.querySelector(s);
+  const non = g('.f-non'), crit = g('.f-crit'), cd = g('.f-cd');
+  let anchor = 'non';   // 最近编辑的伤害框：改暴伤时保持它、推另一个
+  const num = (inp) => parseFloat(inp.value);
+  const syncFromNon = () => {
+    const a = num(non), d = num(cd);
+    if (Number.isFinite(a) && Number.isFinite(d)) crit.value = String(parseFloat((a * (1 + d / 100)).toFixed(6)));
+  };
+  const syncFromCrit = () => {
+    const c = num(crit), d = num(cd);
+    if (Number.isFinite(c) && Number.isFinite(d)) non.value = String(parseFloat((c / (1 + d / 100)).toFixed(6)));
+  };
+  non.addEventListener('input', () => { anchor = 'non'; syncFromNon(); queueA(); });
+  crit.addEventListener('input', () => { anchor = 'crit'; syncFromCrit(); queueA(); });
+  cd.addEventListener('input', () => { (anchor === 'crit' ? syncFromCrit : syncFromNon)(); queueA(); });
+  for (const inp of [g('.f-cr'), g('.f-n'), g('.f-t')]) inp.addEventListener('input', () => queueA());
+  g('.del').addEventListener('click', () => { el.remove(); refreshDels(); queueA(); });
+  $('segs').appendChild(el);
+  refreshDels();
+}
+function refreshDels() {
+  const segs = document.querySelectorAll('.seg');
+  for (const s of segs) s.querySelector('.del').style.visibility = segs.length > 1 ? 'visible' : 'hidden';
+}
+function readSegs() {
+  const out = [];
+  for (const el of document.querySelectorAll('.seg')) {
+    const v = (s) => parseFloat(el.querySelector(s).value);
+    const non = v('.f-non'), cr = v('.f-cr'), cd = v('.f-cd'), n = v('.f-n'), t = v('.f-t');
+    if (![non, cr, cd, n, t].every(Number.isFinite) || non < 0 || cd < 0 || n < 1 || t <= 0) return null;
+    out.push({ non, cd: cd / 100, cr: Math.min(1, Math.max(0, cr / 100)), n: Math.round(n), t });
+  }
+  return out.length ? out : null;
+}
+
+// ══════════ 区块 1：分布 ══════════
+function buildA1(dist, qs) {
+  const { xs, ps, cum, min, max, mean } = dist;
+  const n = xs.length;
+  let barX, barY, surv, width, binned = false;
+  if (n <= 300) {
+    barX = Array.from(xs); barY = Array.from(ps);
+    surv = new Array(n);
+    let s = 0;
+    for (let i = n - 1; i >= 0; i--) { s += ps[i]; surv[i] = s; }
+    let gap = Infinity;
+    for (let i = 1; i < n; i++) gap = Math.min(gap, xs[i] - xs[i - 1]);
+    width = n > 1 ? gap * 0.85 : Math.max(Math.abs(xs[0]) * 0.1, 1);
+  } else {
+    binned = true;
+    const NB = 120, w = (max - min) / NB || 1;
+    const acc = new Array(NB).fill(0);
+    for (let i = 0; i < n; i++) acc[Math.min(NB - 1, Math.floor((xs[i] - min) / w))] += ps[i];
+    barX = acc.map((_, b) => min + (b + 0.5) * w);
+    barY = acc;
+    surv = new Array(NB);
+    let s = 0;
+    for (let b = NB - 1; b >= 0; b--) { s += acc[b]; surv[b] = s; }
+    width = w * 0.92;
+  }
+  const pad = Math.max((max - min) * 0.03, Math.abs(max) * 0.01, 1e-9);
+  const xlo = min - pad, xhi = max + pad;
+
+  const shapes = [];
+  const clip = (x) => Math.max(xlo, Math.min(xhi, x));
+  const band = (k, fill) => shapes.push({
+    type: 'rect', xref: 'x', yref: 'paper', y0: 0, y1: 1,
+    x0: clip(mean - k * dist.sd), x1: clip(mean + k * dist.sd), fillcolor: fill, line: { width: 0 },
+  });
+  band(3, 'rgba(47,111,159,0.06)');
+  band(1, 'rgba(47,111,159,0.13)');
+  shapes.push({ type: 'line', x0: mean, x1: mean, yref: 'paper', y0: 0, y1: 1,
+                line: { color: '#333', width: 1.4 } });
+  const annos = [{ x: mean, y: 1, yref: 'paper', xanchor: 'right', xshift: -4, yanchor: 'top', yshift: -4,
+                   showarrow: false, font: { size: 11, color: '#333' }, text: '期望' }];
+  qs.forEach((q, i) => {
+    const v = xs[firstAtLeast(cum, q)];
+    shapes.push({ type: 'line', x0: v, x1: v, yref: 'paper', y0: 0, y1: 1,
+                  line: { color: qColor(i), width: 1.3, dash: 'dash' } });
+    annos.push({ x: v, y: 1, yref: 'paper', xanchor: v > (xlo + xhi) / 2 ? 'right' : 'left',
+                 xshift: v > (xlo + xhi) / 2 ? -4 : 4, yanchor: 'top', yshift: -4 - i * 15,
+                 showarrow: false, font: { size: 11, color: qColor(i) },
+                 text: `${(q * 100).toFixed(0)}% → ${fmtN(v)}` });
+  });
+
+  const traces = [{ type: 'bar', x: barX, y: barY, width,
+    marker: { color: '#3d6f96', line: { width: 0 } }, customdata: surv,
+    hovertemplate: 'DPS %{x:,.0f}<br>概率 %{y:.4f}<br>不低于它的概率 %{customdata:.1%}<extra></extra>',
+    showlegend: false }];
+
+  return { traces, layout: {
+    xaxis: { title: { text: 'DPS' }, range: [xlo, xhi], gridcolor: '#e8e8e8', zeroline: false },
+    yaxis: { title: { text: '概率（一次尝试）' }, range: [0, Math.max(...barY) * 1.32], gridcolor: '#e8e8e8' },
+    shapes, annotations: annos, showlegend: false,
+    margin: { t: 30, r: 24, b: 44, l: 64 }, height: 340,
+    hovermode: 'closest', plot_bgcolor: '#fff', paper_bgcolor: '#fff',
+  }, binned };
+}
+
+function buildA2(dist, qs, ks) {
+  const { xs, cum, min, max } = dist;
+  const x = Array.from(xs), f = Array.from(cum);
+  // 「不低于该值」= 1 − 上一个支撑点处的累积（含该点自身的概率）
+  const below = x.map((_, i) => (i > 0 ? f[i - 1] : 0));
+  const pad = Math.max((max - min) * 0.03, Math.abs(max) * 0.01, 1e-9);
+  const kNames = ['打 1 次'].concat(ks.filter((k) => k > 1).map((k) => `打 ${k} 次取最好`));
+  const wK = Math.max(...kNames.map((s) => s.length));
+  const kLabel = (s) => `<span style="font-family:monospace">${' '.repeat(wK - s.length)}</span>${s}`;
+  const traces = [{
+    type: 'scatter', mode: 'lines', x, y: f,
+    line: { color: '#333', width: 2.4, shape: 'hv' },
+    name: '打 1 次', customdata: below.map((v) => 1 - v),
+    hovertemplate: `${kLabel('打 1 次')}　%{customdata:.1%} 的概率 ≥ 该值<extra></extra>`, showlegend: false,
+  }];
+  const ko = ks.filter((k) => k > 1);
+  ko.forEach((k, i) => {
+    const y = f.map((v) => Math.pow(v, k));
+    traces.push({
+      type: 'scatter', mode: 'lines', x, y,
+      line: { color: kRamp(ko.length === 1 ? 0.6 : 0.35 + 0.65 * i / (ko.length - 1)), width: 1.5, shape: 'hv', dash: 'dash' },
+      name: `打 ${k} 次取最好`, customdata: below.map((v) => 1 - Math.pow(v, k)),
+      hovertemplate: `${kLabel(`打 ${k} 次取最好`)}　%{customdata:.1%} 的概率 ≥ 该值<extra></extra>`, showlegend: false,
+    });
+  });
+  qs.forEach((q, i) => {
+    const v = xs[firstAtLeast(cum, q)];
+    traces.push({ type: 'scatter', mode: 'markers+text', x: [v], y: [q],
+      marker: { color: qColor(i), size: 8, line: { color: '#fff', width: 1.2 } },
+      text: [fmtN(v)], textposition: 'top left', textfont: { size: 11, color: qColor(i) },
+      hoverinfo: 'skip', showlegend: false });
+  });
+  return { traces, layout: {
+    xaxis: { title: { text: 'DPS' }, range: [min - pad, max + pad], gridcolor: '#e8e8e8', zeroline: false },
+    yaxis: { title: { text: '累积概率 / 达到概率' }, range: [0, 1.04], tickformat: '.0%', gridcolor: '#e8e8e8' },
+    showlegend: false, margin: { t: 22, r: 24, b: 44, l: 64 }, height: 340,
+    hovermode: 'x unified', plot_bgcolor: '#fff', paper_bgcolor: '#fff',
+  } };
+}
+
+function renderA() {
+  const segs = readSegs();
+  if (!segs) return;
+  const qs = parseList($('qa').value, 0, 100, false).map((v) => v / 100);
+  const ks = parseList($('ka').value, 0, 1e9, true);
+  const dist = buildDist(segs);
+  if (!dist) {
+    $('rdA').innerHTML = '段数 / 次数过多，无法精确展开 —— 请合并段或减少次数。';
+    return;
+  }
+  const { mean, sd, min, max, xs } = dist;
+  const rows = [];
+  if (segs.length > 1) {
+    rows.push(`共 <b>${segs.length}</b> 段`);
+  }
+  rows.push(`期望 DPS <b>${fmtN(mean)}</b>　σ <b>${fmtN(sd)}</b>（${pct1(sd / mean)} of 期望）　支撑 ${fmtN(min)} ~ ${fmtN(max)}（${xs.length} 点${xs.length > 300 ? '，图上显示为分箱' : ''}）`);
+  const covLine = (k) => {
+    const lo = mean - k * sd, hi = mean + k * sd;
+    const cov = covBetween(dist, lo, hi);
+    const outLo = lo < min ? '，下端超出' : '', outHi = hi > max ? '，上端超出上限' : '';
+    return `μ ± ${k === 1 ? '' : k + ''}σ <b>[${fmtN(lo)}, ${fmtN(hi)}]</b>，实际覆盖 <b>${pct1(cov)}</b>${outLo || outHi}`;
+  };
+  rows.push(covLine(1));
+  rows.push(covLine(3));
+  if (qs.length) {
+    rows.push('分位：' + qs.map((q) =>
+      `<span style="color:${qColor(qs.indexOf(q))}">${(q * 100).toFixed(0)}% → <b>${fmtN(xs[firstAtLeast(dist.cum, q)])}</b></span>`).join('　'));
+  }
+  const ko = ks.filter((k) => k > 1);
+  if (ko.length) {
+    rows.push('K 次取最好（中位数 = 分位 ' + ko.map((k) => `0.5<sup>1/${k}</sup>`).join(' / ') + '）：' +
+      ko.map((k) => `打 ${k} 次 → <b>${fmtN(xs[firstAtLeast(dist.cum, Math.pow(0.5, 1 / k))])}</b>`).join('　'));
+  }
+  $('rdA').innerHTML = rows.join('<br>');
+
+  const a1 = buildA1(dist, qs), a2 = buildA2(dist, qs, ks);
+  Plotly.react('plotA1', a1.traces, a1.layout, { responsive: true });
+  Plotly.react('plotA2', a2.traces, a2.layout, { responsive: true });
+}
+
+// ══════════ 区块 2：分配扫描 ══════════
+// 分位网格（log 横轴上取 50%–99.9% 与 5%–50% 两侧）
+const QGRID = [];
+for (let i = 5; i <= 49; i++) QGRID.push(i / 100);
+for (let i = 50; i <= 98; i++) QGRID.push(i / 100);
+for (let i = 990; i <= 999; i++) QGRID.push(i / 1000);
+
+function optimalOf(arr, cgrid) {
+  let best = -Infinity, c = 0;
+  for (let i = 0; i < arr.length; i++) if (arr[i] > best + 1e-12) { best = arr[i]; c = cgrid[i]; }
+  return { Q: best, c };
+}
+
+// 分位横轴：按 q/(1−q) 拉开（等距的 80% / 90% / 95% / 99% 不再挤在一起）
+const LOGIT = (q) => Math.log(q / (1 - q));
+const QTICKS = [0.05, 0.1, 0.2, 0.5, 0.8, 0.9, 0.95, 0.99, 0.999];
+const QTICKTXT = ['5%', '10%', '20%', '50%', '80%', '90%', '95%', '99%', '99.9%'];
+const qAxis = () => ({
+  title: { text: '分位 q（越大越赌）' },
+  range: [LOGIT(0.05), LOGIT(0.999)],
+  tickvals: QTICKS.map(LOGIT), ticktext: QTICKTXT,
+  gridcolor: '#ececec', zeroline: false,
+});
+const qLabel = (q) => `${(q * 100).toFixed(q * 100 >= 99 ? 1 : 0)}%`;
+
+function buildB1(V, n, V0, qs, sw, idxOf) {
+  const cxs = Array.from(sw.cgrid, (c) => c * 100);
+  const xr = [0, sw.cmax * 100];
+  const names = qs.map((q) => `分位 ${qLabel(q)}`).concat(['期望（均值）']);
+  const wN = Math.max(...names.map((s) => s.length));
+  const padN = (s) => `<span style="font-family:monospace">${' '.repeat(wN - s.length)}</span>${s}`;
+  const traces = qs.map((q, i) => ({
+    type: 'scatter', mode: 'lines', x: cxs, y: Array.from(sw.qv[idxOf.get(q)], (v) => v * V0),
+    line: { color: qColor(i), width: 1.8 },
+    name: `分位 ${qLabel(q)}`, customdata: cxs.map((c) => (V - 2 * c / 100) * 100),
+    hovertemplate: `${padN(`分位 ${qLabel(q)}`)}　CD %{customdata:.1f}%　伤害 %{y:,.0f}<extra></extra>`, showlegend: true,
+  }));
+  traces.push({
+    type: 'scatter', mode: 'lines', x: cxs, y: Array.from(sw.mean, (v) => v * V0),
+    line: { color: '#333', width: 2, dash: 'dash' }, name: '期望（均值）',
+    customdata: cxs.map((c) => (V - 2 * c / 100) * 100),
+    hovertemplate: `${padN('期望（均值）')}　CD %{customdata:.1f}%　伤害 %{y:,.0f}<extra></extra>`, showlegend: true,
+  });
+
+  let lo = Infinity, hi = -Infinity;
+  for (const t of traces) for (const v of t.y) { if (v < lo) lo = v; if (v > hi) hi = v; }
+  const padY = (hi - lo) * 0.05 || 1;
+
+  const shapes = [], annos = [];
+  const c12 = Math.min(V / 4, 1) * 100;
+  shapes.push({ type: 'line', x0: c12, x1: c12, yref: 'paper', y0: 0, y1: 1,
+                line: { color: '#999', width: 1.2, dash: 'dash' } });
+  annos.push({ x: c12, y: 0, yref: 'paper', xanchor: 'left', xshift: 6, yanchor: 'bottom', yshift: 4,
+               showarrow: false, font: { size: 11, color: '#777' }, text: '1:2（均值最优）' });
+
+  qs.forEach((q, i) => {
+    const o = optimalOf(sw.qv[idxOf.get(q)], sw.cgrid);
+    traces.push({ type: 'scatter', mode: 'markers', x: [o.c * 100], y: [o.Q * V0],
+      marker: { color: qColor(i), size: 9, line: { color: '#fff', width: 1.2 } }, hoverinfo: 'skip', showlegend: false });
+    annos.push({ x: o.c * 100, y: o.Q * V0, xanchor: 'center', yanchor: i % 2 ? 'top' : 'bottom',
+                 yshift: i % 2 ? -9 : 9, showarrow: false, font: { size: 11.5, color: qColor(i) },
+                 text: `${(q * 100).toFixed(0)}%` });
+  });
+
+  return { traces, layout: {
+    xaxis: { title: { text: '暴击率 %' }, range: xr, gridcolor: '#e8e8e8', zeroline: false, hoverformat: '.1f' },
+    xaxis2: { title: { text: '暴伤 %' }, overlaying: 'x', side: 'top', range: [V * 100, (V - 2 * sw.cmax) * 100],
+              showgrid: false, zeroline: false, tickformat: '.0f' },
+    yaxis: { title: { text: '伤害（单次未暴击伤害已乘入）' }, range: [lo - padY, hi + padY * 1.6], gridcolor: '#e8e8e8' },
+    shapes, annotations: annos,
+    legend: { x: 0.01, y: 0.99, xanchor: 'left', yanchor: 'top', font: { size: 11 }, bgcolor: 'rgba(255,255,255,0.85)' },
+    margin: { t: 58, r: 24, b: 44, l: 74 }, height: 420,
+    hovermode: 'x unified', plot_bgcolor: '#fff', paper_bgcolor: '#fff',
+  } };
+}
+
+function buildB2(V, n, sw, idxOf, qs) {
+  const xs = [], ys = [], cd = [];
+  for (const q of QGRID) {
+    const o = optimalOf(sw.qv[idxOf.get(q)], sw.cgrid);
+    xs.push(LOGIT(q)); ys.push(o.c * 100); cd.push(qLabel(q));
+  }
+  const c12 = Math.min(V / 4, 1) * 100;
+  const traces = [
+    { type: 'scatter', mode: 'lines', x: xs, y: ys, customdata: cd,
+      line: { color: '#2f6f9f', width: 2 },
+      hovertemplate: '分位 %{customdata}　最优 CR %{y:.1f}%<extra></extra>', showlegend: false },
+    { type: 'scatter', mode: 'markers', x: qs.map(LOGIT),
+      y: qs.map((q) => optimalOf(sw.qv[idxOf.get(q)], sw.cgrid).c * 100),
+      customdata: qs.map(qLabel), marker: { color: '#2f6f9f', size: 7, line: { color: '#fff', width: 1 } },
+      hovertemplate: '分位 %{customdata}　最优 CR %{y:.1f}%<extra></extra>', showlegend: false },
+  ];
+  const shapes = [
+    { type: 'line', xref: 'paper', x0: 0, x1: 1, y0: c12, y1: c12, line: { color: '#999', width: 1.1, dash: 'dash' } },
+    { type: 'line', xref: 'paper', x0: 0, x1: 1, y0: sw.cmax * 100, y1: sw.cmax * 100, line: { color: '#ddd', width: 1 } },
+  ];
+  return { traces, layout: {
+    xaxis: qAxis(),
+    yaxis: { title: { text: '最优暴击率 %' }, range: [0, 102], gridcolor: '#ececec' },
+    shapes, annotations: [{ x: 1, xref: 'paper', y: c12, yanchor: 'bottom', xanchor: 'right', yshift: 3,
+      showarrow: false, font: { size: 11, color: '#777' }, text: `1:2（${c12.toFixed(0)}%）` }],
+    showlegend: false, margin: { t: 16, r: 24, b: 46, l: 60 }, height: 300,
+    hovermode: 'closest', plot_bgcolor: '#fff', paper_bgcolor: '#fff',
+  } };
+}
+
+function buildB3(V, n, sw, idxOf, qs) {
+  const xs = [], gain = [], loss = [], cd = [];
+  const meanAt = (c) => n * (1 + c * (V - 2 * c));
+  const m12 = meanAt(Math.min(V / 4, 1));
+  for (const q of QGRID) {
+    const o = optimalOf(sw.qv[idxOf.get(q)], sw.cgrid);
+    xs.push(LOGIT(q));
+    gain.push((o.Q / qAt12(V, n, q) - 1) * 100);
+    loss.push((meanAt(o.c) / m12 - 1) * 100);
+    cd.push(qLabel(q));
+  }
+  const traces = [
+    { type: 'scatter', mode: 'lines', x: xs, y: gain, customdata: cd, line: { color: '#2e8b57', width: 2 }, name: '分位增益',
+      hovertemplate: '分位 %{customdata}　分位增益 %{y:.2f}%<extra></extra>', showlegend: true },
+    { type: 'scatter', mode: 'lines', x: xs, y: loss, customdata: cd, line: { color: '#c2453a', width: 2 }, name: '均值代价',
+      hovertemplate: '分位 %{customdata}　均值代价 %{y:.2f}%<extra></extra>', showlegend: true },
+    { type: 'scatter', mode: 'markers', x: qs.map(LOGIT),
+      y: qs.map((q) => (optimalOf(sw.qv[idxOf.get(q)], sw.cgrid).Q / qAt12(V, n, q) - 1) * 100),
+      marker: { color: '#2e8b57', size: 7, line: { color: '#fff', width: 1 } }, hoverinfo: 'skip', showlegend: false },
+    { type: 'scatter', mode: 'markers', x: qs.map(LOGIT),
+      y: qs.map((q) => { const c = optimalOf(sw.qv[idxOf.get(q)], sw.cgrid).c; return (meanAt(c) / m12 - 1) * 100; }),
+      marker: { color: '#c2453a', size: 7, line: { color: '#fff', width: 1 } }, hoverinfo: 'skip', showlegend: false },
+  ];
+  return { traces, layout: {
+    xaxis: qAxis(),
+    yaxis: { title: { text: '%（相对 1:2）' }, gridcolor: '#ececec', zeroline: true, zerolinecolor: '#bbb' },
+    legend: { x: 0.01, y: 0.99, xanchor: 'left', yanchor: 'top', font: { size: 11 }, bgcolor: 'rgba(255,255,255,0.85)' },
+    showlegend: true, margin: { t: 16, r: 24, b: 46, l: 60 }, height: 300,
+    hovermode: 'closest', plot_bgcolor: '#fff', paper_bgcolor: '#fff',
+  } };
+}
+
+function renderB() {
+  const cr = parseFloat($('bcr').value), cd = parseFloat($('bcd').value);
+  const V0 = parseFloat($('bnon').value), n = Math.round(parseFloat($('bn').value));
+  if (![cr, cd, V0, n].every(Number.isFinite) || cr < 0 || cd < 0 || V0 < 0 || n < 1) return;
+  const V = (2 * cr + cd) / 100;
+  if (V <= 0) return;
+  const qs = parseList($('bq').value, 0, 100, false).map((v) => v / 100);
+  const qList = Array.from(new Set([...QGRID, ...qs])).sort((a, b) => a - b);
+  const sw = sweepB(V, n, qList);
+  const idxOf = new Map(qList.map((q, i) => [q, i]));
+  const c12 = Math.min(V / 4, 1);
+  const meanAt = (c) => n * (1 + c * (V - 2 * c));
+
+  $('rdB').innerHTML =
+    `双暴分 <b>${(V * 100).toFixed(1)}</b>（= 2 × ${cr}% + ${cd}%）　单段：<b>${n}</b> 次 × ${fmtN(V0)}　` +
+    `1:2（均值最优）= <b>${(c12 * 100).toFixed(1)}% / ${((V - 2 * c12) * 100).toFixed(1)}%</b>`;
+
+  const rows = qs.map((q, i) => {
+    const o = optimalOf(sw.qv[idxOf.get(q)], sw.cgrid);
+    const q12 = qAt12(V, n, q);
+    const gain = o.Q / q12 - 1, loss = meanAt(o.c) / meanAt(c12) - 1;
+    return `<tr><td><span style="color:${qColor(i)}">■</span> ${(q * 100).toFixed(0)}%</td>` +
+      `<td><b>${(o.c * 100).toFixed(1)}% / ${((V - 2 * o.c) * 100).toFixed(1)}%</b></td>` +
+      `<td>${signed(gain)}</td><td>${signed(loss)}</td><td>${fmtN(q12 * V0)}</td></tr>`;
+  }).join('');
+  $('rdB').innerHTML +=
+    `<table class="rdtab"><tr><th>分位 q</th><th>最优 CR / CD</th><th>分位增益</th><th>均值代价</th><th>1:2 处的值</th></tr>${rows}</table>`;
+
+  const b1 = buildB1(V, n, V0, qs, sw, idxOf);
+  const b2 = buildB2(V, n, sw, idxOf, qs);
+  const b3 = buildB3(V, n, sw, idxOf, qs);
+  Plotly.react('plotB1', b1.traces, b1.layout, { responsive: true });
+  Plotly.react('plotB2', b2.traces, b2.layout, { responsive: true });
+  Plotly.react('plotB3', b3.traces, b3.layout, { responsive: true });
+}
+
+// ── 输入事件（rAF 合并；无头驱动脚本请直接调 renderA / renderB）──
+let pendA = false, pendB = false;
+function queueA() {
+  if (pendA) return;
+  pendA = true;
+  requestAnimationFrame(() => { pendA = false; renderA(); });
+}
+function queueB() {
+  if (pendB) return;
+  pendB = true;
+  requestAnimationFrame(() => { pendB = false; renderB(); });
+}
+$('qa').addEventListener('input', queueA);
+$('ka').addEventListener('input', queueA);
+$('addseg').addEventListener('click', () => { addSeg(); queueA(); });
+for (const id of ['bcr', 'bcd', 'bnon', 'bn', 'bq']) $(id).addEventListener('input', queueB);
+
+addSeg();
+renderA();
+renderB();
+</script>
+</body>
+</html>
