@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   h1 { font-size: 19px; margin: 0; }
   h2 { font-size: 13.5px; margin: 20px 0 4px; color: var(--muted); font-weight: 600; }
+  h2 b { color: var(--ink); }
   .head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 4px; font-size: 13px; }
   .head .links { white-space: nowrap; }
   .head .links .repo + .repo { margin-left: 14px; }
@@ -89,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <span class="srow">
       <input id="x0" type="number" step="10" value="0">
       <span class="dash">~</span>
-      <input id="x1" type="number" step="10" value="120">
+      <input id="x1" type="number" step="10" value="150">
     </span>
   </label>
 </div>
@@ -97,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <div id="plot" class="plot"></div>
 
-<h2>等效血量 —— 同一减抗下，各敌人相对 10% 抗性敌人的倍数</h2>
+<h2>等效血量 —— <b>同一减抗下</b>，各敌人相对 10% 抗性敌人的倍数</h2>
 <div id="eqplot" class="plot"></div>
 
 <div class="grid2">
@@ -140,7 +141,7 @@ const C_MAIN = '#d62728';
 
 // ── 主图：收益倍数随怪物基础抗性（红 = 当前档，灰蓝 = 对比档位）──
 const XN = 480;
-let X0 = 0, X1 = 1.2, XS = [];   // 两张图共用的横轴范围
+let X0 = 0, X1 = 1.5, XS = [];   // 两张图共用的横轴范围
 function setRange(lo, hi) {
   X0 = lo; X1 = hi;
   XS = [];
@@ -189,34 +190,33 @@ function refsFor(refs) {
   }
   return refCurves;
 }
-const shownRefs = (sf, refs) => refsFor(refs).filter((c) => Math.abs(c.S - sf) > 1e-9);
-const tierLabelW = (sf, others) =>
-  Math.max(...[sf, ...others.map((c) => c.S)].map((S) => labelOf(S * 100).length));
+// 当前档与对比档位合成一条按减抗量升序的列表：曲线、统一悬浮、左上角的框都按这个顺序
+function tierEntries(sf, refs) {
+  const offs = refsFor(refs).filter((c) => Math.abs(c.S - sf) > 1e-9);
+  const colorOf = new Map(offs.map((c, i) =>
+    [c.S, rampColor(offs.length === 1 ? 0.5 : i / (offs.length - 1))]));
+  const act = { S: sf, active: true, ys: XS.map((x) => gain(x, sf)), eq: XS.map((x) => eqHp(x, sf)) };
+  return { list: [act, ...offs].sort((a, b) => a.S - b.S), colorOf };
+}
+const colorFor = (e, colorOf) => (e.active ? C_MAIN : colorOf.get(e.S));
+const tierLabelW = (list) => Math.max(...list.map((e) => labelOf(e.S * 100).length));
 
-function buildMain(sf, refs) {
-  const xs = XS;
-  const yAct = xs.map((x) => gain(x, sf));
-  const others = shownRefs(sf, refs);
+function buildMain(sf, tiers) {
+  const { list, colorOf } = tiers;
+  const labelW = tierLabelW(list);
 
   const peakX = Math.max(KNEE, sf);
   const peakG = 1 + 4 * sf;
   const peakOn = inRange(peakX);
   const commonOn = inRange(R_COMMON);
-  let top = Math.max(...yAct);
-  for (const c of others) top = Math.max(top, Math.max(...c.ys));
+  let top = -Infinity;
+  for (const e of list) top = Math.max(top, Math.max(...e.ys));
   const ymax = top > Y_TOP ? top * 1.06 : Y_TOP;
 
-  const labelW = tierLabelW(sf, others);
-
-  // 当前档排第一位：统一悬浮按 trace 顺序列出，它在最前；S 不同则曲线互相嵌套、不会交叉，
-  // 所以先画（在参照曲线下层）也压不到线
-  const traces = [{ type: 'scatter', mode: 'lines', x: xs, y: yAct,
-    line: { color: C_MAIN, width: 2.6 },
-    hovertemplate: hoverLabel(sf * 100, labelW), showlegend: false }];
-  others.forEach((c, i) => traces.push({
-    type: 'scatter', mode: 'lines', x: xs, y: c.ys,
-    line: { color: rampColor(others.length === 1 ? 0.5 : i / (others.length - 1)), width: 1.4 },
-    hovertemplate: hoverLabel(c.S * 100, labelW), showlegend: false,
+  const traces = list.map((e) => ({
+    type: 'scatter', mode: 'lines', x: XS, y: e.ys,
+    line: { color: colorFor(e, colorOf), width: e.active ? 2.6 : 1.4 },
+    hovertemplate: hoverLabel(e.S * 100, labelW), showlegend: false,
   }));
   // 10% 抗性处（在横轴范围外时不画）：红曲线上一个点 + 左上角的各档收益
   if (commonOn) {
@@ -238,10 +238,10 @@ function buildMain(sf, refs) {
   if (commonOn) {
     shapes.push({ type: 'line', x0: R_COMMON, x1: R_COMMON, y0: 1, y1: ymax,
                   line: { color: '#9a9a9a', width: 1.1, dash: 'dot' } });
-    const rows = [sf, ...others.map((c) => c.S)].map((S, i) =>
-      (i === 0 ? `<span style="color:${C_MAIN}">` : '') +
-      `${labelPad(S * 100, labelW)}　×${gain(R_COMMON, S).toFixed(3)}` +
-      (i === 0 ? '</span>' : '')).join('<br>');
+    const rows = list.map((e) =>
+      (e.active ? `<span style="color:${C_MAIN}">` : '') +
+      `${labelPad(e.S * 100, labelW)}　×${gain(R_COMMON, e.S).toFixed(3)}` +
+      (e.active ? '</span>' : '')).join('<br>');
     annos.push({ x: 0.01, xref: 'paper', y: 1, yref: 'paper', xanchor: 'left', yanchor: 'top',
       yshift: -6, align: 'left', showarrow: false,
       font: { size: 11.5, color: '#333' }, bgcolor: 'rgba(255,255,255,0.92)',
@@ -286,40 +286,65 @@ function buildMain(sf, refs) {
 
 // ── 等效血量图：同一减抗下各敌人相对 10% 抗性敌人的倍数 ──
 // 纵轴默认固定 ×0.8 ~ ×5.5（0~120% 抗性、任意减抗下的实测范围是 ×0.90 ~ ×5.40），
-// 横轴范围拉开后才按曲线放大
-function buildEq(sf, refs) {
-  const xs = XS;
-  const yAct = xs.map((x) => eqHp(x, sf));
-  const others = shownRefs(sf, refs);
-  const labelW = tierLabelW(sf, others);
-  let lo = Math.max(...yAct), hi = Math.min(...yAct);
-  for (const c of others) {
-    hi = Math.max(hi, Math.max(...c.eq));
-    lo = Math.min(lo, Math.min(...c.eq));
+// 横轴范围拉开后才按曲线放大；另有「不减抗」基线（灰虚线）
+const R_HIGH = 0.70;
+
+function buildEq(sf, tiers) {
+  const { list, colorOf } = tiers;
+  const entries = list.some((e) => e.S === 0)
+    ? list
+    : [{ S: 0, baseline: true, eq: XS.map((x) => eqHp(x, 0)) }, ...list];
+  const labelW = tierLabelW(entries);
+
+  let lo = Infinity, hi = -Infinity;
+  for (const e of entries) {
+    hi = Math.max(hi, Math.max(...e.eq));
+    lo = Math.min(lo, Math.min(...e.eq));
   }
   const ylo = Math.min(0.8, lo * 0.97), yhi = Math.max(5.5, hi * 1.06);
+  const rowOf = (f) => entries.map((e) =>
+    (e.baseline ? '<span style="color:#999">' : e.active ? `<span style="color:${C_MAIN}">` : '') +
+    `${labelPad(e.S * 100, labelW)}　×${f(e.S).toFixed(3)}` +
+    (e.baseline || e.active ? '</span>' : '')).join('<br>');
 
-  const traces = [{ type: 'scatter', mode: 'lines', x: xs, y: yAct,
-    line: { color: C_MAIN, width: 2.6 },
-    hovertemplate: hoverLabel(sf * 100, labelW), showlegend: false }];
-  others.forEach((c, i) => traces.push({
-    type: 'scatter', mode: 'lines', x: xs, y: c.eq,
-    line: { color: rampColor(others.length === 1 ? 0.5 : i / (others.length - 1)), width: 1.4 },
-    hovertemplate: hoverLabel(c.S * 100, labelW), showlegend: false,
+  const traces = entries.map((e) => ({
+    type: 'scatter', mode: 'lines', x: XS, y: e.eq,
+    line: e.baseline ? { color: '#999', width: 1.4, dash: 'dash' }
+                     : { color: colorFor(e, colorOf), width: e.active ? 2.6 : 1.4 },
+    hovertemplate: hoverLabel(e.S * 100, labelW), showlegend: false,
   }));
+  const highOn = inRange(R_HIGH);
+  if (highOn) {   // 70% 抗性（比 75% 更常见的高抗敌人）处的点，红曲线上
+    traces.push({ type: 'scatter', mode: 'markers', x: [R_HIGH], y: [eqHp(R_HIGH, sf)],
+      marker: { color: C_MAIN, size: 8.5, line: { color: '#fff', width: 1.2 } },
+      hoverinfo: 'skip', showlegend: false });
+  }
 
   const shapes = [
     { type: 'line', x0: X0, x1: X1, y0: 1, y1: 1, line: { color: '#bbb', width: 1.1, dash: 'dot' } },
   ];
+  const annos = [];
+  const vline = (x) => shapes.push({ type: 'line', x0: x, x1: x, y0: ylo, y1: yhi,
+                                     line: { color: '#9a9a9a', width: 1.1, dash: 'dot' } });
   if (inRange(R_COMMON)) {
-    shapes.push({ type: 'line', x0: R_COMMON, x1: R_COMMON, y0: ylo, y1: yhi,
-                  line: { color: '#9a9a9a', width: 1.1, dash: 'dot' } });
+    vline(R_COMMON);
+    annos.push({ x: R_COMMON, y: ylo, xanchor: 'center', yanchor: 'bottom', yshift: 4,
+                 showarrow: false, font: { size: 11, color: '#999' }, text: '10%' });
+  }
+  if (highOn) {
+    vline(R_HIGH);
+    annos.push({ x: 0.01, xref: 'paper', y: 1, yref: 'paper', xanchor: 'left', yanchor: 'top',
+      yshift: -6, align: 'left', showarrow: false,
+      font: { size: 11.5, color: '#333' }, bgcolor: 'rgba(255,255,255,0.92)',
+      bordercolor: '#ddd', borderwidth: 1, borderpad: 6,
+      text: `<b>70% 抗性敌人</b><br>${rowOf((S) => eqHp(R_HIGH, S))}` });
   }
 
   return { traces, layout: {
     xaxis: { title: { text: '怪物基础抗性（减抗前）' }, range: [X0, X1], tickformat: '.0%',
              hoverformat: '.0%', zeroline: false, gridcolor: '#e8e8e8' },
     yaxis: { title: { text: '等效血量倍数' }, range: [ylo, yhi], gridcolor: '#e8e8e8' },
+    shapes, annotations: annos,
     shapes, showlegend: false,
     margin: { t: 22, r: 24, b: 48, l: 64 }, height: 400,
     hovermode: 'x unified', plot_bgcolor: '#fff', paper_bgcolor: '#fff',
@@ -420,7 +445,7 @@ function parseRefs() {
   const seen = new Set(), out = [];
   for (const tok of $('ks').value.split(/[^0-9.]+/)) {
     const v = parseFloat(tok);
-    if (!Number.isFinite(v) || v <= 0 || seen.has(v)) continue;
+    if (!Number.isFinite(v) || v < 0 || seen.has(v)) continue;
     seen.add(v); out.push(v);
   }
   return out.sort((a, b) => a - b);
@@ -434,10 +459,10 @@ function renderMain() {
     ? '减抗 0：收益恒为 ×1.000。'
     : `峰值 <b>×${peakG.toFixed(2)}</b>，出现在怪物抗性 ${(peakX * 100).toFixed(0)}%；` +
       `对 0% 抗性的敌人 ×${gain(0, sf).toFixed(3)}（削到负区，每点只值一半）。`;
-  const refs = parseRefs();
-  const main = buildMain(sf, refs);
+  const tiers = tierEntries(sf, parseRefs());
+  const main = buildMain(sf, tiers);
   Plotly.react('plot', main.traces, main.layout, { responsive: true });
-  const eq = buildEq(sf, refs);
+  const eq = buildEq(sf, tiers);
   Plotly.react('eqplot', eq.traces, eq.layout, { responsive: true });
 }
 
