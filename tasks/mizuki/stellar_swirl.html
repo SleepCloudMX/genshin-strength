@@ -78,7 +78,72 @@ document.addEventListener('DOMContentLoaded', () => {
 <h1>「梦见月瑞希」星扩散机制</h1>
 <span class="links"><a class="repo" href="../../index.html"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 1.6 7.2h1.5v7h3.3v-4.1h3.2v4.1h3.3v-7h1.5L8 1.8z"/></svg>主页</a><a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></span>
 </div>
-<div class="sub">星扩散的机制、三条伤害公式、各乘区、三个计算页面共用的口径，以及一个按面板算「共用系数」的小计算器。公式与数值来自社区解包数据，非官方文本。</div>
+<div class="sub">先是一个按面板算「共用系数」的计算器，往下是星扩散的机制、三条伤害公式、各乘区与三个计算页面共用的口径。公式与数值来自社区解包数据，非官方文本。</div>
+
+<h2>算一遍</h2>
+<div class="calc">
+  <div class="calc-note">默认值是一组常见配置的<b>给定常数</b>（奥黛塔固有天赋满层 14%、炉火 + 七七 + 血红 = 140% 增伤、双暴 80 / 160），不是由配置推算的。<b>倍率与基础倍率不确定，这里不算</b> —— 算出来的是三条公式共用的<b>系数</b>，乘上各自的基础项才是伤害。</div>
+  <div class="calc-grid">
+    <label>元素精通<input id="c-em" type="number" step="10" value="1100"></label>
+    <label>暴击率 %<input id="c-cr" type="number" step="1" value="80"></label>
+    <label>暴伤 %<input id="c-cd" type="number" step="1" value="160"></label>
+    <label>星扩散增伤 %<input id="c-bonus" type="number" step="5" value="140"></label>
+    <label>基础提升 %<input id="c-base" type="number" step="1" value="14"></label>
+    <label>额外提升<input id="c-extra" type="number" step="1" value="0"></label>
+    <label>减抗 %<input id="c-shred" type="number" step="1" value="0"></label>
+    <label>敌人抗性 %<input id="c-res" type="number" step="10" value="10"></label>
+    <label>擢升 ×<input id="c-asc" type="number" step="0.05" value="1"></label>
+  </div>
+  <table class="calc-out">
+    <tr><th style="width:150px">项</th><th style="width:120px">值</th><th>说明</th></tr>
+    <tbody id="calc-rows"></tbody>
+  </table>
+</div>
+
+<script>
+// ── 共用系数计算器（不含倍率 / 基础倍率；口径同 §2 / §3 与三个计算页）──
+const cKappa = (r) => (r < 0 ? 1 - r / 2 : (r < 0.75 ? 1 - r : 1 / (4 * r + 1)));
+const cEmTerm = (em) => 6 * em / (em + 2000);
+const cn = (id) => {
+  const v = parseFloat(document.getElementById(id).value);
+  return Number.isFinite(v) ? v : 0;
+};
+const f3 = (v) => v.toFixed(3);
+
+function renderCalc() {
+  const em = Math.max(0, cn('c-em'));
+  const cr = Math.min(1, Math.max(0, cn('c-cr') / 100));   // 暴击率硬上限 100%
+  const cd = Math.max(0, cn('c-cd') / 100);
+  const bonus = cn('c-bonus') / 100, base = cn('c-base') / 100, extra = cn('c-extra');
+  const shred = cn('c-shred') / 100, res = cn('c-res') / 100, asc = cn('c-asc');
+
+  const emt = cEmTerm(em), bracket = 1 + emt + bonus;
+  const crit = 1 + cr * cd, k = cKappa(res - shred);
+  const back = k * crit * asc;                     // 额外提升只吃这三项
+  const total = (1 + base) * bracket * back;
+
+  const row = (name, val, desc) =>
+    `<tr><td>${name}</td><td class="v">${val}</td><td class="d">${desc}</td></tr>`;
+  document.getElementById('calc-rows').innerHTML =
+    row('属性（元素精通）', em.toFixed(0), '线性项：属性 × 倍率 = 基础项（瑞希的天赋值 = 元素精通）') +
+    row('基础提升', `×${f3(1 + base)}`, '独立乘区，乘在整个倍率区外面') +
+    row('精通项', `+${(emt * 100).toFixed(1)}%`, `6 × ${em.toFixed(0)} / (${em.toFixed(0)} + 2000)` ) +
+    row('星扩散增伤', `+${(bonus * 100).toFixed(1)}%`, '与精通项同一个括号、互相稀释') +
+    row('↳ 括号合计', `×${f3(bracket)}`, '1 + 精通项 + 增伤') +
+    row('抗性区', `×${f3(k)}`, `${(res * 100).toFixed(0)}% 抗性、减抗 ${(shred * 100).toFixed(0)}%；换减抗的收益见 <a href="../basics/resistance.html">抗性区页</a>`) +
+    row('暴击区', `×${f3(crit)}`,
+      `1 + ${(cr * 100).toFixed(0)}% × ${(cd * 100).toFixed(0)}%（期望值${cn('c-cr') > 100 ? '，暴击率已按上限 100% 截断' : ''}）`) +
+    row('擢升', `×${f3(asc)}`, '独立乘区（多个来源是相加还是相乘未核实，这里按你填的乘数）') +
+    (!extra ? '' : row('额外提升', `×${f3(back)}（另算）`,
+      `${extra.toFixed(0)} × 抗性 × 暴击 × 擢升 = <b>${(extra * back).toFixed(1)}</b>，不吃精通项 / 增伤 / 基础提升`)) +
+    `<tr class="total"><td>共用系数</td><td class="v">×${f3(total)}</td>` +
+    `<td class="d">乘到基础项上：反应（风）1446.85 × 0.75、反应（冰）1446.85 × 基础倍率、直伤 属性 × 倍率</td></tr>` +
+    row('星扩散直伤', `${(em * total / 1000).toFixed(1)}k`, '元素精通 × 共用系数（属性 = 元素精通；<b>倍率不计入</b>）');
+}
+for (const el of document.querySelectorAll('.calc input')) el.addEventListener('input', renderCalc);
+renderCalc();
+</script>
+
 
 <h2>1. 星扩散是什么</h2>
 <ul>
@@ -150,70 +215,6 @@ document.addEventListener('DOMContentLoaded', () => {
 <li><b>星扩散伤害 = 星扩散直伤（大头）+ 反应星扩散</b>。两条路径共用乘区，合并后可写成（元素精通 + W）的形式（W = 反应折算成多少点精通）。三个页面上的「星扩散直伤占比」滑条按<b>给定常数</b>把反应并入；比例是假设，页面不根据配置推算真实占比。</li>
 <li>「只换一件装备 / 一套圣遗物」的比值分析里，同队伍下相同的项 —— 倍率、(1 + 基础提升%)、抗性系数、擢升 —— 可以约掉。</li>
 </ul>
-
-<h2>7. 算一遍</h2>
-<div class="calc">
-  <div class="calc-note">默认值是一组常见配置的<b>给定常数</b>（奥黛塔固有天赋满层 14%、炉火 + 七七 + 血红 = 140% 增伤、双暴 80 / 160），不是由配置推算的。<b>倍率与基础倍率不确定，这里不算</b> —— 算出来的是三条公式共用的<b>系数</b>，乘上各自的基础项才是伤害。</div>
-  <div class="calc-grid">
-    <label>元素精通<input id="c-em" type="number" step="10" value="1100"></label>
-    <label>暴击率 %<input id="c-cr" type="number" step="1" value="80"></label>
-    <label>暴伤 %<input id="c-cd" type="number" step="1" value="160"></label>
-    <label>星扩散增伤 %<input id="c-bonus" type="number" step="5" value="140"></label>
-    <label>基础提升 %<input id="c-base" type="number" step="1" value="14"></label>
-    <label>额外提升<input id="c-extra" type="number" step="1" value="0"></label>
-    <label>减抗 %<input id="c-shred" type="number" step="1" value="0"></label>
-    <label>敌人抗性 %<input id="c-res" type="number" step="10" value="10"></label>
-    <label>擢升 ×<input id="c-asc" type="number" step="0.05" value="1"></label>
-  </div>
-  <table class="calc-out">
-    <tr><th style="width:150px">项</th><th style="width:120px">值</th><th>说明</th></tr>
-    <tbody id="calc-rows"></tbody>
-  </table>
-</div>
-
-<script>
-// ── 共用系数计算器（不含倍率 / 基础倍率；口径同 §2 / §3 与三个计算页）──
-const cKappa = (r) => (r < 0 ? 1 - r / 2 : (r < 0.75 ? 1 - r : 1 / (4 * r + 1)));
-const cEmTerm = (em) => 6 * em / (em + 2000);
-const cn = (id) => {
-  const v = parseFloat(document.getElementById(id).value);
-  return Number.isFinite(v) ? v : 0;
-};
-const f3 = (v) => v.toFixed(3);
-
-function renderCalc() {
-  const em = Math.max(0, cn('c-em'));
-  const cr = Math.min(1, Math.max(0, cn('c-cr') / 100));   // 暴击率硬上限 100%
-  const cd = Math.max(0, cn('c-cd') / 100);
-  const bonus = cn('c-bonus') / 100, base = cn('c-base') / 100, extra = cn('c-extra');
-  const shred = cn('c-shred') / 100, res = cn('c-res') / 100, asc = cn('c-asc');
-
-  const emt = cEmTerm(em), bracket = 1 + emt + bonus;
-  const crit = 1 + cr * cd, k = cKappa(res - shred);
-  const back = k * crit * asc;                     // 额外提升只吃这三项
-  const total = (1 + base) * bracket * back;
-
-  const row = (name, val, desc) =>
-    `<tr><td>${name}</td><td class="v">${val}</td><td class="d">${desc}</td></tr>`;
-  document.getElementById('calc-rows').innerHTML =
-    row('属性（元素精通）', em.toFixed(0), '线性项：属性 × 倍率 = 基础项（瑞希的天赋值 = 元素精通）') +
-    row('基础提升', `×${f3(1 + base)}`, '独立乘区，乘在整个倍率区外面') +
-    row('精通项', `+${(emt * 100).toFixed(1)}%`, `6 × ${em.toFixed(0)} / (${em.toFixed(0)} + 2000)` ) +
-    row('星扩散增伤', `+${(bonus * 100).toFixed(1)}%`, '与精通项同一个括号、互相稀释') +
-    row('↳ 括号合计', `×${f3(bracket)}`, '1 + 精通项 + 增伤') +
-    row('抗性区', `×${f3(k)}`, `${(res * 100).toFixed(0)}% 抗性、减抗 ${(shred * 100).toFixed(0)}%；换减抗的收益见 <a href="../basics/resistance.html">抗性区页</a>`) +
-    row('暴击区', `×${f3(crit)}`,
-      `1 + ${(cr * 100).toFixed(0)}% × ${(cd * 100).toFixed(0)}%（期望值${cn('c-cr') > 100 ? '，暴击率已按上限 100% 截断' : ''}）`) +
-    row('擢升', `×${f3(asc)}`, '独立乘区（多个来源是相加还是相乘未核实，这里按你填的乘数）') +
-    (!extra ? '' : row('额外提升', `×${f3(back)}（另算）`,
-      `${extra.toFixed(0)} × 抗性 × 暴击 × 擢升 = <b>${(extra * back).toFixed(1)}</b>，不吃精通项 / 增伤 / 基础提升`)) +
-    `<tr class="total"><td>共用系数</td><td class="v">×${f3(total)}</td>` +
-    `<td class="d">乘到基础项上：反应（风）1446.85 × 0.75、反应（冰）1446.85 × 基础倍率、直伤 属性 × 倍率</td></tr>` +
-    row('星扩散直伤', `${(em * total / 1000).toFixed(1)}k`, '元素精通 × 共用系数（属性 = 元素精通；<b>倍率不计入</b>）');
-}
-for (const el of document.querySelectorAll('.calc input')) el.addEventListener('input', renderCalc);
-renderCalc();
-</script>
 
 <footer>
   整理自本项目的机制文档（源：玉衡杯数据库 7.0v1 解包数据、biligame WIKI、NGA 数据讨论帖）；公式与数值为非官方文本，请酌情参考。
