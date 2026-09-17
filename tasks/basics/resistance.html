@@ -134,6 +134,14 @@ const fmtS = (v) => {
   const r = Math.round(v * 10) / 10;
   return Number.isInteger(r) ? String(r) : r.toFixed(1);
 };
+const labelOf = (v) => `${fmtS(v)}%`;
+// 悬浮读数：档位标签右对齐（等宽空格补在「减抗」之前），各行 ×值 成列，
+// 同时「减抗」与数字保持紧贴
+function hoverLabel(v, w) {
+  const s = labelOf(v);
+  return `<span style="font-family:monospace">${' '.repeat(Math.max(0, w - s.length))}</span>` +
+         `减抗 <span style="font-family:monospace">${s}</span>　×%{y:.3f}<extra></extra>`;
+}
 // 对比档位的色阶：浅 → 深（减抗越多越深）
 function rampColor(t) {
   const a = [186, 197, 208], b = [74, 102, 128];
@@ -168,15 +176,17 @@ function buildMain(sf, refs) {
   for (const c of others) top = Math.max(top, curveMax(c.S, c.ys));
   const ymax = top > Y_TOP ? top * 1.06 : Y_TOP;
 
+  const labelW = Math.max(...[sf, ...others.map((c) => c.S)].map((S) => labelOf(S * 100).length));
+
   // 当前档排第一位：统一悬浮按 trace 顺序列出，它在最前；S 不同则曲线互相嵌套、不会交叉，
   // 所以先画（在参照曲线下层）也压不到线
   const traces = [{ type: 'scatter', mode: 'lines', x: xs, y: yAct,
     line: { color: C_MAIN, width: 2.6 },
-    hovertemplate: `减抗 ${fmtS(sf * 100)}%（当前）　×%{y:.3f}<extra></extra>`, showlegend: false }];
+    hovertemplate: hoverLabel(sf * 100, labelW), showlegend: false }];
   others.forEach((c, i) => traces.push({
     type: 'scatter', mode: 'lines', x: xs, y: c.ys,
     line: { color: rampColor(others.length === 1 ? 0.5 : i / (others.length - 1)), width: 1.4 },
-    hovertemplate: `减抗 ${fmtS(c.S * 100)}%　×%{y:.3f}<extra></extra>`, showlegend: false,
+    hovertemplate: hoverLabel(c.S * 100, labelW), showlegend: false,
   }));
   if (peakOn) {
     traces.push({ type: 'scatter', mode: 'markers', x: [peakX], y: [peakG],
