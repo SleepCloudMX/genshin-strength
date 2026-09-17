@@ -26,7 +26,6 @@ document.addEventListener('DOMContentLoaded', () => {
     margin: 0; padding: 20px 24px 40px; background: #fff; color: var(--ink);
     font-family: "Microsoft YaHei", "SimHei", system-ui, sans-serif;
   }
-  .wrap { max-width: 960px; }
   h1 { font-size: 19px; margin: 0; }
   h2 { font-size: 13.5px; margin: 20px 0 4px; color: var(--muted); font-weight: 600; }
   .head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 4px; font-size: 13px; }
@@ -45,15 +44,12 @@ document.addEventListener('DOMContentLoaded', () => {
   .panel-note { flex-basis: 100%; font-size: 13px; color: var(--muted); line-height: 1.75; }
   .panel-note b { color: var(--ink); }
   label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+  .srow { display: flex; align-items: center; gap: 8px; }
   input[type=range] { width: 260px; padding: 0; border: 0; background: transparent; }
-  .dval { color: var(--ink); font-weight: 600; }
-  .qlabel { font-size: 12px; color: var(--muted); padding-bottom: 7px; }
-  .quick { display: flex; gap: 6px; padding-bottom: 4px; }
-  .quick button {
-    font: inherit; font-size: 13px; color: var(--muted); background: #fff;
-    border: 1px solid var(--line); border-radius: 5px; padding: 4px 10px; cursor: pointer;
+  input[type=number] {
+    font: inherit; font-size: 13.5px; color: var(--ink); width: 68px;
+    padding: 3px 6px; border: 1px solid var(--line); border-radius: 5px; background: #fff;
   }
-  .quick button:hover { color: var(--ink); border-color: #aaa; }
   .derived { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
   .derived b { color: var(--ink); font-size: 15px; }
   .plot { width: 100%; }
@@ -71,7 +67,6 @@ document.addEventListener('DOMContentLoaded', () => {
 </head>
 <body>
 
-<div class="wrap">
 <div class="head">
 <h1>抗性区：减抗收益</h1>
 <span class="links"><a class="repo" href="../../index.html"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 1.6 7.2h1.5v7h3.3v-4.1h3.2v4.1h3.3v-7h1.5L8 1.8z"/></svg>主页</a><a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></span>
@@ -80,13 +75,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <div class="panel">
   <div class="panel-note"><b>收益倍数 = 减抗后的抗性系数 ÷ 减抗前的抗性系数</b>，即相对「不减抗」的伤害倍数。<b>怪物抗性不可改变</b> —— 横轴是一排待查的敌人（查你打的那只落在哪）；减抗来自队伍、按整数档处理。减抗可以把抗性削成<b>负数</b>，负数区每点只值一半。多个减抗来源的叠加按「直接相加」处理（社区口径，本项目未核实）。</div>
-  <label><span>减抗量 <span class="dval" id="sval">30</span>%</span><input id="s" type="range" min="0" max="100" step="1" value="30"></label>
-  <span class="qlabel">常用档</span>
-  <div class="quick">
-    <button type="button" data-s="20">20%</button>
-    <button type="button" data-s="30">30%</button>
-    <button type="button" data-s="40">40%</button>
-  </div>
+  <label><span>减抗量 %</span>
+    <span class="srow">
+      <input id="s" type="range" min="0" max="100" step="1" value="30">
+      <input id="sn" type="number" min="0" step="1" value="30">
+    </span>
+  </label>
 </div>
 <div class="derived" id="peak"></div>
 
@@ -116,7 +110,6 @@ document.addEventListener('DOMContentLoaded', () => {
   公式与数值为社区 / 解包数据，非官方文本，请酌情参考。
   <div class="repo-line">源码与说明：<a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></div>
 </footer>
-</div>
 
 <script>
 // ── 抗性区公式（来源：docs/ai-output/2-basics/1-抗性区.md，与 0-mechanism §3.4 同源）──
@@ -134,24 +127,26 @@ const C_MAIN = '#d62728';
 const X0 = 0, X1 = 1.2, XN = 480;
 
 function buildMain(sf) {
-  const xs = [], ys = [], cd = [];
+  const xs = [], ys = [];
   for (let i = 0; i <= XN; i++) {
     const x = X0 + (X1 - X0) * i / XN;
-    const g = gain(x, sf);
-    xs.push(x); ys.push(g); cd.push([g - 1]);
+    xs.push(x); ys.push(gain(x, sf));
   }
   const peakX = Math.max(KNEE, sf);
   const peakG = 1 + 4 * sf;
-  const ymax = Math.max(1.35, peakG * 1.06);
+  const peakOn = peakX <= X1;
+  const ymax = Math.max(1.35, (peakOn ? peakG : Math.max(ys[0], ys[XN])) * 1.06);
 
   const traces = [
-    { type: 'scatter', mode: 'lines', x: xs, y: ys, customdata: cd,
+    { type: 'scatter', mode: 'lines', x: xs, y: ys,
       line: { color: C_MAIN, width: 2.6 },
-      hovertemplate: '敌人抗性 %{x:.0%}<br>收益 ×%{y:.3f}　相对 +%{customdata[0]:.1%}<extra></extra>' },
-    { type: 'scatter', mode: 'markers', x: [peakX], y: [peakG],
-      marker: { color: C_MAIN, size: 10, symbol: 'diamond', line: { color: '#fff', width: 1.3 } },
-      hoverinfo: 'skip', showlegend: false },
+      hovertemplate: '抗性 %{x:.0%}　收益 ×%{y:.3f}<extra></extra>' },
   ];
+  if (peakOn) {
+    traces.push({ type: 'scatter', mode: 'markers', x: [peakX], y: [peakG],
+      marker: { color: C_MAIN, size: 10, symbol: 'diamond', line: { color: '#fff', width: 1.3 } },
+      hoverinfo: 'skip', showlegend: false });
+  }
 
   const shapes = [
     { type: 'line', x0: X0, x1: X1, y0: 1, y1: 1, line: { color: '#bbb', width: 1.1, dash: 'dot' } },
@@ -161,23 +156,22 @@ function buildMain(sf) {
     { x: KNEE, y: ymax, xanchor: 'center', yanchor: 'top', yshift: -3, showarrow: false,
       font: { size: 11.5, color: '#777' }, text: '75%' },
   ];
-  if (sf > 0.005) {
-    shapes.push({ type: 'line', x0: sf, x1: sf, y0: 1, y1: ymax,
-                  line: { color: C_NEG, width: 1.2, dash: 'dash' } });
-    annos.push({ x: sf, y: 1, xanchor: 'center', yanchor: 'bottom', yshift: 4, showarrow: false,
-                 font: { size: 11, color: C_NEG }, text: '削到 0' });
-    if (KNEE + sf <= X1) {
-      shapes.push({ type: 'line', x0: KNEE + sf, x1: KNEE + sf, y0: 1, y1: ymax,
-                    line: { color: C_HIGH, width: 1.2, dash: 'dash' } });
-      annos.push({ x: KNEE + sf, y: 1, xanchor: 'center', yanchor: 'bottom', yshift: 4, showarrow: false,
-                   font: { size: 11, color: C_HIGH }, text: '削后 75%' });
-    }
+  const kink = (x, color, label) => {
+    const atEdge = x > X1 - 0.05;
+    shapes.push({ type: 'line', x0: x, x1: x, y0: 1, y1: ymax, line: { color, width: 1.2, dash: 'dash' } });
+    annos.push({ x, y: 1, xanchor: atEdge ? 'right' : 'center', xshift: atEdge ? -3 : 0,
+                 yanchor: 'bottom', yshift: 4, showarrow: false,
+                 font: { size: 11, color }, text: label });
+  };
+  if (sf > 0.005 && sf <= X1) kink(sf, C_NEG, '削到 0');
+  if (sf > 0.005 && KNEE + sf <= X1) kink(KNEE + sf, C_HIGH, '削后 75%');
+  if (peakOn) {
+    annos.push({ x: peakX, y: peakG, xanchor: peakX > 0.92 ? 'right' : 'left',
+                 xshift: peakX > 0.92 ? -10 : 10, yanchor: 'middle',
+                 yshift: peakG <= 1.02 ? 18 : 0, showarrow: false,
+                 font: { size: 12.5, color: C_MAIN }, bgcolor: 'rgba(255,255,255,0.85)',
+                 borderpad: 2, text: `峰值 ×${peakG.toFixed(2)}` });
   }
-  annos.push({ x: peakX, y: peakG, xanchor: peakX > 0.92 ? 'right' : 'left',
-               xshift: peakX > 0.92 ? -10 : 10, yanchor: 'middle',
-               yshift: peakG <= 1.02 ? 18 : 0, showarrow: false,
-               font: { size: 12.5, color: C_MAIN }, bgcolor: 'rgba(255,255,255,0.85)',
-               borderpad: 2, text: `峰值 ×${peakG.toFixed(2)}` });
 
   return { traces, layout: {
     xaxis: { title: { text: '怪物基础抗性（减抗前）' }, range: [X0, X1], tickformat: '.0%',
@@ -273,9 +267,14 @@ function buildM() {
 }
 
 // ── 主循环 ──
+// 输入框是唯一的取值来源；滑动条只管 0~100，输入框可以更高
+function readSf() {
+  const v = parseFloat($('sn').value);
+  return Number.isFinite(v) && v > 0 ? v / 100 : 0;
+}
+
 function renderMain() {
-  const sf = Number($('s').value) / 100;
-  $('sval').textContent = (sf * 100).toFixed(0);
+  const sf = readSf();
   const peakX = Math.max(KNEE, sf);
   const peakG = 1 + 4 * sf;
   $('peak').innerHTML = sf === 0
@@ -293,13 +292,15 @@ function queueMain() {
   requestAnimationFrame(() => { pending = false; renderMain(); });
 }
 
-$('s').addEventListener('input', queueMain);
-for (const btn of document.querySelectorAll('.quick button')) {
-  btn.addEventListener('click', () => {
-    $('s').value = btn.dataset.s;
-    queueMain();
-  });
-}
+$('s').addEventListener('input', () => {
+  $('sn').value = $('s').value;
+  queueMain();
+});
+$('sn').addEventListener('input', () => {
+  const v = parseFloat($('sn').value);
+  if (Number.isFinite(v) && v >= 0) $('s').value = Math.min(100, v);
+  queueMain();
+});
 
 {
   const k = buildKappa(), m = buildM();
