@@ -28,11 +28,13 @@
   }
   .panel-note { flex-basis: 100%; font-size: 13px; color: var(--muted); }
   .panel-note b { color: var(--ink); }
+  .panel-sep { flex-basis: 100%; height: 1px; background: var(--line); margin: 2px 0 -2px; }
   label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
-  input {
+  input, select {
     font: inherit; font-size: 14px; color: var(--ink); width: 120px;
     padding: 5px 8px; border: 1px solid var(--line); border-radius: 5px; background: #fff;
   }
+  #eset { width: auto; }   /* 选项文字自带长度，别按 120px 截断 */
   input[type=range] { width: 150px; padding: 0; border: 0; background: transparent; }
   .dval { color: var(--ink); font-weight: 600; }
   .derived { font-size: 13px; color: var(--muted); padding-bottom: 6px; }
@@ -55,7 +57,7 @@
 <body>
 
 <div class="head">
-<h1>「梦见月瑞希」血红之证 4 件套 vs 精通 2+2</h1>
+<h1>「梦见月瑞希」血红之证 4 件套 vs 精通套</h1>
 <span class="links"><a class="repo" href="../../index.html"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 1.6 7.2h1.5v7h3.3v-4.1h3.2v4.1h3.3v-7h1.5L8 1.8z"/></svg>主页</a><a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></span>
 </div>
 <div class="sub">悬浮图上任意位置可读该点的比值。改下面任意一项，图与结论即时重算。</div>
@@ -70,10 +72,16 @@
   <label>基准暴伤 %<input id="cd" type="number" step="0.1" min="50"></label>
   <div class="derived">双暴分 <b id="score"></b></div>
   <label><span>星扩散直伤占比 <span class="dval" id="dval">100</span>%</span><input id="d" type="range" min="0" max="100" step="1"></label>
+
+  <div class="panel-sep"></div>
+  <label>精通套<select id="eset">
+    <option value="gild2">饰金之梦 4 件套（+180 精通）</option>
+    <option value="em22">精通 2+2（+160 精通）</option>
+  </select></label>
 </div>
 
 <div class="verdict">
-  <div class="ratio">血红之证 / 精通 2+2 = <b id="ratio">—</b></div>
+  <div class="ratio">血红之证 / <span id="oppName">—</span> = <b id="ratio">—</b></div>
   <div class="who" id="who">—</div>
   <div class="split" id="split">—</div>
 </div>
@@ -83,7 +91,7 @@
 <footer>
   <b>双暴分</b> = 2 × 基准暴击 + 基准暴伤（实时算出）。
   血红之证 4 件套的 +16% 暴击由脚本自己加，所以图上血红那一路是「你填的暴击 + 16%」（双暴分 +32）。<br>
-  两套的精通也不同：精通 2+2 比你填的基准精通多 160。星扩散增伤则是在你填的值上，血红那一路再 +40%。<br>
+  两套的精通也不同：<span id="footSet"></span> 比你填的基准精通多 <span id="footEm"></span>。星扩散增伤则是在你填的值上，血红那一路再 +40%。<br>
   比值 = 两套的期望伤害比，> 1 表示血红更优。倍率、(1 + 基础提升)、抗性系数、擢升在同队伍下相同，已约掉。
   <div class="repo-line">源码与说明：<a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></div>
 </footer>
@@ -93,10 +101,14 @@
 const EM_COEF = 6.0;      // 星扩散的精通系数。传统剧变反应是 16，别写错
 const EM_OFFSET = 2000.0;
 
-const SCARLET = { em: 0,     critRate: 0.16, swirlBonus: 0.40 };  // 血红之证 4 件套
-const EM_2P2  = { em: 160.0, critRate: 0.0,  swirlBonus: 0.0 };   // 精通 2+2
+const SCARLET = { em: 0,     critRate: 0.16, swirlBonus: 0.40 };  // 血红之证 4 件套（固定的一方）
+/** 可切换的对比方（面板里选）。饰金之梦 4 件套 = 2 件套 80 + 每 1 种异元素队友 50（两种异元素 → +100）。 */
+const EM_SETS = {
+  gild2: { name: '饰金之梦', em: 180.0, critRate: 0.0, swirlBonus: 0.0 },
+  em22:  { name: '精通 2+2', em: 160.0, critRate: 0.0, swirlBonus: 0.0 },
+};
 
-const DEFAULTS = { bonus: 100, em: 939, cr: 60, cd: 120, d: 1.00 };
+const DEFAULTS = { bonus: 100, em: 939, cr: 60, cd: 120, d: 1.00, eset: 'gild2' };
 
 const EM_MAX = 2000, SCORE_MAX = 400, GRID = 201;
 
@@ -123,23 +135,23 @@ function critZone(budget, extraCritRate) {
   return 1 + rate * dmg;
 }
 
-/** 血红之证 / 精通 2+2 的期望伤害比。score 为双暴分小数，不含套装特效。
+/** 血红之证 / 精通套 的期望伤害比。score 为双暴分小数，不含套装特效；leg = 选中的精通套。
  *  d = 星扩散直伤占比，定义在 ref 处（该处直伤占比 = d ↔ 反应折算精通 W = ref·(1−d)/d）；
  *  线性项写作 d·e + (1−d)·ref（= (e + W)·d，与 W 写法等价，且 d = 0 时不除零）。 */
-function ratio(em, score, bonus, d, ref) {
+function ratio(em, score, bonus, d, ref, leg) {
   const hit = (build) => {
     const e = em + build.em;
     const lin = d * e + (1 - d) * ref;
     return lin * (1 + emTerm(e) + bonus + build.swirlBonus) * critZone(score, build.critRate);
   };
-  return hit(SCARLET) / hit(EM_2P2);
+  return hit(SCARLET) / hit(leg);
 }
 
-/** 该双暴分下比值为 1 的精通。区间内无交点时返回 { none: 'scarlet' | 'em22' }。 */
-function breakEven(score, bonus, d, ref) {
-  const f = (em) => ratio(em, score, bonus, d, ref) - 1;
+/** 该双暴分下比值为 1 的精通。区间内无交点时返回 { none: 'scarlet' | 'leg' }。 */
+function breakEven(score, bonus, d, ref, leg) {
+  const f = (em) => ratio(em, score, bonus, d, ref, leg) - 1;
   if (f(0) > 0) return { none: 'scarlet' };    // 起始端就已血红更优（低占比时出现）
-  if (f(EM_MAX) <= 0) return { none: 'em22' }; // 全区间都是 2+2 更优
+  if (f(EM_MAX) <= 0) return { none: 'leg' };  // 全区间都是精通套更优
   let lo = 0, hi = EM_MAX;                     // f(0) ≤ 0 < f(hi)
   for (let i = 0; i < 60; i++) {
     const mid = (lo + hi) / 2;
@@ -153,7 +165,7 @@ function dividerPoints(s) {
   const bx = [], by = [];
   for (let j = 0; j <= GRID - 1; j++) {
     const sc = SCORE_MAX * j / (GRID - 1);
-    const root = breakEven(sc / 100, s.bonus, s.d, s.em);
+    const root = breakEven(sc / 100, s.bonus, s.d, s.em, s.leg);
     if (root.x !== undefined) { bx.push(root.x); by.push(sc); }
   }
   return { bx, by };
@@ -184,6 +196,7 @@ const readState = () => {
     em: num('em', DEFAULTS.em),
     score: 2 * cr + cd,      // 双暴分 = 2×暴击 + 暴伤，由输入实时算出
     d: num('d', DEFAULTS.d * 100) / 100,
+    leg: EM_SETS[$('eset').value] || EM_SETS[DEFAULTS.eset],
   };
 };
 
@@ -211,7 +224,7 @@ function makeColorMap(values) {
 function buildPlot(s) {
   const ems = Array.from({ length: GRID }, (_, i) => EM_MAX * i / (GRID - 1));
   const scores = Array.from({ length: GRID }, (_, j) => SCORE_MAX * j / (GRID - 1));
-  const raw = scores.map((sc) => ems.map((em) => ratio(em, sc / 100, s.bonus, s.d, s.em)));
+  const raw = scores.map((sc) => ems.map((em) => ratio(em, sc / 100, s.bonus, s.d, s.em, s.leg)));
 
   const cmap = makeColorMap(raw);
   const z = raw.map((row) => row.map(cmap.toT));
@@ -224,9 +237,9 @@ function buildPlot(s) {
     type: 'heatmap', x: ems, y: scores, z, customdata: raw,
     colorscale: COLORSCALE, zmin: 0, zmax: 1,
     hovertemplate:
-      '精通 %{x:.0f}　双暴分 %{y:.1f}<br>血红 / 2+2 = <b>%{customdata:.4f}</b><extra></extra>',
+      `精通 %{x:.0f}　双暴分 %{y:.1f}<br>血红 / ${s.leg.name} = <b>%{customdata:.4f}</b><extra></extra>`,
     colorbar: {
-      title: { text: '血红 / 2+2' }, thickness: 16, len: 0.75,
+      title: { text: `血红 / ${s.leg.name}` }, thickness: 16, len: 0.75,
       tickvals: tickVals.map(cmap.toT), ticktext: tickVals.map(round2),
     },
   }];
@@ -276,23 +289,26 @@ let figCache = { traces: null, layout: null, iDivider: 1 };
 
 /** 结论条（比值 / 谁优 / 分界）—— 轻量路径也要刷新它。 */
 function updateVerdict(s) {
-  const r = ratio(s.em, s.score / 100, s.bonus, s.d, s.em);
+  const r = ratio(s.em, s.score / 100, s.bonus, s.d, s.em, s.leg);
+  $('oppName').textContent = s.leg.name;
+  $('footSet').textContent = s.leg.name;
+  $('footEm').textContent = s.leg.em.toFixed(0);
   $('ratio').textContent = r.toFixed(4);
   const margin = Math.abs(r - 1) * 100;
   if (margin.toFixed(1) === '0.0') {          // 差距显示不出来时不写谁优
-    $('who').textContent = '血红之证 = 精通 2+2';
+    $('who').textContent = `血红之证 = ${s.leg.name}`;
     $('who').style.color = '';
   } else {
-    const better = r > 1 ? '血红之证' : '精通 2+2';
+    const better = r > 1 ? '血红之证' : s.leg.name;
     $('who').textContent = `${better} 优 ${margin.toFixed(1)}%`;
     $('who').style.color = r > 1 ? '#a03030' : '#2a6099';
   }
-  const be = breakEven(s.score / 100, s.bonus, s.d, s.em);
+  const be = breakEven(s.score / 100, s.bonus, s.d, s.em, s.leg);
   $('split').textContent = be.x !== undefined
     ? `双暴分固定在 ${s.score.toFixed(1)} 时，精通 ${be.x.toFixed(0)} 是分界（你现在 ${s.em.toFixed(0)}）`
     : be.none === 'scarlet'
       ? `双暴分 ${s.score.toFixed(1)} 下，全区间都是血红之证更优`
-      : `双暴分 ${s.score.toFixed(1)} 下，全区间都是精通 2+2 更优`;
+      : `双暴分 ${s.score.toFixed(1)} 下，全区间都是${s.leg.name}更优`;
 }
 
 function render() {
@@ -323,6 +339,7 @@ $('em').value = DEFAULTS.em;
 $('cr').value = DEFAULTS.cr;
 $('cd').value = DEFAULTS.cd;
 $('d').value = DEFAULTS.d * 100;
+$('eset').value = DEFAULTS.eset;
 
 // 滑条拖动会连续触发 —— 按帧合并，一帧最多重画一次
 let renderQueued = false;
@@ -344,6 +361,7 @@ for (const el of document.querySelectorAll('input')) {
 }
 $('d').addEventListener('input', queueLight);
 $('d').addEventListener('change', queueRender);   // render() 无缓存，天然全量
+$('eset').addEventListener('change', queueRender);   // 换对比的精通套：热力图 / 分界线 / 结论全变，走全量
 
 // 提交（失焦的 change / 回车）：越界值写回框里，再按修正后的值重算 —— 与读数时的夹紧同源（min）
 function commitInput(el) {
