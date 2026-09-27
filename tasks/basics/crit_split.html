@@ -75,7 +75,7 @@
   <div class="panel-note"><b>双暴分 = 2 × 暴击率 + 暴伤</b>，扫描时它固定不变、只在暴击率与暴伤之间重新分：横轴扫暴击率，暴伤随之由约束推出（顶轴是对应的暴伤）。<b>分位 q</b> 越大越赌（看前 1−q 的最好情况），越小越稳（看兜底）。单段模型：单次伤害 × 次数。分位最优常是<b>刀锋解</b>（曲线呈锯齿），读数按网格取整。</div>
   <label>双暴分<input id="bV" type="number" step="10" min="10" value="320"></label>
   <label>单次未暴击伤害 w<input id="bnon" type="number" step="1" min="0" value="20"></label>
-  <label>伤害次数<input id="bn" type="number" step="1" min="1" value="30"></label>
+  <label>伤害次数<input id="bn" type="number" step="1" min="1" max="500" value="30"></label>
   <label>分位档 %<input id="bq" type="text" value="50, 80, 90, 95, 99"></label>
 </div>
 <div class="derived" id="rd"></div>
@@ -171,6 +171,14 @@ function optimalOf(arr, cgrid) {
 // ══════════ 页面 ══════════
 const $ = (id) => document.getElementById(id);
 const W = 1e4;                     // 万：输入与显示的单位
+/** 下界 / 上界写在各输入的 min / max 上（唯一来源）：读数时夹紧，提交（失焦 / 回车）时写回框里。 */
+const clampTo = (el, v) => {
+  const lo = parseFloat(el.min), hi = parseFloat(el.max);
+  if (Number.isFinite(lo)) v = Math.max(v, lo);
+  if (Number.isFinite(hi)) v = Math.min(v, hi);
+  return v;
+};
+const numOf = (id) => clampTo($(id), parseFloat($(id).value));
 const S = 1 / W;                   // 显示缩放（数据 → w）
 const QPAL = ['#2f6f9f', '#2e8b57', '#e07b39', '#7b5ea7', '#c2453a', '#5a7d9a'];
 const qColor = (i) => QPAL[i % QPAL.length];
@@ -332,9 +340,10 @@ function build3(V, n, sw, idxOf, qs) {
 }
 
 function render() {
-  const V = parseFloat($('bV').value) / 100;
-  const V0 = parseFloat($('bnon').value) * W, n = Math.round(parseFloat($('bn').value));
-  if (![V, V0, n].every(Number.isFinite) || V <= 0 || V0 < 0 || n < 1) return;
+  // 越界的读数按 min / max 夹紧（框里的原值留到提交时写回）；空 / 非数才停画
+  const V = numOf('bV') / 100;
+  const V0 = numOf('bnon') * W, n = Math.round(numOf('bn'));
+  if (![V, V0, n].every(Number.isFinite) || V <= 0) return;
   const qs = parseList($('bq').value, 0, 100).map((v) => v / 100);
   const qList = Array.from(new Set([...QGRID, ...qs])).sort((a, b) => a - b);
   const sw = sweepB(V, n, qList);
@@ -374,6 +383,25 @@ function queue() {
   requestAnimationFrame(() => { pend = false; render(); });
 }
 for (const id of ['bV', 'bnon', 'bn', 'bq']) $(id).addEventListener('input', queue);
+
+// 提交（失焦的 change / 回车）：越界值写回框里，再按修正后的值重算 —— 与读数时的夹紧同源（min / max）
+function commitInput(el) {
+  const v = parseFloat(el.value);
+  if (!Number.isFinite(v)) return;
+  const c = clampTo(el, v);
+  if (c === v) return;
+  el.value = c;
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+}
+document.addEventListener('change', (e) => {
+  if (e.target instanceof HTMLInputElement && e.target.type === 'number') commitInput(e.target);
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target instanceof HTMLInputElement && e.target.type === 'number') {
+    e.preventDefault();
+    commitInput(e.target);
+  }
+});
 
 render();
 </script>

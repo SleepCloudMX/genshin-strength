@@ -435,10 +435,11 @@ function buildM() {
 }
 
 // ── 主循环 ──
-// 输入框是唯一的取值来源；滑动条只管 0~100，输入框可以更高
+// 输入框是唯一的取值来源；滑动条只管 0~100，输入框可以更高（只设下界 0，见 input 的 min）
 function readSf() {
-  const v = parseFloat($('sn').value);
-  return Number.isFinite(v) && v > 0 ? v / 100 : 0;
+  const el = $('sn');
+  const v = parseFloat(el.value);
+  return Number.isFinite(v) ? Math.max(v, parseFloat(el.min) || 0) / 100 : 0;
 }
 
 function parseRefs() {
@@ -483,6 +484,26 @@ $('sn').addEventListener('input', () => {
   queueMain();
 });
 $('ks').addEventListener('input', queueMain);
+
+// 提交（失焦的 change / 回车）：把低于下界的值写回框里（减抗 −5 → 0），再走一遍 input 的处理
+function commitInput(el) {
+  const v = parseFloat(el.value);
+  if (!Number.isFinite(v)) return;
+  const lo = parseFloat(el.min);
+  if (Number.isFinite(lo) && v < lo) {
+    el.value = lo;
+    el.dispatchEvent(new Event('input', { bubbles: true }));   // 顺带把滑条同步过来
+  }
+}
+document.addEventListener('change', (e) => {
+  if (e.target instanceof HTMLInputElement && e.target.type === 'number') commitInput(e.target);
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target instanceof HTMLInputElement && e.target.type === 'number') {
+    e.preventDefault();
+    commitInput(e.target);
+  }
+});
 
 // 横轴范围：两个框都给出合法值（左 < 右）才生效，否则沿用上一次的范围
 function applyRange() {

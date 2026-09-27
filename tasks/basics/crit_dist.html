@@ -167,6 +167,13 @@ function buildDist(segs) {
 // ══════════ 页面 ══════════
 const $ = (id) => document.getElementById(id);
 const W = 1e4;                     // 万：输入与显示的单位
+/** 下界 / 上界写在各输入的 min / max 上（唯一来源）：读数时夹紧，提交（失焦 / 回车）时写回框里。 */
+const clampTo = (inp, v) => {
+  const lo = parseFloat(inp.min), hi = parseFloat(inp.max);
+  if (Number.isFinite(lo)) v = Math.max(v, lo);
+  if (Number.isFinite(hi)) v = Math.min(v, hi);
+  return v;
+};
 const S = 1 / W;                   // 显示缩放（数据 → w）
 const QPAL = ['#2f6f9f', '#2e8b57', '#e07b39', '#7b5ea7', '#c2453a', '#5a7d9a'];
 const qColor = (i) => QPAL[i % QPAL.length];
@@ -244,7 +251,7 @@ function addSeg(v = SEG0) {
     <label>暴击伤害 w<input class="f-crit" type="number" step="1" min="0" value="${parseFloat((v.non * (1 + v.cd)).toFixed(6))}"></label>
     <label>暴击率 %<input class="f-cr" type="number" step="1" min="0" max="100" value="${v.cr * 100}"></label>
     <label>暴伤 %<input class="f-cd" type="number" step="1" min="0" value="${v.cd * 100}"></label>
-    <label>次数<input class="f-n" type="number" step="1" min="1" value="${v.n}"></label>
+    <label>次数<input class="f-n" type="number" step="1" min="1" max="500" value="${v.n}"></label>
     <label>时间 s<input class="f-t" type="number" step="1" min="0.1" value="${v.t}"></label>
     <button class="del" type="button" title="删除本段">×</button>`;
   const g = (s) => el.querySelector(s);
@@ -274,10 +281,11 @@ function refreshDels() {
 function readSegs() {
   const out = [];
   for (const el of document.querySelectorAll('.seg')) {
-    const v = (s) => parseFloat(el.querySelector(s).value);
+    // 越界的读数按 min / max 夹紧（框里的原值留到提交时写回）；空 / 非数才判无效
+    const v = (s) => { const inp = el.querySelector(s); const x = parseFloat(inp.value); return Number.isFinite(x) ? clampTo(inp, x) : NaN; };
     const nonW = v('.f-non'), cr = v('.f-cr'), cd = v('.f-cd'), n = v('.f-n'), t = v('.f-t');
-    if (![nonW, cr, cd, n, t].every(Number.isFinite) || nonW < 0 || cd < 0 || n < 1 || t <= 0) return null;
-    out.push({ non: nonW * W, cd: cd / 100, cr: Math.min(1, Math.max(0, cr / 100)), n: Math.round(n), t });
+    if (![nonW, cr, cd, n, t].every(Number.isFinite)) return null;
+    out.push({ non: nonW * W, cd: cd / 100, cr: cr / 100, n: Math.round(n), t });
   }
   return out.length ? out : null;
 }
@@ -445,6 +453,25 @@ function queue() {
 $('qa').addEventListener('input', queue);
 $('ka').addEventListener('input', queue);
 $('addseg').addEventListener('click', () => { addSeg(); queue(); });
+// 提交（失焦的 change / 回车）：越界值写回框里，再走一遍 input 的处理（含联动改写）——
+// 段里的输入是动态加的，故在 document 上委托
+function commitInput(el) {
+  const v = parseFloat(el.value);
+  if (!Number.isFinite(v)) return;
+  const c = clampTo(el, v);
+  if (c === v) return;
+  el.value = c;
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+}
+document.addEventListener('change', (e) => {
+  if (e.target instanceof HTMLInputElement && e.target.type === 'number') commitInput(e.target);
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target instanceof HTMLInputElement && e.target.type === 'number') {
+    e.preventDefault();
+    commitInput(e.target);
+  }
+});
 
 addSeg();
 render();
