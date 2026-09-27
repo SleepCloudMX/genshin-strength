@@ -64,7 +64,7 @@
 
 <div class="panel">
   <div class="panel-note"><b>以下都填「上完 buff」后的实际数值</b>（含副词条；不含套装特效 —— 两套的套装效果由脚本自动加上）。</div>
-  <div class="panel-note"><b>星扩散伤害 = 星扩散直伤（大头）+ 反应星扩散</b>。<b>星扩散直伤占比</b>：给定的假定常数（按你填的基准精深处定义），计算中直接采用；本页<b>不</b>根据你的配置推算真实占比 —— 真实占比取决于触发次数等未确认机制。默认 100% = 只看星扩散直伤。社区有「直伤约占九成」的说法（未核实），实战可参考 90% 这一量级。</div>
+  <div class="panel-note"><b>星扩散伤害 = 星扩散直伤（大头）+ 反应星扩散</b>。<b>星扩散直伤占比</b>：给定的假定常数（按你填的基准精深处定义），计算中直接采用；本页<b>不</b>根据你的配置推算真实占比 —— 真实占比取决于触发次数等未确认机制。默认 90%（社区有「直伤约占九成」的说法，未核实）；拉到 100% = 只看星扩散直伤。</div>
   <!-- min 就是下界（唯一来源）：读数时夹紧，提交时把越界值写回框里；页面上不列范围 -->
   <label>星扩散增伤 %<input id="bonus" type="number" step="5" min="0"></label>
   <label>基准精通<input id="em" type="number" step="10" min="589"></label>
@@ -108,7 +108,7 @@ const EM_SETS = {
   em22:  { name: '精通 2+2', em: 160.0, critRate: 0.0, swirlBonus: 0.0 },
 };
 
-const DEFAULTS = { bonus: 100, em: 939, cr: 60, cd: 120, d: 1.00, eset: 'gild2' };
+const DEFAULTS = { bonus: 130, em: 1000, cr: 60, cd: 120, d: 0.90, eset: 'gild2' };
 
 const EM_MAX = 2000, SCORE_MAX = 400, GRID = 201;
 
