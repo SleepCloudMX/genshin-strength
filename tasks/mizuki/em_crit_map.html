@@ -37,8 +37,7 @@
   }
   input[type=range] { width: 150px; padding: 0; border: 0; background: transparent; }
   .dval { color: var(--ink); font-weight: 600; }
-  /* min-width 按最长的一句留位：三段提示文案长度不同，出现时不挤动面板 */
-  .hint { font-size: 12px; color: var(--muted); padding-bottom: 8px; visibility: hidden; white-space: nowrap; min-width: 136px; }
+  .hint { font-size: 12px; color: var(--muted); padding-bottom: 8px; visibility: hidden; }
   .derived { font-size: 13px; color: var(--muted); padding-bottom: 6px; }
   .derived b { color: var(--ink); font-size: 15px; }
   .verdict {
@@ -868,12 +867,11 @@ function queueRender() {
   renderQueued = true;
   requestAnimationFrame(() => { renderQueued = false; render(); });
 }
-// 提示条只在「改了但还没生效」时露出（元素常占位，切文案 + visibility，出现时不挤动面板）
+// 提示条只在「改了但还没生效」时露出（元素常占位，切文案 + visibility，出现时不挤动面板）。
+// 两句都写成 8 个字：宽度一致，切换文案时面板不重排（试过按字段写更长的文案，窄窗会多挤出一行）。
 const hintEl = $('hint');
 const HINT_SLIDER = '松开滑动更新绘图';
-const HINT_PLOT = '回车或点别处更新绘图';     // 会动图的四项
-const HINT_REF = '回车或点别处更新参照数';     // 配置级四项：图里约掉，只刷参照数
-const CONFIG_IDS = new Set(['base', 'asc', 'shred', 'res']);
+const HINT_INPUT = '回车或点别处生效';
 const showHint = (text) => { if (hintEl.textContent !== text) hintEl.textContent = text; hintEl.style.visibility = 'visible'; };
 const hideHint = () => { hintEl.style.visibility = 'hidden'; };
 
@@ -881,8 +879,7 @@ const hideHint = () => { hintEl.style.visibility = 'hidden'; };
 // 提交才重算：失焦的 change，或回车（keydown 显式兜住，不依赖浏览器是否补发 change）。
 for (const el of document.querySelectorAll('input')) {
   if (el.id === 'd') continue;
-  const hintText = CONFIG_IDS.has(el.id) ? HINT_REF : HINT_PLOT;
-  el.addEventListener('input', () => showHint(hintText));
+  el.addEventListener('input', () => showHint(HINT_INPUT));
   el.addEventListener('change', () => { hideHint(); queueRender(); });
   el.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
