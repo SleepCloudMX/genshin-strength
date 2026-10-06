@@ -60,7 +60,7 @@
 <h1>「梦见月瑞希」血红之证 4 件套 vs 精通套</h1>
 <span class="links"><a class="repo" href="../../index.html"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 1.6 7.2h1.5v7h3.3v-4.1h3.2v4.1h3.3v-7h1.5L8 1.8z"/></svg>主页</a><a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></span>
 </div>
-<div class="sub">悬浮图上任意位置可读该点的比值。改下面任意一项，图与结论即时重算。</div>
+<div class="sub">悬浮图上任意位置可读该点的比值；点击可把基准移到该点（双暴分按 1 : 2 拆成暴击 / 暴伤）。改下面任意一项，图与结论即时重算。</div>
 
 <div class="panel">
   <div class="panel-note"><b>以下都填「上完 buff」后的实际数值</b>（含副词条；不含套装特效 —— 两套的套装效果由脚本自动加上）。</div>
@@ -108,7 +108,8 @@ const EM_SETS = {
   em22:  { name: '精通 2+2', em: 160.0, critRate: 0.0, swirlBonus: 0.0 },
 };
 
-const DEFAULTS = { bonus: 130, em: 1000, cr: 60, cd: 120, d: 0.90, eset: 'gild2' };
+// 星扩散增伤 90 = 冰主 6 命 40 + 炉火 50；血红 4 件套的 +40 不含在内，由脚本自动加上
+const DEFAULTS = { bonus: 90, em: 1000, cr: 60, cd: 120, d: 0.90, eset: 'gild2' };
 
 const EM_MAX = 2000, SCORE_MAX = 400, GRID = 201;
 
@@ -318,7 +319,7 @@ function render() {
   updateVerdict(s);
   const fig = buildPlot(s);
   figCache = { traces: fig.traces, layout: fig.layout, iDivider: fig.iDivider };
-  Plotly.react('plot', fig.traces, fig.layout, { responsive: true });
+  return Plotly.react('plot', fig.traces, fig.layout, { responsive: true });
 }
 
 /** 拖动滑条时的轻量刷新：只重算并替换分界线（其余 trace 传同一对象，react 按引用跳过重绘），
@@ -381,7 +382,16 @@ document.addEventListener('keydown', (e) => {
     commitInput(e.target);
   }
 });
-render();
+// 点击图面 = 把基准移到该点；图上只有双暴分，写回暴击 / 暴伤时按 1 : 2 拆
+function onPlotClick(data) {
+  const p = data && data.points && data.points[0];
+  if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) return;
+  $('em').value = clampTo($('em'), Math.round(p.x));
+  $('cr').value = clampTo($('cr'), Math.round(p.y / 4 * 10) / 10);
+  $('cd').value = clampTo($('cd'), Math.round(p.y / 2 * 10) / 10);
+  queueRender();
+}
+render().then(() => { $('plot').on('plotly_click', onPlotClick); });
 </script>
 </body>
 </html>
