@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>桑多涅·星超导分配</title>
+<link rel="icon" type="image/png" href="https://sleepcloudmx.github.io/Others/Image/kenomimi.png">
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+<style>
+  :root { --ink:#222; --muted:#555; --line:#d8d8d8; --bg:#fafafa; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px 24px 40px; background: #fff; color: var(--ink);
+    font-family: "Microsoft YaHei", "SimHei", system-ui, sans-serif;
+  }
+  h1 { font-size: 19px; margin: 0; }
+  .head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 4px; font-size: 13px; }
+  .head .links { white-space: nowrap; }
+  .head .links .repo + .repo { margin-left: 14px; }
+  .repo { color: var(--muted); text-decoration: none; white-space: nowrap; }
+  .repo:hover { color: var(--ink); text-decoration: underline; }
+  .repo svg { width: 1.15em; height: 1.15em; fill: currentColor; vertical-align: -0.18em; margin-right: 4px; }
+  .repo-line { margin-top: 8px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+  .panel {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+    padding: 14px 16px; margin-bottom: 14px;
+    display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: flex-end;
+  }
+  .panel-note { flex-basis: 100%; font-size: 13px; color: var(--muted); }
+  .panel-note b { color: var(--ink); }
+  label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+  input, select {
+    font: inherit; font-size: 14px; color: var(--ink); width: 120px;
+    padding: 5px 8px; border: 1px solid var(--line); border-radius: 5px; background: #fff;
+  }
+  select { width: auto; }
+  input[type=range] { width: 150px; padding: 0; border: 0; background: transparent; }
+  .dval { color: var(--ink); font-weight: 600; }
+  .derived { font-size: 13px; color: var(--muted); padding-bottom: 6px; }
+  .derived b { color: var(--ink); font-size: 15px; }
+  .verdict {
+    border: 1px solid var(--line); border-left: 3px solid #e8710a; border-radius: 6px;
+    padding: 12px 16px; margin-bottom: 18px;
+  }
+  .verdict .ratio { font-size: 14px; color: var(--muted); }
+  .verdict .ratio b { color: var(--ink); font-size: 26px; font-variant-numeric: tabular-nums; }
+  .verdict .who { font-size: 17px; font-weight: bold; margin-top: 2px; }
+  .verdict .split { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+  #plot { width: 100%; }
+  h2 { font-size: 15.5px; margin: 26px 0 8px; }
+  .wlist { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .wrow {
+    display: grid; grid-template-columns: 148px 108px 1fr 88px; gap: 10px; align-items: center;
+    padding: 8px 14px; font-size: 13px; border-top: 1px solid #ececec;
+  }
+  .wrow:first-child { border-top: 0; }
+  .wrow.sel { background: #fdf4ea; box-shadow: inset 3px 0 0 #e8710a; }
+  .wrow .wbase { color: var(--muted); font-size: 12px; }
+  .wrow .wnote { color: var(--muted); font-size: 12px; }
+  .wbar { display: flex; align-items: center; gap: 8px; }
+  .wbar .fill { height: 8px; border-radius: 4px; background: #e8710a; }
+  .wbar b { font-variant-numeric: tabular-nums; font-size: 13px; }
+  footer {
+    margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line);
+    font-size: 12px; color: var(--muted); line-height: 1.7;
+  }
+</style>
+</head>
+<body>
+
+<div class="head">
+<h1>「木偶·桑多涅」星超导词条分配</h1>
+<span class="links"><a class="repo" href="../../index.html"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 1.6 7.2h1.5v7h3.3v-4.1h3.2v4.1h3.3v-7h1.5L8 1.8z"/></svg>主页</a><a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></span>
+</div>
+<div class="sub">把 n 个等效词条分给精通 / 双暴 / 攻击：图上每个点是一套分配（攻击吃剩余），颜色 = 相对基准面板的伤害倍数。滑条松开、数字框失焦 / 回车后才重算。</div>
+
+<div class="panel">
+  <div class="panel-note"><b>基准面板 = 上完 buff、不含副词条</b>（木偶 + 武器 + 攻攻暴主词条 + 羽 + 队友都算在里面）；<b>不含套装特效</b> —— 幻灭 4 件的 +40% 增伤与条件 +16% 暴击（按全覆盖）由脚本自动加。</div>
+  <div class="panel-note"><b>词条口径</b>：1 词条 = 20 精通 = 3.3% 暴击 = 6.6% 暴伤 = 5% 大攻击（小攻击见换算行）。<b>攻击词条按大攻击折算</b> —— 当前基础攻击力下大攻击每词条恒优于小攻击；双暴按 1 : 2 配平（先补基准的偏斜）。</div>
+  <label>武器<select id="weapon"></select></label>
+  <label>额外攻击 %（队友 / buff）<input id="patk" type="number" step="1" value="0" min="0"></label>
+  <label>额外固定攻击<input id="fatk" type="number" step="1" value="0" min="0"></label>
+  <label>基准精通<input id="em" type="number" step="10" value="0" min="0"></label>
+  <label>基准暴击率 %<input id="cr" type="number" step="0.1" value="24.2" min="0"></label>
+  <label>基准暴伤 %<input id="cd" type="number" step="0.1" value="112.2" min="50"></label>
+  <label>反应增伤 %（额外来源）<input id="bonus" type="number" step="1" value="0" min="0"></label>
+  <label><span>词条预算 <span class="dval" id="nval">30</span></span><input id="n" type="range" min="2" max="53" step="1" value="30"></label>
+  <div class="derived">基础攻击力 <b id="baseAtk">—</b><span id="baseSub"></span></div>
+  <div class="derived">基准攻击力（计入伤害）<b id="panelAtk">—</b></div>
+  <div class="derived" id="conv">—</div>
+  <div class="derived">有效双暴 <b id="critDisp">—</b></div>
+</div>
+
+<div class="verdict">
+  <div class="ratio">最优分配下的伤害 = 基准面板 × <b id="bestMul">—</b></div>
+  <div class="who" id="bestSplit">—</div>
+  <div class="split" id="cornerLine">—</div>
+</div>
+
+<div id="plot"></div>
+
+<h2>武器对比</h2>
+<div class="panel-note" style="font-size:12.5px;color:var(--muted);margin-bottom:8px">各自在<b>自己的最优分配</b>下的伤害指数（当前选中武器 = 100）。只计对星超导生效的常驻部分（特效按全覆盖 / 满层），行内注明假设。</div>
+<div class="wlist" id="wlist"></div>
+
+<footer>
+  星超导伤害 = 反应系数（层数）× 攻击力 × 倍率 × (1 + 天赋加伤) × (1 + 6EM/(EM+2000) + 增伤) × 抗性 × 暴击 × 擢升 —— 见机制文档 <span style="font-family:monospace">docs/ai-output/0-mechanism/3-星超导伤害机制.md</span>。<b>倍率不计入</b>，图上都是相对倍数；反应系数（层数）、天赋加伤、抗性 / 减抗、擢升都是线性乘子，<b>不改变分配结论</b>；羽毛未计入。<br>
+  <b>词条预算上限 53</b> ≈ 木偶满档副词条容量（同瑞希 43 的算法：每件 4 条初始 + 5 次强化、满档值折算 —— 双暴 41.4 + 大攻击 3.5 + 精通 5.8 + 小攻击 2.3 ≈ 52.9）。<br>
+  武器数据（90 级）：浪影阔剑 510 / 攻击 41.3%（受治疗 +48% 攻击）；超越之匙 674 / 暴伤 44.1%（攻击 +28%、超越满层反应增伤 +48%）；焚曜千阳 741 / 暴击 11.0%（焚光：攻击 +28%、暴伤 +20%）；苇海信标 608 / 暴击 33.1%（战技命中 + 受击各 +20% 攻击）；狼的末路 608 / 攻击 49.6%（常驻 +20%）；无工之剑 608 / 攻击 49.6%（有盾叠满 +40%）；螭骨剑 510 / 暴击 27.6%、赤角石溃杵 542 / 暴伤 88.2%（特效不作用于星超导，不计）。
+  <div class="repo-line">源码与说明：<a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></div>
+</footer>
+
+<script>
+// ── 游戏规则（与 docs/ai-output/0-mechanism/3-星超导伤害机制.md 对应）──
+const EM_COEF = 6.0, EM_OFFSET = 2000.0;
+const CHAR_BASE = 342;        // 桑多涅 90 级基础攻击力（突破 +19.2% 暴击率）
+const MAINS_ATK_PCT = 0.932;  // 攻攻主词条（46.6% × 2）
+const MAINS_FLAT = 311;       // 羽主词条
+const SET_BONUS = 0.40;       // 幻灭 4 件：星超导反应伤害 +40%
+const SET_CR = 16;            // 幻灭 4 件：条件 +16% 暴击率（按全覆盖）——单位是百分点，与输入一致
+
+// ── 词条口径（平均成长值）──
+const PER_EM = 20, PER_CR = 3.3, PER_CD = 6.6, PER_SCORE = 6.6, PER_ATK = 0.05, PER_FLAT = 16.5;
+const N_MAX = 53;             // 词条预算上限（约 52.9，推导见页脚）
+
+/** 武器：只计对星超导生效的常驻部分；特效按全覆盖 / 满层（行内注明）。
+ *  atkPct = 副词条攻击%（小数）；cr / cd / extraCd = 副词条与特效的暴击率 / 暴伤（单位：百分点，与输入一致）；reaction = 反应增伤（小数）。 */
+const WEAPONS = [
+  { id:'tidal',    name:'浪影阔剑 R5',    base:510, atkPct:0.413, cr:0,    cd:0,    extraAtk:0.48, extraCd:0,  reaction:0,    note:'受治疗 +48% 攻击（按全覆盖）' },
+  { id:'key',      name:'超越之匙 R1',    base:674, atkPct:0,     cr:0,    cd:44.1, extraAtk:0.28, extraCd:0,  reaction:0.48, note:'攻击 +28%；超越满层反应增伤 +48%' },
+  { id:'suns',     name:'焚曜千阳 R1',    base:741, atkPct:0,     cr:11.0, cd:0,    extraAtk:0.28, extraCd:20, reaction:0,    note:'焚光：攻击 +28%、暴伤 +20%（按全覆盖）' },
+  { id:'reed',     name:'苇海信标 R1',    base:608, atkPct:0,     cr:33.1, cd:0,    extraAtk:0.40, extraCd:0,  reaction:0,    note:'战技命中 / 受击各 +20% 攻击（按全覆盖）' },
+  { id:'wolf',     name:'狼的末路 R1',    base:608, atkPct:0.496, cr:0,    cd:0,    extraAtk:0.20, extraCd:0,  reaction:0,    note:'常驻攻击 +20%（斩杀队伍效果不计）' },
+  { id:'unforged', name:'无工之剑 R1',    base:608, atkPct:0.496, cr:0,    cd:0,    extraAtk:0.40, extraCd:0,  reaction:0,    note:'有盾时叠满 +40% 攻击' },
+  { id:'serpent',  name:'螭骨剑 R5',      base:510, atkPct:0,     cr:27.6, cd:0,    extraAtk:0,    extraCd:0,  reaction:0,    note:'增伤类特效不作用于星超导，不计' },
+  { id:'redhorn',  name:'赤角石溃杵 R1',  base:542, atkPct:0,     cr:0,    cd:88.2, extraAtk:0,    extraCd:0,  reaction:0,    note:'普攻 / 重击加成不作用于星超导，不计' },
+];
+
+// ── 公式 ──
+const emTerm = (em) => EM_COEF * em / (em + EM_OFFSET);
+
+/** b 个双暴词条在暴击率 / 暴伤之间最优拆分后的配比（期望口径；暴击率上限 100%）。b 的单位是词条。 */
+function critSplit(cr0, cd0, b) {
+  const aStar = b / 2 + (cd0 / PER_CD - cr0 / PER_CR) / 2;
+  const a = Math.min(Math.max(aStar, 0), b, (100 - cr0) / PER_CR);
+  return { cr: cr0 + PER_CR * a, cd: cd0 + PER_CD * (b - a) };
+}
+
+/** 一套分配下的伤害指数（倍率 = 1）。x / y / z = 精通 / 双暴 / 攻击词条数，z = 基准面板外的剩余预算。 */
+function damage(s, x, y) {
+  const z = s.n - x - y;
+  if (z < 0) return null;
+  const w = s.weapon;
+  const base = CHAR_BASE + w.base;
+  const atk = base * (1 + MAINS_ATK_PCT + w.atkPct + w.extraAtk + s.extraPct + PER_ATK * z) + MAINS_FLAT + s.extraFlat;
+  const em = s.em + PER_EM * x;
+  const bracket = 1 + emTerm(em) + s.bonus + w.reaction + SET_BONUS;
+  const { cr, cd } = critSplit(s.cr + SET_CR + w.cr, s.cd + w.cd + w.extraCd, y);
+  return atk * bracket * (1 + Math.min(cr, 100) / 100 * cd / 100);
+}
+
+// ── 状态 ──
+const $ = (id) => document.getElementById(id);
+const clampTo = (el, v) => {
+  const lo = parseFloat(el.min), hi = parseFloat(el.max);
+  if (Number.isFinite(lo)) v = Math.max(v, lo);
+  if (Number.isFinite(hi)) v = Math.min(v, hi);
+  return v;
+};
+const num = (id, fallback) => {
+  const el = $(id);
+  const v = parseFloat(el.value);
+  return Number.isFinite(v) ? clampTo(el, v) : fallback;
+};
+const readState = () => {
+  const w = WEAPONS.find((it) => it.id === $('weapon').value) || WEAPONS[0];
+  return {
+    weapon: w,
+    extraPct: num('patk', 0) / 100,
+    extraFlat: num('fatk', 0),
+    em: num('em', 0),
+    cr: num('cr', 24.2),
+    cd: num('cd', 112.2),
+    bonus: num('bonus', 0) / 100,
+    n: num('n', 30),
+  };
+};
+
+const GRID = 121;   // 分配网格：x × y，逐点算
+
+/** 全网格扫描：返回 z 值（相对基准面板的倍数；域外 null）与最优分配。 */
+function scan(s) {
+  const step = s.n / (GRID - 1);
+  const xs = Array.from({ length: GRID }, (_, i) => i * step);
+  const base0 = damage({ ...s, n: 0 }, 0, 0);   // 基准 = 不分配任何词条
+  let best = { x: 0, y: 0, v: -1, d: -1 };
+  const zs = xs.map((y) => xs.map((x) => {
+    const d = damage(s, x, y);
+    if (d === null) return null;
+    const v = d / base0;
+    if (v > best.v) best = { x, y, v, d };
+    return v;
+  }));
+  return { xs, zs, best, base0 };
+}
+
+// ── 绘制 ──
+function render() {
+  const s = readState();
+  $('nval').textContent = s.n.toFixed(0);
+  const w = s.weapon;
+  const base = CHAR_BASE + w.base;
+  $('baseAtk').textContent = base.toFixed(0);
+  $('baseSub').textContent = `（${CHAR_BASE} + ${w.base}，${w.note}）`;
+  const s0 = { ...s, n: 0 };
+  const atkBase = base * (1 + MAINS_ATK_PCT + w.atkPct + w.extraAtk + s.extraPct) + MAINS_FLAT + s.extraFlat;
+  $('panelAtk').textContent = atkBase.toFixed(0);
+  const bigGain = base * PER_ATK;
+  $('conv').innerHTML = `攻击换算：1 大攻击词条 = <b>${bigGain.toFixed(1)}</b> 攻击力 ｜ 1 小攻击词条 = ${PER_FLAT}（= ${(PER_FLAT / bigGain).toFixed(2)} 个）`;
+  const crEff = s.cr + SET_CR + w.cr, cdEff = s.cd + w.cd + w.extraCd;
+  $('critDisp').innerHTML = `${crEff.toFixed(1)} / ${cdEff.toFixed(1)}（双暴分 ${(2 * crEff + cdEff).toFixed(1)}，含套装 +16% 暴击）`;
+
+  const { xs, zs, best } = scan(s);
+  const bestD = damage(s, best.x, best.y);
+  const bz = s.n - best.x - best.y;
+  $('bestMul').textContent = best.v.toFixed(3);
+  $('bestSplit').textContent = `精通 ${best.x.toFixed(1)} · 双暴 ${best.y.toFixed(1)} · 攻击 ${bz.toFixed(1)} 词条`;
+  const { cr, cd } = critSplit(s.cr + SET_CR + w.cr, s.cd + w.cd + w.extraCd, best.y);
+  const emBest = s.em + PER_EM * best.x;
+  $('cornerLine').textContent =
+    `最优处：精通 ${emBest.toFixed(0)}（增伤项 ${(emTerm(emBest) * 100).toFixed(1)}%）、双暴 ${cr.toFixed(1)} / ${cd.toFixed(1)}、攻击词条 ${bz.toFixed(1)}（+${(bigGain * bz).toFixed(0)} 攻击）` +
+    ` ｜ 全攻击 ×${(damage(s, 0, 0) / damage(s0, 0, 0)).toFixed(3)}　全精通 ×${(damage(s, s.n, 0) / damage(s0, 0, 0)).toFixed(3)}　全双暴 ×${(damage(s, 0, s.n) / damage(s0, 0, 0)).toFixed(3)}`;
+
+  // 等攻击投入线（x + y = c ⟺ 攻击 = n − c 词条）
+  const shapes = [], annotations = [];
+  for (let c = 5; Math.ceil(c) < s.n; c += 5) {
+    shapes.push({ type: 'line', x0: c, y0: 0, x1: 0, y1: c, line: { color: '#999', width: 1, dash: 'dash' } });
+    annotations.push({ x: c * 0.82, y: c * 0.18, text: `攻击 ${(s.n - c).toFixed(0)}`, showarrow: false, font: { size: 10.5, color: '#888' } });
+  }
+  shapes.push({ type: 'line', x0: s.n, y0: 0, x1: 0, y1: s.n, line: { color: '#555', width: 1.4 } });
+
+  // 悬浮数据：词条 → 面板值
+  const cd0 = (x, y) => {
+    const z = s.n - x - y;
+    const em = s.em + PER_EM * x;
+    const atk = base * (1 + MAINS_ATK_PCT + w.atkPct + w.extraAtk + s.extraPct + PER_ATK * z) + MAINS_FLAT + s.extraFlat;
+    const { cr, cd } = critSplit(s.cr + SET_CR + w.cr, s.cd + w.cd + w.extraCd, y);
+    return [x, y, z, atk, em, cr, cd];
+  };
+
+  const traces = [{
+    type: 'heatmap', x: xs, y: xs, z: zs,
+    colorscale: 'Viridis', zmin: 1, zmax: Math.max(...zs.flat().filter((v) => v !== null)),
+    customdata: xs.map((y) => xs.map((x) => cd0(x, y))),
+    hovertemplate:
+      '精通 %{customdata[4]:.0f}（%{customdata[0]:.1f} 词条）　双暴 %{customdata[5]:.1f} / %{customdata[6]:.1f}（%{customdata[1]:.1f} 词条）' +
+      '<br>攻击 %{customdata[3]:.0f}（%{customdata[2]:.1f} 词条）' +
+      '<br>伤害 = 基准 × <b>%{z:.3f}</b><extra></extra>',
+    colorbar: { title: { text: '伤害倍数' }, thickness: 16, len: 0.8 },
+  }, {
+    type: 'scatter', mode: 'markers', x: [best.x], y: [best.y],
+    marker: { symbol: 'diamond', size: 13, color: '#fff', line: { width: 2.5, color: '#111' } },
+    name: '最优', hoverinfo: 'skip',
+  }];
+
+  Plotly.react('plot', traces, {
+    xaxis: { title: { text: '精通词条数' }, range: [0, s.n], zeroline: false, gridcolor: '#eee' },
+    yaxis: { title: { text: '双暴词条数' }, range: [0, s.n], zeroline: false, gridcolor: '#eee' },
+    shapes, annotations,
+    legend: { x: 0.01, y: 0.99, bgcolor: 'rgba(255,255,255,0.85)' },
+    margin: { t: 24, r: 24, b: 52, l: 60 }, height: 620,
+    hovermode: 'closest', plot_bgcolor: '#fff', paper_bgcolor: '#fff',
+  }, { responsive: true });
+
+  renderWeapons(s);
+}
+
+/** 武器对比：各自在全网格上取最优，指数相对当前选中武器 = 100。 */
+function renderWeapons(s) {
+  const rows = WEAPONS.map((w) => {
+    const sw = { ...s, weapon: w };
+    const { best } = scan(sw);
+    return { w, abs: best.d };
+  });
+  const cur = rows.find((r) => r.w.id === s.weapon.id);
+  const maxAbs = Math.max(...rows.map((r) => r.abs));
+  rows.sort((a, b) => b.abs - a.abs);
+  $('wlist').innerHTML = rows.map((r) => {
+    const idx = 100 * r.abs / cur.abs;
+    const width = 100 * r.abs / maxAbs;
+    return `<div class="wrow${r.w.id === s.weapon.id ? ' sel' : ''}">
+      <div>${r.w.name}</div>
+      <div class="wbase">${r.w.base} 基础</div>
+      <div class="wbar"><div class="fill" style="width:${width.toFixed(1)}%"></div><b>${idx.toFixed(1)}</b></div>
+      <div class="wnote">${r.w.note}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── 提交式更新：数字框失焦 / 回车，滑条松开 ──
+for (const el of document.querySelectorAll('.panel input, .panel select')) {
+  el.addEventListener('change', render);
+  el.addEventListener('keydown', (e) => { if (e.key === 'Enter') render(); });
+}
+$('weapon').innerHTML = WEAPONS.map((w) =>
+  `<option value="${w.id}"${w.id === 'tidal' ? ' selected' : ''}>${w.name}（${w.base} 基础）</option>`).join('');
+render();
+</script>
+
+</body>
+</html>
