@@ -111,7 +111,7 @@
 
 <div class="panel">
   <div class="panel-note"><b>基准面板 = 上完 buff、不含副词条</b>（主词条、武器、天赋、队友给的都算在基准里）—— 副词条正是这里要分配的东西。</div>
-  <div class="panel-note"><b>星扩散伤害 = 星扩散直伤（大头）+ 反应星扩散</b>。<b>星扩散直伤占比</b>：给定的假定常数（按基准分配处定义），计算中直接采用；本页<b>不</b>根据你的配置推算真实占比（实测约九成，见<a href="stellar_swirl.html#share">机制页</a>）。默认 100% = 只看星扩散直伤；实战可参考 90%。</div>
+  <div class="panel-note"><b>星扩散伤害 = 星扩散直伤（大头）+ 反应星扩散</b>。<b>星扩散直伤占比</b>：给定的假定常数（按基准分配处定义），计算中直接采用；本页<b>不</b>根据你的配置推算真实占比（实测约九成，见<a href="stellar_swirl.html#share">机制页</a>）。默认 90%；拉到 100% = 只看星扩散直伤。</div>
   <!-- min 就是下界（唯一的来源）：读数时夹紧，提交时把越界值写回框里；页面上不列范围 -->
   <label>星扩散增伤 %<input id="bonus" type="number" step="5" min="0"></label>
   <label>基准精通（不含副词条）<input id="em" type="number" step="10" min="589"></label>
@@ -179,7 +179,7 @@ const ISO_ROLLS = [10, 20, 30, 40];   // 图上画出的等词条线（总词条
 const GRID = 201;
 // base / shred / res 为百分数，asc 为倍率；后四项是配置级独立乘区，只进参照数（默认值即不加成）
 const DEFAULTS = {
-  bonus: 130, em: 951, cr: 36, cd: 112.2, d: 1.00,
+  bonus: 130, em: 951, cr: 36, cd: 112.2, d: 0.90,
   base: 0, asc: 1, shred: 0, res: 10,
 };
 
