@@ -21,6 +21,7 @@
     host.innerHTML = '';
     var hintEl = el('div', 'hint');
     var refreshers = [];
+    var bindings = [];   // { key, set(v) }：外部改 state 后写回控件
 
     function setHint(text) {
       if (hintEl.textContent !== text) hintEl.textContent = text;
@@ -87,6 +88,7 @@
           e.preventDefault();
           commitInput();
         });
+        bindings.push({ key: c.key, set: function (v) { inp.value = v; } });
         field.appendChild(inp);
       } else if (c.type === 'select') {
         var sel = el('select', 'field__input');
@@ -99,6 +101,7 @@
           state[c.key] = sel.value;
           cb.commit(c.key);
         });
+        bindings.push({ key: c.key, set: function (v) { sel.value = v; } });
         field.appendChild(sel);
       } else if (c.type === 'range') {
         var val = el('span', 'field__val', String(state[c.key]) + (c.unit || ''));
@@ -158,6 +161,7 @@
             commitRange(parseFloat(numBox.value));
           });
         }
+        bindings.push({ key: c.key, set: function (v) { syncRange(v); } });
       }
 
       field.insertBefore(label, field.firstChild);
@@ -168,6 +172,10 @@
 
     return {
       refresh: function (s) { refreshers.forEach(function (fn) { fn(s); }); },
+      /** 外部改了 state（如点击图面移动基准）后写回各控件 */
+      sync: function (s) {
+        bindings.forEach(function (b) { if (b.key in s) b.set(s[b.key]); });
+      },
       setHint: setHint,
       hideHint: hideHint,
     };

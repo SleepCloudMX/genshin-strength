@@ -76,4 +76,60 @@
     var i = Math.min(Math.floor(x), M.RAMP.length - 2), k = x - i;
     return C.mixHex(M.RAMP[i], M.RAMP[i + 1], k);
   };
+
+  /* ── 套装对比（血红之证 4 件套 vs 精通套） ── */
+  M.EM_MAX = 2000;
+  M.SCORE_MAX = 400;
+
+  M.SCARLET = { em: 0, critRate: 0.16, swirlBonus: 0.40 };   // 血红之证 4 件套（固定的一方）
+  /** 可切换的对比方。饰金之梦 4 件套 = 2 件套 80 + 每 1 种异元素队友 50（两种异元素 → +100）。 */
+  M.EM_SETS = {
+    gild2: { id: 'gild2', name: '饰金之梦', em: 180.0, critRate: 0.0, swirlBonus: 0.0 },
+    em22: { id: 'em22', name: '精通 2+2', em: 160.0, critRate: 0.0, swirlBonus: 0.0 },
+  };
+
+  /** 双暴分 budget（= 2×暴击率 + 暴伤，小数）下的期望暴击区。 */
+  M.critZone = function (budget, extraCritRate) {
+    var total = budget + 2 * extraCritRate;
+    var rate = Math.min(total / 4, 1.0);   // 暴击率上限 100%
+    var dmg = total - 2 * rate;
+    return 1 + rate * dmg;
+  };
+
+  /** 血红之证 / 精通套 的期望伤害比。score 为双暴分小数，不含套装特效；leg = 选中的精通套。
+   *  d = 星扩散直伤占比：给定的假定常数，在图上任意位置都成立，不锚定任何面板值；
+   *  反应折算精通 W = em·(1−d)/d（随该点的基准精通取），线性项 = d·(e + W) = d·e + (1−d)·em。 */
+  M.ratio = function (em, score, bonus, d, leg) {
+    function hit(build) {
+      var e = em + build.em;
+      var lin = d * e + (1 - d) * em;
+      return lin * (1 + C.emTerm(e) + bonus + build.swirlBonus) * M.critZone(score, build.critRate);
+    }
+    return hit(M.SCARLET) / hit(leg);
+  };
+
+  /** 该双暴分下比值为 1 的精通。区间内无交点时返回 { none: 'scarlet' | 'leg' }。 */
+  M.breakEven = function (score, bonus, d, leg) {
+    function f(em) { return M.ratio(em, score, bonus, d, leg) - 1; }
+    if (f(0) > 0) return { none: 'scarlet' };
+    if (f(M.EM_MAX) <= 0) return { none: 'leg' };
+    var lo = 0, hi = M.EM_MAX;
+    for (var i = 0; i < 60; i++) {
+      var mid = (lo + hi) / 2;
+      if (f(mid) < 0) lo = mid; else hi = mid;
+    }
+    return { x: (lo + hi) / 2 };
+  };
+
+  /** 分界线（逐行求根的参数曲线）的坐标。 */
+  M.dividerPoints = function (s, grid) {
+    grid = grid || 201;
+    var bx = [], by = [];
+    for (var j = 0; j <= grid - 1; j++) {
+      var sc = M.SCORE_MAX * j / (grid - 1);
+      var root = M.breakEven(sc / 100, s.bonus, s.d, s.leg);
+      if (root.x !== undefined) { bx.push(root.x); by.push(sc); }
+    }
+    return { bx: bx, by: by };
+  };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

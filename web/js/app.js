@@ -125,6 +125,14 @@
     if (app.controls) app.controls.refresh(app.state);
   }
 
+  /** 外部改 state（如点击图面移动基准）：写回控件并重画。 */
+  app.setValues = function (patch) {
+    Object.assign(app.state, patch);
+    if (app.controls) app.controls.sync(app.state);
+    refresh();
+  };
+  app.transact = function (fn) { fn(app.state); refresh(); };
+
   function renderPlaceholder(stage, id) {
     var page = el('div', 'page');
     page.appendChild(el('header', 'page__head',
