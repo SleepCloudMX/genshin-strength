@@ -84,11 +84,12 @@
         };
       },
       setFallbackMargin: function (m) { fbMargin = m; },
-      /** 鼠标位置 → 相对 wrap 的像素；在绘图区内返回 {x, y}（y 向下），否则 null。 */
+      /** 鼠标位置 → **绘图区坐标**（与 geom 同一套映射；tip / overlay 都用这套）。
+       *  在绘图区内返回 {x, y}（y 向下），否则 null。 */
       pxIn: function (e) {
         var r = wrap.getBoundingClientRect();
         var g = this.geom();
-        var px = e.clientX - r.left, py = e.clientY - r.top;
+        var px = e.clientX - r.left - g.left, py = e.clientY - r.top - g.top;
         if (px < 0 || px > g.w || py < 0 || py > g.h) return null;
         return { x: px, y: py };
       },

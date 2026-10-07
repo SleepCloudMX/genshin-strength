@@ -24,7 +24,7 @@
   /** n 个等效词条中给双暴 b 个时的伤害（任意单位，只用于比较）。
    *  直伤 ∝ EM·B·C、反应 ∝ W·B·C（两路共用乘区），按基准分配处的直伤占比 d 合成：
    *  [d·EM + (1−d)·EM0]·B·C。d = 1 即纯直伤。 */
-  M.damage = function (s, n, b) {
+  M.rollDamage = function (s, n, b) {
     var em = C.EM_PER_ROLL * (n - b) + s.em;
     var emLinear = s.d * em + (1 - s.d) * s.em;
     return emLinear * (1 + s.bonus + C.emTerm(em)) * M.critZoneAt(b, s.cr, s.cd);
@@ -33,7 +33,7 @@
   /** 黄金分割搜索最大值。 */
   M.bestSplit = function (s, n) {
     var phi = 0.6180339887;
-    function f(b) { return M.damage(s, n, b); }
+    function f(b) { return M.rollDamage(s, n, b); }
     var lo = 0, hi = n;
     var a = hi - phi * (hi - lo), b2 = lo + phi * (hi - lo);
     var fa = f(a), fb = f(b2);
@@ -52,7 +52,7 @@
     var lo = null, hi = null;
     for (var i = 0; i <= steps; i++) {
       var b = n * i / steps;
-      if (M.damage(s, n, b) >= level * fmax) { if (lo === null) lo = b; hi = b; }
+      if (M.rollDamage(s, n, b) >= level * fmax) { if (lo === null) lo = b; hi = b; }
     }
     return { lo: lo, hi: hi };
   };
@@ -131,5 +131,210 @@
       if (root.x !== undefined) { bx.push(root.x); by.push(sc); }
     }
     return { bx: bx, by: by };
+  };
+
+  /* ── 伤害热图（精通 × 双暴分；口径见 1-Mizuki/4-em-crit-map.md，已归档） ── */
+  M.EM_ADD_MAX = 420;                    // 精通上界：副词条精通最多 18 条 × 满值 23 ≈ 420
+  M.ISO_ROLLS = [10, 20, 30, 40];        // 图上画出的等词条线（总词条预算）
+  M.REF_EM = 589; M.REF_CR = 5; M.REF_CD = 50;   // 固定参照面板（跨配置比较用的标尺）
+  M.REF_CAPTION = '相较精通 589 双暴 5/50 增伤 0';
+
+  /** 参照面板 vs 本配置的抗性 / 独立乘区折算：
+   *  分子 = 本配置 (1 + 基础提升) · 擢升 · κ(敌人抗性 − 减抗)，分母 = 参照面板的 κ(敌人抗性)。
+   *  默认值下恒等于 1 —— 参照数与加这几项之前完全一致。 */
+  M.configFactor = function (s) {
+    return (1 + s.base) * s.asc * C.kappa(s.res - s.shred) / C.kappa(s.res);
+  };
+
+  /** 伤害（公共常数已约掉）：[d·精通 + (1−d)·基准精通] × (1 + 增伤 + 精通项) × 暴击区。
+   *  d = 星扩散直伤占比（按基准面板处定义）；d = 1 即纯直伤。rate / dmg 为百分数。 */
+  M.mapDamage = function (em, bonus, rate, dmg, s) {
+    return ((1 - s.d) * s.em + s.d * em) * (1 + bonus + C.emTerm(em)) *
+           (1 + (rate / 100) * (dmg / 100));
+  };
+
+  /** 双暴分 y（总量）按约束下最优拆分 → [暴击率, 暴伤]。仅 y ≥ 基准双暴分 时有解。 */
+  M.splitAt = function (y, cr0, cd0) {
+    var upper = Math.min(100, (y - cd0) / 2);
+    var r = Math.min(Math.max(y / 4, cr0), upper);
+    return [r, y - 2 * r];
+  };
+
+  /** 配不出的原因；能配返回 null。 */
+  M.mapInfeasible = function (x, y, s) {
+    if (x < s.em) return '低于基准精通';
+    if (y < C.baseScore(s.cr, s.cd)) return '低于基准双暴分';
+    if (x - s.em > M.EM_ADD_MAX) return '超过精通上限（+420）';
+    var rolls = (x - s.em) / C.EM_PER_ROLL + (y - C.baseScore(s.cr, s.cd)) / C.SCORE_PER_ROLL;
+    if (rolls > M.ROLL_LIMIT + 1e-9) return '超过 43 词条上限';
+    return null;
+  };
+
+  /** 「配不平」：能配，但 1:2 达不到（最优拆分顶在基准一侧）。 */
+  M.isPinnedBand = function (y, s) { return y < Math.max(4 * s.cr, 2 * s.cd); };
+  /** 配平后顶在基准哪一侧（用于灰字提示）。 */
+  M.pinnedSide = function (s) { return s.cd >= 2 * s.cr ? '暴伤' : '暴击率'; };
+
+  /** 倍数 = D(x, y) / D(基准)。仅在能配时调用。 */
+  M.multiplier = function (x, y, s) {
+    var t = M.splitAt(y, s.cr, s.cd);
+    return M.mapDamage(x, s.bonus, t[0], t[1], s) / M.mapDamage(s.em, s.bonus, s.cr, s.cd, s);
+  };
+
+  /** 参照倍数 = D(x, y) / D(参照面板) × 配置折算。 */
+  M.refMultiplier = function (x, y, s) {
+    var t = M.splitAt(y, s.cr, s.cd);
+    return M.mapDamage(x, s.bonus, t[0], t[1], s) /
+           M.mapDamage(M.REF_EM, 0, M.REF_CR, M.REF_CD, s) * M.configFactor(s);
+  };
+
+  /** 配置级乘区 ≠ 1 时的补充说明（默认值下没有这句）。 */
+  M.refFactorNote = function (s) {
+    var f = M.configFactor(s);
+    return Math.abs(f - 1) < 1e-4 ? '' : '含配置乘区 ×' + f.toFixed(3);
+  };
+  M.refLabel = function (s) {
+    var n = M.refFactorNote(s);
+    return n ? M.REF_CAPTION + ' · ' + n : M.REF_CAPTION;
+  };
+
+  /** 悬浮 / 结果框的内容。state: 'ok' | 'band' | 'bad'。 */
+  M.pointInfo = function (x, y, s) {
+    var y0 = C.baseScore(s.cr, s.cd);
+    var rolls = { emRolls: (x - s.em) / C.EM_PER_ROLL, critRolls: (y - y0) / C.SCORE_PER_ROLL };
+    var reason = M.mapInfeasible(x, y, s);
+    if (reason) {
+      return Object.assign({ state: 'bad', reason: reason, x: x, y: y,
+        mult: M.multiplier(x, y, s), ref: M.refMultiplier(x, y, s) }, rolls);
+    }
+    var t = M.splitAt(y, s.cr, s.cd);
+    return Object.assign({
+      state: M.isPinnedBand(y, s) ? 'band' : 'ok',
+      x: x, y: y, rate: t[0], dmg: t[1],
+      mult: M.multiplier(x, y, s), ref: M.refMultiplier(x, y, s),
+    }, rolls);
+  };
+
+  /** 下一个等效词条两个投向的增益（相对当前伤害）。仅在能配时调用。 */
+  M.nextRollGains = function (x, y, s) {
+    var t = M.splitAt(y, s.cr, s.cd);
+    var D0 = M.mapDamage(x, s.bonus, t[0], t[1], s);
+    var t2 = M.splitAt(y + C.SCORE_PER_ROLL, s.cr, s.cd);
+    return {
+      em: M.mapDamage(x + C.EM_PER_ROLL, s.bonus, t[0], t[1], s) / D0 - 1,
+      crit: M.mapDamage(x, s.bonus, t2[0], t2[1], s) / D0 - 1,
+    };
+  };
+
+  /** 「下一词条」的最优分配（已有词条不动）：在 α ∈ [0, 1] 上最大化 D(x + 20α, y + 6.6(1 − α))。
+   *  目标沿 α 严格凹：α* = 使落下后的点命中最优分配线（边际相等）的拆分；够不到则整条给更值的一侧。 */
+  M.nextAlloc = function (x, y, s) {
+    function f(a) {
+      return C.EM_PER_ROLL * M.dlnFdx(x + C.EM_PER_ROLL * a, s.bonus, s) -
+             C.SCORE_PER_ROLL * M.dlnGdy(y + C.SCORE_PER_ROLL * (1 - a), s.cr, s.cd);
+    }
+    if (f(0) <= 0) return { du: 0, dv: 1 };
+    if (f(1) >= 0) return { du: 1, dv: 0 };
+    var lo = 0, hi = 1;
+    for (var i = 0; i < 60; i++) {
+      var m = (lo + hi) / 2;
+      if (f(lo) * f(m) <= 0) hi = m; else lo = m;
+    }
+    var a = (lo + hi) / 2;
+    return { du: a, dv: 1 - a };
+  };
+
+  /** 暴击区 G(y) = 1 + r·d/10⁴。 */
+  M.mapCritZone = function (y, cr0, cd0) {
+    var t = M.splitAt(y, cr0, cd0);
+    return 1 + (t[0] / 100) * (t[1] / 100);
+  };
+
+  /** d lnF / dx（解析）：F = [d·x + (1−d)·基准精通]·(1 + 增伤 + 6x/(x+2000))。 */
+  M.dlnFdx = function (x, bonus, s) {
+    var dEm = C.EM_COEF * C.EM_OFFSET / ((x + C.EM_OFFSET) * (x + C.EM_OFFSET));
+    return s.d / ((1 - s.d) * s.em + s.d * x) + dEm / (1 + bonus + C.emTerm(x));
+  };
+
+  /** d lnG / dy（中心差分，h = 0.1）。 */
+  M.dlnGdy = function (y, cr0, cd0) {
+    var h = 0.1;
+    return (Math.log(M.mapCritZone(y + h, cr0, cd0)) - Math.log(M.mapCritZone(y - h, cr0, cd0))) / (2 * h);
+  };
+
+  /** 词条重要性：伤害对精通词条数、双暴词条数的梯度归一化。 */
+  M.importance = function (x, y, s) {
+    var gu = C.EM_PER_ROLL * M.dlnFdx(x, s.bonus, s);
+    var gv = C.SCORE_PER_ROLL * M.dlnGdy(y, s.cr, s.cd);
+    var t = gu + gv;
+    return { em: gu / t, crit: gv / t };
+  };
+
+  /** 可行域在 y 处的右边界（精通上限 与 43 词条斜线 取小）。 */
+  M.xRight = function (y, s) {
+    var y0 = C.baseScore(s.cr, s.cd);
+    return Math.min(
+      s.em + M.EM_ADD_MAX,
+      s.em + (M.ROLL_LIMIT - (y - y0) / C.SCORE_PER_ROLL) * C.EM_PER_ROLL);
+  };
+
+  /** 最优分配线（revX/revY）与等词条线交点（crosses）。只依赖 s 的标量参数、不碰热力图。 */
+  M.lineAndCrosses = function (s, grid) {
+    grid = grid || 201;
+    var y0 = C.baseScore(s.cr, s.cd), y1 = y0 + M.ROLL_LIMIT * C.SCORE_PER_ROLL;
+    var scores = [];
+    for (var j = 0; j < grid; j++) scores.push(y0 + (y1 - y0) * j / (grid - 1));
+
+    function lineX(y) {
+      if (M.mapInfeasible(s.em, y, s)) return null;
+      var rhs = C.SCORE_PER_ROLL * M.dlnGdy(y, s.cr, s.cd);
+      function f(x) { return C.EM_PER_ROLL * M.dlnFdx(x, s.bonus, s) - rhs; }
+      var a = s.em, b = M.xRight(y, s);
+      if (b <= a || f(a) * f(b) > 0) return null;
+      for (var k = 0; k < 40; k++) {
+        var m = (a + b) / 2;
+        if (f(a) * f(m) <= 0) b = m; else a = m;
+      }
+      return (a + b) / 2;
+    }
+
+    var revX = [], revY = [];
+    scores.forEach(function (y) {
+      var x = lineX(y);
+      if (x != null) { revX.push(x); revY.push(y); }
+    });
+
+    // 等词条线 × 最优分配线 = 该词条数预算下的精确最优拆分（沿预算线的最大值点）
+    var crosses = [];
+    function nOnLine(y) {
+      var x = lineX(y);
+      return x == null ? null : (x - s.em) / C.EM_PER_ROLL + (y - y0) / C.SCORE_PER_ROLL;
+    }
+    M.ISO_ROLLS.forEach(function (nR) {
+      var prevY = null, prevN = null;
+      for (var y = y0; y <= y1 + 1e-9; y += 0.5) {
+        var nv = nOnLine(y);
+        if (nv != null && prevN != null && (prevN - nR) * (nv - nR) <= 0) {
+          var lo = prevY, hi = y;
+          for (var k = 0; k < 60; k++) {
+            var m2 = (lo + hi) / 2;
+            if ((nOnLine(lo) - nR) * (nOnLine(m2) - nR) <= 0) hi = m2; else lo = m2;
+          }
+          var yc = (lo + hi) / 2, xc = lineX(yc);
+          if (xc >= s.em && xc <= s.em + M.EM_ADD_MAX && yc >= y0 && yc <= y1) {
+            crosses.push({ x: xc, y: yc, n: nR, mult: M.multiplier(xc, yc, s) });
+          }
+        }
+        prevY = y; prevN = nv;
+      }
+    });
+    return { revX: revX, revY: revY, crosses: crosses };
+  };
+
+  /** [lo, hi] 内以 step 为间隔的整齐刻度。 */
+  M.niceTicks = function (lo, hi, step) {
+    var out = [];
+    for (var v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(v);
+    return out;
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
