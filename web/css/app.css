@@ -367,6 +367,27 @@ input[type="range"] {
 .field__pair input[type="range"] { flex: 1; }
 .field__pair .field__input { width: 74px; flex: none; }
 
+/* 伤害段编辑器（暴击波动页）：每个段一张小卡片，两列字段 */
+.segs__list { display: flex; flex-direction: column; gap: var(--sp-2); }
+.segcard {
+  display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2) var(--sp-2);
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  padding: var(--sp-2) var(--sp-2) var(--sp-2);
+  background: var(--surface);
+}
+.segcard__head {
+  grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between;
+  font-size: var(--fs-xs); color: var(--text-dim); margin-bottom: 2px;
+}
+.segcard label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--text-dim); }
+.segcard .field__input { min-height: 28px; font-size: var(--fs-xs); padding: 0 var(--sp-2); }
+.segcard .del {
+  border: 1px solid var(--border); background: var(--surface); color: var(--text-dim);
+  border-radius: 4px; width: 20px; height: 20px; line-height: 1; cursor: pointer;
+  font: inherit; font-size: 13px; padding: 0;
+}
+.segcard .del:hover { color: var(--bad); border-color: var(--bad); }
+
 .readout {
   display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-2);
   font-size: var(--fs-xs); color: var(--text-dim);

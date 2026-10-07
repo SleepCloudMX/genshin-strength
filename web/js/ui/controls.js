@@ -49,6 +49,8 @@
           state: state,
           commit: function () { cb.commit(c.key); },
           refresh: function () { cb.commit(c.key); },
+          setHint: setHint,
+          hideHint: hideHint,
         });
         host.appendChild(cell);
         return;
