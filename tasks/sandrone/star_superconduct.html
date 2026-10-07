@@ -222,13 +222,10 @@ function render() {
     `最优处：精通 ${emBest.toFixed(0)}（增伤项 ${(emTerm(emBest) * 100).toFixed(1)}%）、双暴 ${cr.toFixed(1)} / ${cd.toFixed(1)}、攻击词条 ${bz.toFixed(1)}（+${(bigGain * bz).toFixed(0)} 攻击）` +
     ` ｜ 全攻击 ×${(damage(s, 0, 0) / damage(s0, 0, 0)).toFixed(3)}　全精通 ×${(damage(s, s.n, 0) / damage(s0, 0, 0)).toFixed(3)}　全双暴 ×${(damage(s, 0, s.n) / damage(s0, 0, 0)).toFixed(3)}`;
 
-  // 等攻击投入线（x + y = c ⟺ 攻击 = n − c 词条）：白色底线 + 深灰虚线两层 ——
-  // 浅色区只见虚线，深紫底上白底把线托出来；标签加深、垫半透明白底
-  const shapes = [], annotations = [];
+  // 等攻击投入线（x + y = c ⟺ 攻击 = n − c 词条）：橙色虚线；标签在叠加层（白描边橙字）
+  const shapes = [];
   for (let c = 5; Math.ceil(c) < s.n; c += 5) {
-    shapes.push({ type: 'line', x0: c, y0: 0, x1: 0, y1: c, line: { color: 'rgba(255,255,255,0.55)', width: 3 } });
-    shapes.push({ type: 'line', x0: c, y0: 0, x1: 0, y1: c, line: { color: '#444', width: 1.2, dash: 'dash' } });
-    annotations.push({ x: c * 0.82, y: c * 0.18, text: `攻击 ${(s.n - c).toFixed(0)}`, showarrow: false, font: { size: 10.5, color: '#444' }, bgcolor: 'rgba(255,255,255,0.7)', borderpad: 2 });
+    shapes.push({ type: 'line', x0: c, y0: 0, x1: 0, y1: c, line: { color: '#e8710a', width: 1.4, dash: 'dash' } });
   }
 
   // 悬浮数据：词条 → 面板值
@@ -273,7 +270,7 @@ function render() {
   Plotly.react('plot', traces, {
     xaxis: { title: { text: '精通词条数' }, range: [0, s.n], zeroline: false, gridcolor: '#eee' },
     yaxis: { title: { text: '双暴词条数' }, range: [0, s.n], zeroline: false, gridcolor: '#eee' },
-    shapes, annotations,
+    shapes,
     legend: { x: 0.01, y: 0.99, bgcolor: 'rgba(255,255,255,0.85)' },
     margin: { t: 24, r: 24, b: 52, l: 60 }, height: 620,
     hovermode: 'closest', plot_bgcolor: '#fff', paper_bgcolor: '#fff',
@@ -334,6 +331,14 @@ function updOverlay() {
   ovl.style.width = w + 'px'; ovl.style.height = h + 'px';
   svg.setAttribute('width', w); svg.setAttribute('height', h);
   const parts = ['<defs><marker id="ovl-arrow-g" markerWidth="7" markerHeight="7" refX="5.5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#4a6fa5"/></marker></defs>'];
+  // 等攻击线标签：橙字白描边（paint-order:stroke），画在校准后的绘图区上
+  if (lastState) {
+    for (let c = 5; Math.ceil(c) < lastState.n; c += 5) {
+      const lx = c * 0.82 / lastState.n * w;
+      const ly = (lastState.n - c * 0.18) / lastState.n * h;
+      parts.push(`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="11" fill="#e8710a" stroke="#fff" stroke-width="3" stroke-linejoin="round" text-anchor="middle" style="paint-order:stroke">攻击 ${(lastState.n - c).toFixed(0)}</text>`);
+    }
+  }
   if (hoverPx && lastState) {
     const s = lastState;
     const x = hoverPx.x / w * s.n;
