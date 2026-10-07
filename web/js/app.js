@@ -246,7 +246,11 @@
       page.appendChild(grid);
 
       app.state = {};
-      list.forEach(function (c) { if (c && c.def !== undefined) app.state[c.key] = c.def; });
+      list.forEach(function (c) {
+        if (!c) return;
+        if (c.def !== undefined) app.state[c.key] = c.def;
+        if (c.defs) Object.assign(app.state, c.defs);
+      });
     } else {
       page.appendChild(main);
       app.state = {};

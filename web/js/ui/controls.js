@@ -132,6 +132,7 @@
         };
         var commitRange = function (v) {
           if (!Number.isFinite(v)) { syncRange(state[c.key]); return; }
+          v = clampTo(numBox || rng, v);   // 数字框只设下界时可填更大的值（如减抗 > 100）
           state[c.key] = v;
           syncRange(v);
           hideHint();
