@@ -74,7 +74,7 @@
       { key: 'bV', type: 'number', label: '双暴分', def: 320, step: 10, min: 10 },
       { key: 'bnon', type: 'number', label: '单次未暴击伤害 w', def: 20, step: 1, min: 0 },
       { key: 'bn', type: 'number', label: '伤害次数', def: 30, step: 1, min: 1, max: 500 },
-      { key: 'bq', type: 'text', label: '分位档 %', def: '50, 80, 90, 95, 99' },
+      { key: 'bq', type: 'text', full: true, label: '分位档 %', def: '50, 80, 90, 95, 99' },
     ],
 
     create: function (host, ctx) {

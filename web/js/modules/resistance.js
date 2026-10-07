@@ -56,7 +56,7 @@
           '减抗可以把抗性削成<b>负数</b>，负数区每点只值一半。多个减抗来源的叠加按「直接相加」处理（社区口径，本项目未核实）。',
       },
       { key: 's', type: 'range', label: '减抗量 %', def: 30, min: 0, max: 100, step: 1, box: { min: 0, step: 1 } },
-      { key: 'ks', type: 'text', label: '对比档位 %', def: '20, 40, 60, 80, 100' },
+      { key: 'ks', type: 'text', full: true, label: '对比档位 %', def: '20, 40, 60, 80, 100' },
       {
         key: 'xr', type: 'custom', defs: { x0: 0, x1: 150 },
         build: function (cell, api) {

@@ -22,6 +22,7 @@
     var hintEl = el('div', 'hint');
     var refreshers = [];
     var bindings = [];   // { key, set(v) }：外部改 state 后写回控件
+    var notes = [];      // 说明块统一收在面板底部（控件两列排，说明不占前面）
 
     function setHint(text) {
       if (hintEl.textContent !== text) hintEl.textContent = text;
@@ -32,9 +33,10 @@
     (list || []).forEach(function (c) {
       if (!c) return;
 
-      if (c.type === 'note') { host.appendChild(el('p', 'note' + (c.sep ? ' note-sep' : ''), c.html)); return; }
+      if (c.type === 'note') { notes.push(el('p', 'note', c.html)); return; }
       if (c.type === 'readout') {
-        var ro = el('div', 'readout', '<span>' + c.label + '</span><span class="readout__v"></span>');
+        var ro = el('div', 'readout readout--full',
+          '<span>' + c.label + '</span><span class="readout__v"></span>');
         var roV = ro.querySelector('.readout__v');
         refreshers.push(function (s) {
           var v = c.compute(s);
@@ -44,7 +46,7 @@
         return;
       }
       if (c.type === 'custom') {
-        var cell = el('div', 'field');
+        var cell = el('div', 'field field--full');
         c.build(cell, {
           state: state,
           commit: function () { cb.commit(c.key); },
@@ -57,7 +59,9 @@
       }
 
       var id = 'ctl-' + c.key;
-      var field = el('div', 'field');
+      /* 下拉 / 滑条 / 自定义占整行；数字与短文本默认半行（c.full 可强制整行） */
+      var wide = c.full || c.type === 'select' || c.type === 'range';
+      var field = el('div', 'field' + (wide ? ' field--full' : ''));
       var label = el('label', 'field__label', c.label);
       label.setAttribute('for', id);
 
@@ -171,6 +175,11 @@
     });
 
     host.appendChild(hintEl);
+    if (notes.length) {
+      var notesBox = el('div', 'inspector__notes');
+      notes.forEach(function (n) { notesBox.appendChild(n); });
+      host.appendChild(notesBox);
+    }
 
     return {
       refresh: function (s) { refreshers.forEach(function (fn) { fn(s); }); },

@@ -54,7 +54,7 @@
       ],
     },
     {
-      group: '「木偶·桑多涅」星超导',
+      group: '「桑多涅」星超导',
       items: [
         { id: 'sandrone/star_superconduct', label: '词条分配', icon: 'spark' },
         { id: 'sandrone/weapon_compare', label: '武器对比', icon: 'sword' },
@@ -87,7 +87,7 @@
       group.items.forEach(function (item) {
         var a = el('a', 'nav__item' + (item.id === activeId ? ' is-active' : ''));
         a.href = '#/' + (item.id === 'home' ? '' : item.id);
-        a.innerHTML = ICONS[item.icon] + '<span>' + item.label + '</span>';
+        a.innerHTML = '<span>' + item.label + '</span>';
         if (item.id === activeId) a.setAttribute('aria-current', 'page');
         host.appendChild(a);
       });

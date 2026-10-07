@@ -1,4 +1,4 @@
-/* 木偶·桑多涅 · 星超导词条分配：精通 × 双暴热图（攻击吃剩余词条）+ 跟随梯度箭头。 */
+/* 桑多涅 · 星超导词条分配：精通 × 双暴热图（攻击吃剩余词条）+ 跟随梯度箭头。 */
 (function (global) {
   'use strict';
   var GS = global.GS = global.GS || {};
@@ -12,7 +12,7 @@
     '星超导伤害 = 反应系数（层数）× 攻击力 × 倍率 × (1 + 天赋加伤) × (1 + 6EM/(EM+2000) + 增伤) × 抗性 × 暴击 × 擢升 —— ' +
     '见机制文档 <code>docs/ai-output/0-mechanism/3-星超导伤害机制.md</code>。<b>倍率不计入</b>，图上都是相对倍数；' +
     '反应系数（层数）、天赋加伤、抗性 / 减抗、擢升都是线性乘子，<b>不改变分配结论</b>；羽毛未计入。<br>' +
-    '<b>词条预算上限 53</b> ≈ 木偶满档副词条容量（同瑞希 43 的算法：每件 4 条初始 + 5 次强化、满档值折算 —— ' +
+    '<b>词条预算上限 53</b> ≈ 桑多涅满档副词条容量（同瑞希 43 的算法：每件 4 条初始 + 5 次强化、满档值折算 —— ' +
     '双暴 41.4 + 大攻击 3.5 + 精通 5.8 + 小攻击 2.3 ≈ 52.9）。<br>' +
     '武器数据（90 级）：浪影阔剑 510 / 攻击 41.3%（受治疗 +48% 攻击）；超越之匙 674 / 暴伤 44.1%（攻击 +28%、超越满层反应增伤 +48%）；' +
     '焚曜千阳 741 / 暴击 11.0%（焚光：攻击 +28%、暴伤 +20%）；苇海信标 608 / 暴击 33.1%（战技命中 + 受击各 +20% 攻击）；' +
@@ -20,7 +20,7 @@
     '螭骨剑 510 / 暴击 27.6%、赤角石溃杵 542 / 暴伤 88.2%（特效不作用于星超导，不计）。';
 
   M['sandrone/star_superconduct'] = {
-    title: '「木偶·桑多涅」星超导词条分配',
+    title: '「桑多涅」星超导词条分配',
     tab: '桑多涅·星超导分配',
     intro: '把 n 个等效词条分给精通 / 双暴 / 攻击（攻击吃剩余）：颜色 = 相对基准面板的伤害倍数，叠加倍数等高线；' +
       '鼠标在图上时，箭头指向该点<b>上升最快</b>的方向（画面空间每像素增益最大），<b>长度反映梯度大小</b>；' +
@@ -28,7 +28,7 @@
     controls: [
       {
         key: '', type: 'note',
-        html: '<b>基准面板 = 上完 buff、不含副词条</b>（木偶 + 武器 + 攻攻暴主词条 + 羽 + 队友都算在里面）；' +
+        html: '<b>基准面板 = 上完 buff、不含副词条</b>（桑多涅 + 武器 + 攻攻暴主词条 + 羽 + 队友都算在里面）；' +
           '<b>不含套装特效</b> —— 幻灭 4 件的 +40% 增伤与条件 +16% 暴击（按全覆盖）由脚本自动加。',
       },
       {
@@ -49,21 +49,21 @@
       { key: 'cd', type: 'number', label: '基准暴伤 %', def: 112.2, step: 0.1, min: 50 },
       { key: 'bonus', type: 'number', label: '反应增伤 %（额外来源）', def: 0, step: 1, min: 0 },
       { key: 'n', type: 'range', label: '词条预算', def: 30, min: 2, max: S.N_MAX, step: 1 },
-      { key: 'baseAtk', type: 'readout', label: '基础攻击力', compute: function (s) {
+      { key: 'baseAtk', type: 'readout', full: true, label: '基础攻击力', compute: function (s) {
         var w = S.weaponById(s.weapon);
         return (S.CHAR_BASE + w.base).toFixed(0) + '（' + S.CHAR_BASE + ' + ' + w.base + '）';
       } },
-      { key: 'panelAtk', type: 'readout', label: '基准攻击力（计入伤害）', compute: function (s) {
+      { key: 'panelAtk', type: 'readout', full: true, label: '基准攻击力（计入伤害）', compute: function (s) {
         var w = S.weaponById(s.weapon);
         var base = S.CHAR_BASE + w.base;
         return (base * (1 + S.MAINS_ATK_PCT + w.atkPct + w.extraAtk + s.patk / 100) + S.MAINS_FLAT + s.fatk).toFixed(0);
       } },
-      { key: 'conv', type: 'readout', label: '攻击词条换算', compute: function (s) {
+      { key: 'conv', type: 'readout', full: true, label: '攻击词条换算', compute: function (s) {
         var w = S.weaponById(s.weapon);
         var gain = (S.CHAR_BASE + w.base) * S.PER_ATK;
         return '大 ' + gain.toFixed(1) + ' · 小 ' + S.PER_FLAT;
       } },
-      { key: 'critDisp', type: 'readout', label: '有效双暴（含套装）', compute: function (s) {
+      { key: 'critDisp', type: 'readout', full: true, label: '有效双暴（含套装）', compute: function (s) {
         var w = S.weaponById(s.weapon);
         var cr = s.cr + S.SET_CR + w.cr, cd = s.cd + w.cd + w.extraCd;
         return cr.toFixed(1) + ' / ' + cd.toFixed(1);

@@ -31,7 +31,7 @@
       { key: 'score', type: 'readout', label: '双暴分', compute: function (s) { return C.f(C.baseScore(s.cr, s.cd), 1); } },
       { key: 'bonus', type: 'number', label: '星扩散增伤 %', def: 140, step: 1, min: 0 },
       { key: 'd', type: 'range', label: '星扩散直伤占比', def: 90, min: 0, max: 100, step: 1, unit: '%' },
-      { key: 'ns', type: 'text', label: '曲线取哪些 n', def: '15, 20, 25, 30, 35' },
+      { key: 'ns', type: 'text', full: true, label: '曲线取哪些 n', def: '15, 20, 25, 30, 35' },
       { key: 'level', type: 'number', label: '平台阈值 %', def: 99, step: 0.5, min: 0, max: 100 },
     ],
 
