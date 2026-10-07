@@ -262,10 +262,12 @@
           commit: function () { refresh(); },
           preview: function () { preview(); },
         });
-        var acts = el('div', 'inspector__acts');
-        UI.panels.chartActions(function () { return app.current && app.current.plot; })
-          .forEach(function (b) { acts.appendChild(b); });
-        inspector.appendChild(acts);
+        if (!mod.noChart) {
+          var acts = el('div', 'inspector__acts');
+          UI.panels.chartActions(function () { return app.current && app.current.plot; })
+            .forEach(function (b) { acts.appendChild(b); });
+          inspector.appendChild(acts);
+        }
       }
       refresh();
       if (mod.math) ensureMath(page);
