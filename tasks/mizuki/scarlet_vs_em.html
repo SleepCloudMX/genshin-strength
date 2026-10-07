@@ -28,6 +28,7 @@
   }
   .panel-note { flex-basis: 100%; font-size: 13px; color: var(--muted); }
   .panel-note b { color: var(--ink); }
+  .panel-note a { color: var(--muted); }
   .panel-sep { flex-basis: 100%; height: 1px; background: var(--line); margin: 2px 0 -2px; }
   label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
   input, select {
@@ -64,7 +65,7 @@
 
 <div class="panel">
   <div class="panel-note"><b>以下都填「上完 buff」后的实际数值</b>（含副词条；不含套装特效 —— 两套的套装效果由脚本自动加上）。</div>
-  <div class="panel-note"><b>星扩散伤害 = 星扩散直伤（大头）+ 反应星扩散</b>。<b>星扩散直伤占比</b>：给定的假定常数（全图按此假定，不随基准精通变化），计算中直接采用；本页<b>不</b>根据你的配置推算真实占比 —— 真实占比取决于触发次数等未确认机制。默认 90%（社区有「直伤约占九成」的说法，未核实）；拉到 100% = 只看星扩散直伤。</div>
+  <div class="panel-note"><b>星扩散伤害 = 星扩散直伤（大头）+ 反应星扩散</b>。<b>星扩散直伤占比</b>：给定的假定常数（全图按此假定，不随基准精通变化），计算中直接采用；本页<b>不</b>根据你的配置推算真实占比（实测约九成，见<a href="stellar_swirl.html#share">机制页</a>）。默认 90%；拉到 100% = 只看星扩散直伤。</div>
   <!-- min 就是下界（唯一来源）：读数时夹紧，提交时把越界值写回框里；页面上不列范围 -->
   <label>星扩散增伤 %<input id="bonus" type="number" step="5" min="0"></label>
   <label>基准精通<input id="em" type="number" step="10" min="589"></label>
