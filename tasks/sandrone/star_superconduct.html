@@ -63,7 +63,7 @@
 <h1>「木偶·桑多涅」星超导词条分配</h1>
 <span class="links"><a class="repo" href="../../index.html"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 1.6 7.2h1.5v7h3.3v-4.1h3.2v4.1h3.3v-7h1.5L8 1.8z"/></svg>主页</a><a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></span>
 </div>
-<div class="sub">把 n 个等效词条分给精通 / 双暴 / 攻击：图上每个点是一套分配（攻击吃剩余），颜色 = 相对基准面板的伤害倍数，叠加倍数等高线；鼠标在图上时，箭头指向该点<b>上升最快</b>的方向（画面空间每像素增益最大）。滑条松开、数字框失焦 / 回车后才重算；武器横评见<a href="weapon_compare.html">武器对比</a>页。</div>
+<div class="sub">把 n 个等效词条分给精通 / 双暴 / 攻击：图上每个点是一套分配（攻击吃剩余），颜色 = 相对基准面板的伤害倍数，叠加倍数等高线；鼠标在图上时，箭头指向该点<b>上升最快</b>的方向（画面空间每像素增益最大），<b>长度反映梯度大小</b>。滑条松开、数字框失焦 / 回车后才重算；武器横评见<a href="weapon_compare.html">武器对比</a>页。</div>
 
 <div class="panel">
   <div class="panel-note"><b>基准面板 = 上完 buff、不含副词条</b>（木偶 + 武器 + 攻攻暴主词条 + 羽 + 队友都算在里面）；<b>不含套装特效</b> —— 幻灭 4 件的 +40% 增伤与条件 +16% 暴击（按全覆盖）由脚本自动加。</div>
@@ -263,7 +263,7 @@ function render() {
 
   traces.push({
     type: 'scatter', mode: 'markers', x: [best.x], y: [best.y],
-    marker: { symbol: 'circle', size: 9, color: '#e8710a' },
+    marker: { symbol: 'circle', size: 7, color: '#e8710a', line: { color: '#fff', width: 1.5 } },
     name: '最优', hoverinfo: 'skip',
   });
 
@@ -278,8 +278,8 @@ function render() {
 }
 
 // ── 悬浮叠加层：跟随鼠标的梯度箭头 ──
-// 方向 = 画面空间「每像素增益最大」：∂lnD/∂x·(n/w) 与 ∂lnD/∂y·(n/h) 归一化 ——
-// 已按两轴实际像素长度折算，图中看起来的倾斜就是真实的最陡方向（与热图页的钢蓝箭头同口径）。
+// 方向 = 画面空间「每像素增益最大」（∂lnD/∂x·(n/w)、∂lnD/∂y·(n/h) 归一化），已按两轴实际像素长度折算；
+// 长度 ∝ 梯度大小（每像素 ln 增益），截断到 [9, 66] px —— 陡处长、平处短。
 let lastState = null, hoverPx = null, overlayQueued = false;
 
 /** 绘图区真实几何（像素，相对 .plotwrap）：读 Plotly 渲染后的实际值。 */
@@ -309,10 +309,10 @@ function grad(x, y, s) {
   return { gx: one(f(x - h, y), f(x + h, y)), gy: one(f(x, y - h), f(x, y + h)) };
 }
 
-/** 从 (px, py) 沿像素空间方向（ax, ay，向上为正）画固定长度箭头；贴边按比例缩短。 */
-function arrowAt(parts, px, py, ax, ay, w, h) {
+/** 从 (px, py) 沿像素空间方向（ax, ay，向上为正）画长度 L 的箭头；贴边按比例缩短。 */
+function arrowAt(parts, px, py, ax, ay, w, h, L) {
   const len = Math.hypot(ax, ay) || 1;
-  const L = 33, PAD = 8;
+  const PAD = 8;
   const dx = ax / len * L, dy = -ay / len * L;
   let shrink = 1;
   if (dx > 0) shrink = Math.min(shrink, Math.max(w - PAD - px, 0) / dx);
@@ -346,7 +346,8 @@ function updOverlay() {
     if (x >= 0 && y >= 0 && x + y <= s.n + 1e-9) {
       const g = grad(x, y, s);
       const ax = g.gx * s.n / w, ay = g.gy * s.n / h;   // 每像素的 lnD 增益（画面空间梯度）
-      if (Math.hypot(ax, ay) > 1e-9) arrowAt(parts, hoverPx.x, hoverPx.y, ax, ay, w, h);
+      const mag = Math.hypot(ax, ay);
+      if (mag > 1e-9) arrowAt(parts, hoverPx.x, hoverPx.y, ax, ay, w, h, Math.min(Math.max(mag * 60000, 9), 66));
     }
   }
   svg.innerHTML = parts.join('');
