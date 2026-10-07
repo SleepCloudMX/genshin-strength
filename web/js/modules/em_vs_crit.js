@@ -25,11 +25,11 @@
           '计算中直接采用；本页<b>不</b>根据你的配置推算真实占比（实测约九成，见<a href="#/mizuki/stellar_swirl#share">机制页</a>）。' +
           '默认 90%；拉到 100% = 只看星扩散直伤。',
       },
-      { key: 'em', type: 'number', label: '基准精通（不含副词条）', def: 951, step: 1, min: 589 },
+      { key: 'bonus', type: 'number', label: '星扩散增伤 %', def: 140, step: 1, min: 0 },
+      { key: 'em', type: 'number', label: '基准精通', def: 951, step: 1, min: 589 },
       { key: 'cr', type: 'number', label: '基准暴击率 %', def: 36, step: 0.1, min: 5 },
       { key: 'cd', type: 'number', label: '基准暴伤 %', def: 112.2, step: 0.1, min: 50 },
       { key: 'score', type: 'readout', label: '双暴分', compute: function (s) { return C.f(C.baseScore(s.cr, s.cd), 1); } },
-      { key: 'bonus', type: 'number', label: '星扩散增伤 %', def: 140, step: 1, min: 0 },
       { key: 'd', type: 'range', label: '星扩散直伤占比', def: 90, min: 0, max: 100, step: 1, unit: '%' },
       { key: 'ns', type: 'text', full: true, label: '曲线取哪些 n', def: '15, 20, 25, 30, 35' },
       { key: 'level', type: 'number', label: '平台阈值 %', def: 99, step: 0.5, min: 0, max: 100 },

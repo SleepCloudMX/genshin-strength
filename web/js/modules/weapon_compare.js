@@ -54,7 +54,7 @@
       { key: 'em', type: 'number', label: '基准精通', def: 0, step: 10, min: 0 },
       { key: 'cr', type: 'number', label: '基准暴击率 %', def: 24.2, step: 0.1, min: 0 },
       { key: 'cd', type: 'number', label: '基准暴伤 %', def: 112.2, step: 0.1, min: 50 },
-      { key: 'patk', type: 'number', label: '额外攻击 %（队友 / buff）', def: 0, step: 1, min: 0 },
+      { key: 'patk', type: 'number', label: '额外攻击 %', def: 0, step: 1, min: 0 },
     ],
 
     create: function (host) {

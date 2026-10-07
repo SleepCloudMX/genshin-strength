@@ -401,12 +401,13 @@ input[type="range"] {
 .segcard .del:hover { color: var(--bad); border-color: var(--bad); }
 
 .readout {
-  display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-2);
+  display: flex; align-items: baseline; gap: var(--sp-2);
   font-size: var(--fs-xs); color: var(--text-dim);
+  white-space: nowrap;
 }
 .readout__v {
   font-family: var(--mono); font-size: var(--fs-sm); font-weight: 600;
-  font-variant-numeric: tabular-nums; color: var(--accent-deep); text-align: right;
+  font-variant-numeric: tabular-nums; color: var(--accent-deep);
 }
 
 .hint {

@@ -42,12 +42,12 @@
           return { value: w.id, label: w.name + '（' + w.base + ' 基础）' };
         }),
       },
-      { key: 'patk', type: 'number', label: '额外攻击 %（队友 / buff）', def: 0, step: 1, min: 0 },
-      { key: 'fatk', type: 'number', label: '额外固定攻击', def: 0, step: 1, min: 0 },
+      { key: 'bonus', type: 'number', label: '反应增伤 %', def: 0, step: 1, min: 0 },
       { key: 'em', type: 'number', label: '基准精通', def: 0, step: 10, min: 0 },
       { key: 'cr', type: 'number', label: '基准暴击率 %', def: 24.2, step: 0.1, min: 0 },
       { key: 'cd', type: 'number', label: '基准暴伤 %', def: 112.2, step: 0.1, min: 50 },
-      { key: 'bonus', type: 'number', label: '反应增伤 %（额外来源）', def: 0, step: 1, min: 0 },
+      { key: 'patk', type: 'number', label: '额外攻击 %', def: 0, step: 1, min: 0 },
+      { key: 'fatk', type: 'number', label: '额外固定攻击', def: 0, step: 1, min: 0 },
       { key: 'n', type: 'range', label: '词条预算', def: 30, min: 2, max: S.N_MAX, step: 1 },
       { key: 'baseAtk', type: 'readout', full: true, label: '基础攻击力', compute: function (s) {
         var w = S.weaponById(s.weapon);
@@ -63,7 +63,7 @@
         var gain = (S.CHAR_BASE + w.base) * S.PER_ATK;
         return '大 ' + gain.toFixed(1) + ' · 小 ' + S.PER_FLAT;
       } },
-      { key: 'critDisp', type: 'readout', full: true, label: '有效双暴（含套装）', compute: function (s) {
+      { key: 'critDisp', type: 'readout', full: true, label: '有效双暴', compute: function (s) {
         var w = S.weaponById(s.weapon);
         var cr = s.cr + S.SET_CR + w.cr, cd = s.cd + w.cd + w.extraCd;
         return cr.toFixed(1) + ' / ' + cd.toFixed(1);

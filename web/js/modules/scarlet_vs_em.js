@@ -38,7 +38,7 @@
       },
       { key: 'bonus', type: 'number', label: '星扩散增伤 %', def: 90, step: 5, min: 0 },
       { key: 'em', type: 'number', label: '基准精通', def: 1000, step: 10, min: 589 },
-      { key: 'cr', type: 'number', label: '基准暴击 %', def: 60, step: 0.1, min: 5 },
+      { key: 'cr', type: 'number', label: '基准暴击率 %', def: 60, step: 0.1, min: 5 },
       { key: 'cd', type: 'number', label: '基准暴伤 %', def: 120, step: 0.1, min: 50 },
       { key: 'score', type: 'readout', label: '双暴分', compute: function (s) { return (2 * s.cr + s.cd).toFixed(1); } },
       { key: 'd', type: 'range', label: '星扩散直伤占比', def: 90, min: 0, max: 100, step: 1, unit: '%' },
