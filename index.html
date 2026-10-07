@@ -2,144 +2,51 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="原神伤害计算与可视化：星扩散、星超导，以及抗性区、暴击区等基础乘区分析">
 <title>原神强度计算</title>
 <link rel="icon" type="image/png" href="https://sleepcloudmx.github.io/Others/Image/kenomimi.png">
-<style>
-  :root { --ink:#222; --muted:#555; --line:#d8d8d8; --bg:#fafafa; }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; padding: 20px 24px 40px; background: #fff; color: var(--ink);
-    font-family: "Microsoft YaHei", "SimHei", system-ui, sans-serif;
-  }
-  .wrap { max-width: 820px; margin: 0 auto; }
-  h1 { font-size: 19px; margin: 0; }
-  h2 { font-size: 15.5px; margin: 18px 0 6px; }
-  .head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 4px; font-size: 13px; }
-  .repo { color: var(--muted); text-decoration: none; white-space: nowrap; }
-  .repo:hover { color: var(--ink); text-decoration: underline; }
-  .repo svg { width: 1.15em; height: 1.15em; fill: currentColor; vertical-align: -0.18em; margin-right: 4px; }
-  .repo-line { margin-top: 8px; }
-  .sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
-  .cards { display: grid; gap: 14px; }
-  .card {
-    display: block; color: inherit; text-decoration: none;
-    background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
-    padding: 15px 18px 14px; transition: border-color .15s ease, box-shadow .15s ease;
-  }
-  .card:hover { border-color: #e8710a; box-shadow: 0 2px 10px rgba(0, 0, 0, .07); }
-  .card h2 { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 15.5px; margin: 0; }
-  .card .arrow { color: #ccc; font-weight: normal; transition: color .15s ease; }
-  .card:hover .arrow { color: #e8710a; }
-  .card .strip { height: 4px; width: 84px; border-radius: 2px; margin: 9px 0 8px; }
-  .card .desc { font-size: 13px; color: var(--muted); }
-  .card .take { font-size: 12.5px; color: #666; margin-top: 5px; }
-  .card .take b, .sub b { color: var(--ink); }
-  footer {
-    margin-top: 24px; padding-top: 14px; border-top: 1px solid var(--line);
-    font-size: 12px; color: var(--muted); line-height: 1.7;
-  }
-  /* 每张卡片的小色条 = 对应页面的图表配色 */
-  .s1 { background: linear-gradient(90deg, #053061, #a7d0e4, #f7f6f6, #f7b799, #67001f); }
-  .s2 { background: linear-gradient(90deg, #77d153, #21908d, #440154); }
-  .s3 { background: linear-gradient(90deg, #440154, #31688e, #35b779, #fde725); }
-  .s4 { background: linear-gradient(90deg, #e8710a, #f7b799, #d8d8d8); }
-  .s5 { background: linear-gradient(90deg, #2e8b57, #2f6f9f, #bac5d0, #d62728, #e07b39); }
-  .s6 { background: linear-gradient(90deg, #3d6f96, #6f9ec2, #bac5d0, #e3e8ec); }
-  .s7 { background: linear-gradient(90deg, #2f6f9f, #2e8b57, #e07b39, #7b5ea7, #c2453a); }
-  .s8 { background: linear-gradient(90deg, #fde725, #35b779, #31688e, #440154); }
-  .s9 { background: linear-gradient(90deg, #f0c987, #e8710a, #8c3b00); }
-</style>
+<link rel="stylesheet" href="web/css/app.css">
 </head>
 <body>
+<a class="skip" href="#stage">跳到主内容</a>
 
-<div class="wrap">
-<div class="head">
-<h1>原神强度计算</h1>
-<a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a>
-</div>
-<h2>「梦见月瑞希」星扩散</h2>
-<div class="sub">三张交互页面 + 一页机制说明。</div>
-
-<div class="cards">
-  <a class="card" href="tasks/mizuki/scarlet_vs_em.html">
-    <h2>血红之证 4 件套 vs 精通套<span class="arrow">→</span></h2>
-    <div class="strip s1"></div>
-    <div class="desc">两套圣遗物的比值热力图，同时就是计算器：填面板，图上的十字准星定位，给出比值、谁更优、精通到多少才翻面；对比的精通套可在<b>精通 2+2</b> 与<b>饰金之梦 4 件套</b>之间切换；「星扩散直伤占比」滑条可把反应按给定比例并入。</div>
-    <div class="take">分界线随双暴分与所选精通套在 <b>约 850 ~ 1220 精通</b>之间移动；饰金之梦比 2+2 只多 20 精通，却足以翻面 —— 默认面板几乎压在线上（血红 / 饰金 = 1.0036，分界线 978）。</div>
+<header class="topbar">
+  <button class="iconbtn topbar__menu" id="navToggle" aria-label="打开导航" aria-expanded="false" aria-controls="sidenav"></button>
+  <a class="brand" href="#/">
+    <svg class="brand__mark" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+      <path d="M12 2.5l1.9 6.1L20 10.5l-6.1 1.9L12 18.5l-1.9-6.1L4 10.5l6.1-1.9z" fill="currentColor" opacity=".9"/>
+      <path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z" fill="currentColor" opacity=".55"/>
+    </svg>
+    <span class="brand__name">原神强度计算</span>
   </a>
+  <div class="topbar__actions">
+    <a class="iconbtn" id="ghLink" href="https://github.com/SleepCloudMX/genshin-strength"
+       target="_blank" rel="noreferrer" aria-label="GitHub 仓库" title="GitHub 仓库"></a>
+  </div>
+</header>
 
-  <a class="card" href="tasks/mizuki/em_vs_crit.html">
-    <h2>精通和双暴的词条分配<span class="arrow">→</span></h2>
-    <div class="strip s2"></div>
-    <div class="desc">曲线图：悬浮读该点的双暴拆分、精通与伤害倍数；基准面板、星扩散增伤、星扩散直伤占比、曲线取哪几个词条数都可改。</div>
-    <div class="take">最优存在但<b>不敏感</b>：双暴词条先补暴击率到 1 : 2，之后按 1 : 2 同步加。</div>
-  </a>
-
-  <a class="card" href="tasks/mizuki/em_crit_map.html">
-    <h2>精通 × 双暴分的伤害热图<span class="arrow">→</span></h2>
-    <div class="strip s3"></div>
-    <div class="desc">伤害热力图 + 最优分配线 + 等词条线：悬浮给「下一词条」方向，点击固定读数与标注；「星扩散直伤占比」滑条可把反应按给定比例并入。</div>
-    <div class="take">等词条线（10 / 20 / 30 / 40）与最优分配线的交点 = <b>该词条数下的最优拆分</b>。</div>
-  </a>
-
-  <a class="card" href="tasks/mizuki/stellar_swirl.html">
-    <h2>星扩散机制<span class="arrow">→</span></h2>
-    <div class="strip s4"></div>
-    <div class="desc">开头是一个按面板算共用系数的计算器；下面是三条伤害公式与各乘区、风涡与引爆、瑞希相关天赋、实测直伤占比，以及三个计算页共用的口径（等效词条、双暴分、配平）。</div>
-    <div class="take">看计算页面之前，先在这里对齐口径。</div>
-  </a>
+<div class="layout">
+  <aside class="sidenav" id="sidenav">
+    <nav id="navList" aria-label="主导航"></nav>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+  <main class="stage" id="stage" tabindex="-1"></main>
 </div>
 
-<h2>「木偶·桑多涅」星超导</h2>
-<div class="sub">星超导：三属性词条分配 + 武器横评。</div>
-
-<div class="cards">
-  <a class="card" href="tasks/sandrone/star_superconduct.html">
-    <h2>星超导词条分配<span class="arrow">→</span></h2>
-    <div class="strip s8"></div>
-    <div class="desc">把 n 个等效词条分给精通 / 双暴 / 攻击（攻击吃剩余）：热力图上每个点是一套分配，颜色 = 相对基准面板的伤害倍数，叠加倍数等高线；悬浮读该点的面板与倍数、并跟随一支指向<b>上升最快方向</b>的箭头；最优点标记；词条预算上到 53（木偶满副词条容量）。</div>
-    <div class="take">默认面板（木偶 + 浪影阔剑，30 词条）下最优 ≈ 精通 12 · 双暴 18 · 攻击 0 —— <b>攻攻主词条之后，副词条再堆攻击的边际垫底</b>。</div>
-  </a>
-
-  <a class="card" href="tasks/sandrone/weapon_compare.html">
-    <h2>武器对比<span class="arrow">→</span></h2>
-    <div class="strip s9"></div>
-    <div class="desc">8 把双手剑在各自最优词条分配下的伤害指数，以超越之匙 R1 = 100（五星浅棕底 / 四星浅紫底）；词条预算与基准面板可改；特效只计对星超导生效的常驻部分（假设行内注明）。</div>
-    <div class="take">超越之匙 100 ｜ 苇海信标 85.6 ｜ 焚曜千阳 84.4 ｜ 无工之剑 80.7 ｜ 狼的末路 75.6 ｜ 赤角石溃杵 73.6 ｜ 浪影阔剑 R5 73.2 ｜ 螭骨剑 63.8（默认口径、30 词条）。</div>
-  </a>
-</div>
-
-<h2>基础专题</h2>
-<div class="sub">与具体角色无关的通用分析 —— 某个乘区本身的性质，做新角色时同样适用。</div>
-
-<div class="cards">
-  <a class="card" href="tasks/basics/resistance.html">
-    <h2>抗性区：减抗收益<span class="arrow">→</span></h2>
-    <div class="strip s5"></div>
-    <div class="desc">两张曲线图：上为收益倍数（相对不减抗），下为等效血量（相对 10% 抗性敌人）。滑动条设减抗量（也可直接填更大的值），红曲线 = 当前档、灰蓝曲线 = 自填的对比档位；横轴范围可调（默认 0 ~ 150%），并给出 10% / 70% 抗性敌人的逐档读数。下方另有抗性系数 κ(r) 与边际收益两张说明图。</div>
-    <div class="take">固定减抗的收益峰值 = <b>1 + 4S</b>（落在 75% 抗性的敌人身上）；抗性过了 75%，收益反而回落。</div>
-  </a>
-
-  <a class="card" href="tasks/basics/crit_dist.html">
-    <h2>暴击：波动 —— 一次尝试的 DPS 分布<span class="arrow">→</span></h2>
-    <div class="strip s6"></div>
-    <div class="desc">伤害段可增删（次数、时间、暴击率 / 暴伤各自填）：未满暴时反复打，DPS 是一个<b>精确可算的分布</b>（各段二项分布卷积，不用正态近似）。给出期望、σ、μ ± σ / μ ± 3σ 的实际覆盖率、分位档，以及「打 K 次取最好」的累积曲线。</div>
-    <div class="take">「打 7 次取最好」≈ 看<b>前 9.4%</b> 的分位；μ + 3σ 常常超过伤害上限 —— 正态近似在这里会骗人。</div>
-  </a>
-
-  <a class="card" href="tasks/basics/crit_split.html">
-    <h2>暴击：分配 —— 以分位数而非期望为目标<span class="arrow">→</span></h2>
-    <div class="strip s7"></div>
-    <div class="desc">双暴分固定，在暴击率与暴伤之间重新分：逐档给出「前 q 可达伤害」的最优暴击率 / 暴伤、分位增益与均值代价，另有分位曲线族（锯齿如实画）、最优暴击率随分位、收益与代价三张图。</div>
-    <div class="take">1 : 2 只是<b>均值</b>口径的最优 —— 越赌（看前 10%）最优暴击率越低，越稳则越高。</div>
-  </a>
-</div>
-
-<footer>
-  <b>星扩散伤害 = 星扩散直伤（大头）+ 反应星扩散</b>；直伤 = 瑞希天赋「廓然梦生」的精通倍率伤害，占比实测约九成。三张交互页的「星扩散直伤占比」滑条按给定比例把反应星扩散并入（默认 90%）。部分游戏机制来自社区与解包数据，非官方文本，请酌情参考。非官方项目，与米哈游无关。
-  <div class="repo-line">源码与说明：<a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></div>
+<footer class="footer">
+  <p>星扩散伤害 = 星扩散直伤（大头）+ 反应星扩散，直伤占比实测约九成。部分游戏机制来自社区与解包数据，非官方文本，请酌情参考。非官方项目，与米哈游无关。</p>
 </footer>
-</div>
 
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="web/js/core/const.js"></script>
+<script src="web/js/ui/panels.js"></script>
+<script src="web/js/ui/charts.js"></script>
+<script src="web/js/ui/tooltip.js"></script>
+<script src="web/js/ui/overlay.js"></script>
+<script src="web/js/ui/controls.js"></script>
+<script src="web/js/modules/home.js"></script>
+<script src="web/js/app.js"></script>
 </body>
 </html>
