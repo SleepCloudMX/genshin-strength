@@ -222,13 +222,14 @@ function render() {
     `最优处：精通 ${emBest.toFixed(0)}（增伤项 ${(emTerm(emBest) * 100).toFixed(1)}%）、双暴 ${cr.toFixed(1)} / ${cd.toFixed(1)}、攻击词条 ${bz.toFixed(1)}（+${(bigGain * bz).toFixed(0)} 攻击）` +
     ` ｜ 全攻击 ×${(damage(s, 0, 0) / damage(s0, 0, 0)).toFixed(3)}　全精通 ×${(damage(s, s.n, 0) / damage(s0, 0, 0)).toFixed(3)}　全双暴 ×${(damage(s, 0, s.n) / damage(s0, 0, 0)).toFixed(3)}`;
 
-  // 等攻击投入线（x + y = c ⟺ 攻击 = n − c 词条）
+  // 等攻击投入线（x + y = c ⟺ 攻击 = n − c 词条）：白色底线 + 深灰虚线两层 ——
+  // 浅色区只见虚线，深紫底上白底把线托出来；标签加深、垫半透明白底
   const shapes = [], annotations = [];
   for (let c = 5; Math.ceil(c) < s.n; c += 5) {
-    shapes.push({ type: 'line', x0: c, y0: 0, x1: 0, y1: c, line: { color: '#999', width: 1, dash: 'dash' } });
-    annotations.push({ x: c * 0.82, y: c * 0.18, text: `攻击 ${(s.n - c).toFixed(0)}`, showarrow: false, font: { size: 10.5, color: '#888' } });
+    shapes.push({ type: 'line', x0: c, y0: 0, x1: 0, y1: c, line: { color: 'rgba(255,255,255,0.55)', width: 3 } });
+    shapes.push({ type: 'line', x0: c, y0: 0, x1: 0, y1: c, line: { color: '#444', width: 1.2, dash: 'dash' } });
+    annotations.push({ x: c * 0.82, y: c * 0.18, text: `攻击 ${(s.n - c).toFixed(0)}`, showarrow: false, font: { size: 10.5, color: '#444' }, bgcolor: 'rgba(255,255,255,0.7)', borderpad: 2 });
   }
-  shapes.push({ type: 'line', x0: s.n, y0: 0, x1: 0, y1: s.n, line: { color: '#555', width: 1.4 } });
 
   // 悬浮数据：词条 → 面板值
   const cd0 = (x, y) => {
@@ -265,7 +266,7 @@ function render() {
 
   traces.push({
     type: 'scatter', mode: 'markers', x: [best.x], y: [best.y],
-    marker: { symbol: 'diamond', size: 13, color: '#fff', line: { width: 2.5, color: '#111' } },
+    marker: { symbol: 'circle', size: 9, color: '#e8710a' },
     name: '最优', hoverinfo: 'skip',
   });
 
