@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>桑多涅·武器对比</title>
+<link rel="icon" type="image/png" href="https://sleepcloudmx.github.io/Others/Image/kenomimi.png">
+<style>
+  :root { --ink:#222; --muted:#555; --line:#d8d8d8; --bg:#fafafa; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px 24px 40px; background: #fff; color: var(--ink);
+    font-family: "Microsoft YaHei", "SimHei", system-ui, sans-serif;
+  }
+  h1 { font-size: 19px; margin: 0; }
+  .head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 4px; font-size: 13px; }
+  .head .links { white-space: nowrap; }
+  .head .links .repo + .repo { margin-left: 14px; }
+  .repo { color: var(--muted); text-decoration: none; white-space: nowrap; }
+  .repo:hover { color: var(--ink); text-decoration: underline; }
+  .repo svg { width: 1.15em; height: 1.15em; fill: currentColor; vertical-align: -0.18em; margin-right: 4px; }
+  .repo-line { margin-top: 8px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+  .panel {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+    padding: 14px 16px; margin-bottom: 14px;
+    display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: flex-end;
+  }
+  .panel-note { flex-basis: 100%; font-size: 13px; color: var(--muted); }
+  .panel-note b { color: var(--ink); }
+  label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+  input {
+    font: inherit; font-size: 14px; color: var(--ink); width: 120px;
+    padding: 5px 8px; border: 1px solid var(--line); border-radius: 5px; background: #fff;
+  }
+  h2 { font-size: 15.5px; margin: 18px 0 8px; }
+  .wlist { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .wrow {
+    display: grid; grid-template-columns: 210px 1fr 240px 250px; gap: 12px; align-items: center;
+    padding: 9px 14px; font-size: 13px; border-top: 1px solid #ececec;
+  }
+  .wrow:first-child { border-top: 0; }
+  .wrow.base { background: #f2f6fb; box-shadow: inset 3px 0 0 #4a6fa5; }
+  .wrow .wsub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .wrow .wnote { color: var(--muted); font-size: 12px; }
+  .wrow .wsplit { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .wbar { display: flex; align-items: center; gap: 8px; }
+  .wbar .fill { height: 8px; border-radius: 4px; background: #e8710a; }
+  .wbar b { font-variant-numeric: tabular-nums; font-size: 13px; min-width: 44px; }
+  footer {
+    margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line);
+    font-size: 12px; color: var(--muted); line-height: 1.7;
+  }
+</style>
+</head>
+<body>
+
+<div class="head">
+<h1>「木偶·桑多涅」星超导武器对比</h1>
+<span class="links"><a class="repo" href="../../index.html"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 1.6 7.2h1.5v7h3.3v-4.1h3.2v4.1h3.3v-7h1.5L8 1.8z"/></svg>主页</a><a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></span>
+</div>
+<div class="sub">各武器在<b>各自最优词条分配</b>下的伤害指数，以超越之匙 R1 = 100（五星 / 四星分组）；数字框失焦 / 回车后重算。词条分配主图见<a href="star_superconduct.html">星超导词条分配</a>页。</div>
+
+<div class="panel">
+  <div class="panel-note"><b>基准面板 = 上完 buff、不含副词条</b>（木偶 + 该武器 + 攻攻暴主词条 + 羽都算在里面）；<b>不含套装特效</b> —— 幻灭 4 件的 +40% 增伤与条件 +16% 暴击（按全覆盖）由脚本自动加。</div>
+  <div class="panel-note"><b>口径同分配页</b>：1 词条 = 20 精通 = 6.6 双暴分 = 5% 大攻击（攻击词条按大攻击折算）；特效<b>只计对星超导生效的常驻部分</b>，按全覆盖 / 满层，行内注明假设。</div>
+  <label>词条预算<input id="n" type="number" step="1" min="2" max="53" value="30"></label>
+  <label>基准精通<input id="em" type="number" step="10" min="0" value="0"></label>
+  <label>基准暴击率 %<input id="cr" type="number" step="0.1" min="0" value="24.2"></label>
+  <label>基准暴伤 %<input id="cd" type="number" step="0.1" min="50" value="112.2"></label>
+  <label>额外攻击 %（队友 / buff）<input id="patk" type="number" step="1" min="0" value="0"></label>
+</div>
+
+<h2>五星武器</h2>
+<div class="wlist" id="w5"></div>
+
+<h2>四星武器</h2>
+<div class="wlist" id="w4"></div>
+
+<footer>
+  指数 = 该武器在相同词条预算下、把预算按最优分配后的期望伤害 ÷ 超越之匙 R1 同一口径的对应值 × 100。<b>「最优分配」列</b> = 各自的最优词条拆分（精通 / 双暴 / 攻击词条数）；词条预算、基准面板改了会挪动最优分配与排名。<br>
+  武器数据（90 级）：超越之匙 674 / 暴伤 44.1%（攻击 +28%、超越满层反应增伤 +48%）；焚曜千阳 741 / 暴击 11.0%（焚光：攻击 +28%、暴伤 +20%）；苇海信标 608 / 暴击 33.1%（战技命中 + 受击各 +20% 攻击）；狼的末路 608 / 攻击 49.6%（常驻 +20%，斩杀队伍效果不计）；无工之剑 608 / 攻击 49.6%（有盾叠满 +40%）；赤角石溃杵 542 / 暴伤 88.2%（特效不作用于星超导，不计）；浪影阔剑 510 / 攻击 41.3%（受治疗 +48% 攻击）；螭骨剑 510 / 暴击 27.6%（增伤类特效不作用于星超导，不计）。<br>
+  星超导伤害公式见机制文档 <span style="font-family:monospace">docs/ai-output/0-mechanism/3-星超导伤害机制.md</span>；倍率不计入，都是相对指数。
+  <div class="repo-line">源码与说明：<a class="repo" href="https://github.com/SleepCloudMX/genshin-strength" target="_blank" rel="noreferrer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a></div>
+</footer>
+
+<script>
+// ── 游戏规则（与 star_superconduct.html 同一套；改公式必须两处同改）──
+const EM_COEF = 6.0, EM_OFFSET = 2000.0;
+const CHAR_BASE = 342;        // 桑多涅 90 级基础攻击力（突破 +19.2% 暴击率）
+const MAINS_ATK_PCT = 0.932;  // 攻攻主词条（46.6% × 2）
+const MAINS_FLAT = 311;       // 羽主词条
+const SET_BONUS = 0.40;       // 幻灭 4 件：星超导反应伤害 +40%
+const SET_CR = 16;            // 幻灭 4 件：条件 +16% 暴击率（按全覆盖）——单位是百分点
+const PER_EM = 20, PER_CR = 3.3, PER_CD = 6.6, PER_ATK = 0.05;
+
+/** 武器：只计对星超导生效的常驻部分；特效按全覆盖 / 满层（行内注明）。
+ *  atkPct = 副词条攻击%（小数）；cr / cd / extraCd = 副词条与特效的暴击率 / 暴伤（百分点）；reaction = 反应增伤（小数）。 */
+const WEAPONS = [
+  { id:'key',      tier:5, name:'超越之匙 R1',    base:674, atkPct:0,     cr:0,    cd:44.1, extraAtk:0.28, extraCd:0,  reaction:0.48, note:'攻击 +28%；超越满层反应增伤 +48%' },
+  { id:'suns',     tier:5, name:'焚曜千阳 R1',    base:741, atkPct:0,     cr:11.0, cd:0,    extraAtk:0.28, extraCd:20, reaction:0,    note:'焚光：攻击 +28%、暴伤 +20%（按全覆盖）' },
+  { id:'reed',     tier:5, name:'苇海信标 R1',    base:608, atkPct:0,     cr:33.1, cd:0,    extraAtk:0.40, extraCd:0,  reaction:0,    note:'战技命中 / 受击各 +20% 攻击（按全覆盖）' },
+  { id:'wolf',     tier:5, name:'狼的末路 R1',    base:608, atkPct:0.496, cr:0,    cd:0,    extraAtk:0.20, extraCd:0,  reaction:0,    note:'常驻攻击 +20%（斩杀队伍效果不计）' },
+  { id:'unforged', tier:5, name:'无工之剑 R1',    base:608, atkPct:0.496, cr:0,    cd:0,    extraAtk:0.40, extraCd:0,  reaction:0,    note:'有盾时叠满 +40% 攻击' },
+  { id:'redhorn',  tier:5, name:'赤角石溃杵 R1',  base:542, atkPct:0,     cr:0,    cd:88.2, extraAtk:0,    extraCd:0,  reaction:0,    note:'普攻 / 重击加成不作用于星超导，不计' },
+  { id:'tidal',    tier:4, name:'浪影阔剑 R5',    base:510, atkPct:0.413, cr:0,    cd:0,    extraAtk:0.48, extraCd:0,  reaction:0,    note:'受治疗 +48% 攻击（按全覆盖）' },
+  { id:'serpent',  tier:4, name:'螭骨剑 R5',      base:510, atkPct:0,     cr:27.6, cd:0,    extraAtk:0,    extraCd:0,  reaction:0,    note:'增伤类特效不作用于星超导，不计' },
+];
+const BASE_W = 'key';   // 指数基准：超越之匙 R1 = 100
+
+// ── 公式（与分配页一致）──
+const emTerm = (em) => EM_COEF * em / (em + EM_OFFSET);
+function critSplit(cr0, cd0, b) {
+  const aStar = b / 2 + (cd0 / PER_CD - cr0 / PER_CR) / 2;
+  const a = Math.min(Math.max(aStar, 0), b, (100 - cr0) / PER_CR);
+  return { cr: cr0 + PER_CR * a, cd: cd0 + PER_CD * (b - a) };
+}
+function damage(s, x, y) {
+  const z = s.n - x - y;
+  if (z < 0) return null;
+  const w = s.weapon;
+  const base = CHAR_BASE + w.base;
+  const atk = base * (1 + MAINS_ATK_PCT + w.atkPct + w.extraAtk + s.extraPct + PER_ATK * z) + MAINS_FLAT + s.extraFlat;
+  const em = s.em + PER_EM * x;
+  const bracket = 1 + emTerm(em) + s.bonus + w.reaction + SET_BONUS;
+  const { cr, cd } = critSplit(s.cr + SET_CR + w.cr, s.cd + w.cd + w.extraCd, y);
+  return atk * bracket * (1 + Math.min(cr, 100) / 100 * cd / 100);
+}
+
+/** 该武器在给定预算下的最优分配（网格扫描）。 */
+function bestFor(w, s) {
+  const sw = { ...s, weapon: w };
+  let best = { x: 0, y: 0, d: -1 };
+  const G = 141;
+  for (let i = 0; i <= G; i++) for (let j = 0; j <= G; j++) {
+    const x = i * sw.n / G, y = j * sw.n / G;
+    const d = damage(sw, x, y);
+    if (d !== null && d > best.d) best = { x, y, d };
+  }
+  return best;
+}
+
+// ── 状态与渲染 ──
+const $ = (id) => document.getElementById(id);
+const clampTo = (el, v) => {
+  const lo = parseFloat(el.min), hi = parseFloat(el.max);
+  if (Number.isFinite(lo)) v = Math.max(v, lo);
+  if (Number.isFinite(hi)) v = Math.min(v, hi);
+  return v;
+};
+const num = (id, fallback) => {
+  const el = $(id);
+  const v = parseFloat(el.value);
+  return Number.isFinite(v) ? clampTo(el, v) : fallback;
+};
+const readState = () => ({
+  n: num('n', 30),
+  em: num('em', 0),
+  cr: num('cr', 24.2),
+  cd: num('cd', 112.2),
+  extraPct: num('patk', 0) / 100,
+  extraFlat: 0,
+  bonus: 0,
+});
+
+const subDesc = (w) => w.atkPct ? `攻击 +${(w.atkPct * 100).toFixed(1)}%`
+  : w.cr ? `暴击 +${w.cr}%` : `暴伤 +${w.cd}%`;
+
+function rowHTML(r, s) {
+  const z = s.n - r.best.x - r.best.y;
+  return `<div class="wrow${r.w.id === BASE_W ? ' base' : ''}">
+    <div><div>${r.w.name}</div><div class="wsub">${r.w.base} 基础 · ${subDesc(r.w)}</div></div>
+    <div class="wbar"><div class="fill" style="width:${r.width.toFixed(1)}%"></div><b>${r.idx.toFixed(1)}</b></div>
+    <div class="wsplit">最优：精通 ${r.best.x.toFixed(1)} · 双暴 ${r.best.y.toFixed(1)} · 攻击 ${z.toFixed(1)}</div>
+    <div class="wnote">${r.w.note}</div>
+  </div>`;
+}
+
+function render() {
+  const s = readState();
+  const rows = WEAPONS.map((w) => ({ w, best: bestFor(w, s) }));
+  const refAbs = rows.find((r) => r.w.id === BASE_W).best.d;
+  const maxAbs = Math.max(...rows.map((r) => r.best.d));
+  for (const r of rows) {
+    r.idx = 100 * r.best.d / refAbs;
+    r.width = 100 * r.best.d / maxAbs;
+  }
+  const desc = (a, b) => (b.idx - a.idx);
+  const five = rows.filter((r) => r.w.tier === 5).sort(desc);
+  const four = rows.filter((r) => r.w.tier === 4).sort(desc);
+  $('w5').innerHTML = five.map((r) => rowHTML(r, s)).join('');
+  $('w4').innerHTML = four.map((r) => rowHTML(r, s)).join('');
+}
+
+for (const el of document.querySelectorAll('.panel input')) {
+  el.addEventListener('change', render);
+  el.addEventListener('keydown', (e) => { if (e.key === 'Enter') render(); });
+}
+render();
+</script>
+
+</body>
+</html>
