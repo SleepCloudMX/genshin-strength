@@ -522,6 +522,34 @@ input[type="range"] {
 }
 .prose .tablewrap { margin: var(--sp-4) 0; }
 .prose h3 { margin: var(--sp-5) 0 var(--sp-2); font-size: var(--fs); font-weight: 650; }
+.prose table { border-collapse: collapse; width: 100%; font-size: var(--fs-xs); margin: var(--sp-3) 0; }
+.prose th, .prose td {
+  border: 1px solid var(--border); padding: 6px 10px;
+  text-align: left; vertical-align: top; line-height: 1.7;
+}
+.prose th { background: var(--surface-2); font-weight: 600; }
+
+/* 机制页的计算器 */
+.calc {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md);
+  box-shadow: var(--shadow-1); padding: var(--sp-4) var(--sp-4) var(--sp-2);
+}
+.calc-note { font-size: var(--fs-xs); color: var(--text-dim); line-height: 1.75; margin-bottom: var(--sp-3); }
+.calc-note b { color: var(--text); }
+.calc-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
+  gap: var(--sp-3) var(--sp-3); margin-bottom: var(--sp-4);
+}
+.calc-grid label { display: flex; flex-direction: column; gap: 4px; font-size: var(--fs-xs); color: var(--text-dim); }
+.calc-out { width: 100%; border-collapse: collapse; font-size: var(--fs-xs); }
+.calc-out th, .calc-out td {
+  padding: 5px 10px; text-align: left; border-bottom: 1px solid var(--surface-2); line-height: 1.6;
+}
+.calc-out thead th { color: var(--text-dim); font-weight: 600; border-bottom: 1px solid var(--border); }
+.calc-out td.v { text-align: right; white-space: nowrap; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.calc-out td.d { color: var(--text-dim); }
+.calc-out td.d b { color: var(--text); }
+.calc-out tr.total td { font-weight: 600; background: var(--surface-2); }
 
 /* --- 反馈与页脚 ----------------------------------------------------------- */
 .toast {
