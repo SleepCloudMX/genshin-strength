@@ -72,18 +72,18 @@
 
         ns.forEach(function (n, i) {
           var color = Mi.ramp(i / Math.max(ns.length - 1, 1));
-          var base = Mi.damage(s, n, 0);
+          var base = Mi.rollDamage(s, n, 0);
           var best = Mi.bestSplit(s, n);
           var pl = Mi.plateau(s, n, best.f, s.level);
           if (s.d < 1) {
             var bDirect = Mi.bestSplit(Object.assign({}, s, { d: 1 }), n).b;
-            lossMax = Math.max(lossMax, 1 - Mi.damage(s, n, bDirect) / best.f);
+            lossMax = Math.max(lossMax, 1 - Mi.rollDamage(s, n, bDirect) / best.f);
           }
 
           var xs = [], ys = [];
           for (var k = 0; k <= 401; k++) {
             var b = n * k / 401;
-            xs.push(b); ys.push(Mi.damage(s, n, b) / base);
+            xs.push(b); ys.push(Mi.rollDamage(s, n, b) / base);
           }
           traces.push({
             type: 'scatter', mode: 'lines', x: xs, y: ys,
@@ -93,12 +93,12 @@
           if (pl.lo !== null) {
             traces.push({
               type: 'scatter', mode: 'lines', x: [pl.lo, pl.hi],
-              y: [Mi.damage(s, n, pl.lo) / base, Mi.damage(s, n, pl.hi) / base],
+              y: [Mi.rollDamage(s, n, pl.lo) / base, Mi.rollDamage(s, n, pl.hi) / base],
               line: { color: color, width: 1.4, dash: 'dash' },
             });
             [pl.lo, pl.hi].forEach(function (x) {
               traces.push({
-                type: 'scatter', mode: 'markers', x: [x], y: [Mi.damage(s, n, x) / base],
+                type: 'scatter', mode: 'markers', x: [x], y: [Mi.rollDamage(s, n, x) / base],
                 marker: { color: color, size: 8, line: { color: '#fff', width: 1.2 } },
               });
             });
@@ -118,7 +118,7 @@
           if (pl.lo !== null) {
             [pl.lo, pl.hi].forEach(function (x) {
               annos.push(Object.assign({}, common, {
-                x: x, y: Mi.damage(s, n, x) / base, xshift: 0, yshift: -15,
+                x: x, y: Mi.rollDamage(s, n, x) / base, xshift: 0, yshift: -15,
                 xanchor: 'center', yanchor: 'top', font: { size: 11, color: color },
                 text: x.toFixed(1) + ' 词',
               }));
@@ -205,8 +205,8 @@
 
       /* ── 悬浮：图 A 取屏幕距离最近的曲线；图 B 按 n 取一列读数 ── */
       function curveAt(s, n, b) {
-        var base = Mi.damage(s, n, 0);
-        return { v: Mi.damage(s, n, b) / base, base: base };
+        var base = Mi.rollDamage(s, n, 0);
+        return { v: Mi.rollDamage(s, n, b) / base, base: base };
       }
 
       mA.wrap.addEventListener('mousemove', function (e) {
@@ -230,7 +230,7 @@
         var n = pick.n, v = pick.v;
         var t = Mi.allocAt(b, st.cr, st.cd);
         var em = C.EM_PER_ROLL * (n - b) + st.em;
-        var fMax = Mi.bestSplit(st, n).f / Mi.damage(st, n, 0);
+        var fMax = Mi.bestSplit(st, n).f / Mi.rollDamage(st, n, 0);
         tipA.show(ctx.tip.card({
           title: '共 ' + n + ' 词条 · 给双暴 ' + b.toFixed(1) + ' · 给精通 ' + (n - b).toFixed(1),
           hero: { v: '×' + v.toFixed(4), cap: '相对「词条全给精通」' },
