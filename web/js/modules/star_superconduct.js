@@ -171,9 +171,9 @@
           });
         }
 
-        /* 配平下界（细点线，同瑞希热图）：y < bandY 时 1:2 配不平（暴伤过 2 倍暴击率）。
-           下界线横贯可行域：x ∈ [0, n − bandY]。 */
-        var bandY = S.bandY(s), yHigh = S.bandYHigh(s);
+        /* 配平下界（细点线，同瑞希热图）：y < bandY 时 1:2 配不平（暴伤过 2 倍暴击率、
+           被压在基准）。线横贯可行域：x ∈ [0, n − bandY]。 */
+        var bandY = S.bandY(s);
         var anns = [];
         if (bandY > 0.05 && bandY < s.n) {
           traces.push({
@@ -183,16 +183,6 @@
           anns.push({
             x: s.n - bandY, y: bandY, xanchor: 'right', yanchor: 'bottom',
             text: '1:2 配平不可达', showarrow: false, font: { size: 11, color: '#888' },
-          });
-        }
-        if (yHigh < s.n - 0.05) {
-          traces.push({
-            type: 'scatter', mode: 'lines', x: [0, s.n - yHigh], y: [yHigh, yHigh],
-            line: { color: '#888', width: 1.2, dash: 'dot' }, showlegend: false,
-          });
-          anns.push({
-            x: s.n - yHigh, y: yHigh, xanchor: 'right', yanchor: 'bottom',
-            text: '暴击率顶 100%', showarrow: false, font: { size: 11, color: '#888' },
           });
         }
         traces.push({
