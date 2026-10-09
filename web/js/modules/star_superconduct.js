@@ -17,9 +17,7 @@
     '武器数据（90 级）：浪影阔剑 510 / 攻击 41.3%（受治疗 +48% 攻击）；超越之匙 674 / 暴伤 44.1%（攻击 +28%、超越满层反应增伤 +48%）；' +
     '焚曜千阳 741 / 暴击 11.0%（焚光：攻击 +28%、暴伤 +20%）；苇海信标 608 / 暴击 33.1%（战技命中 + 受击各 +20% 攻击）；' +
     '狼的末路 608 / 攻击 49.6%（常驻 +20%）；无工之剑 608 / 攻击 49.6%（有盾叠满 +40%）；' +
-    '螭骨剑 510 / 暴击 27.6%、赤角石溃杵 542 / 暴伤 88.2%（特效不作用于星超导，不计）。<br>' +
-    '<b>词条等效</b>：1 词条 = 双暴词条的 d 倍伤害（d = 每点相对增益之比，<span id="equivLine">—</span>）。' +
-    'd < 1 = 该词条在该点比双暴词条不值钱；攻击词条的量法 = 预算剩余 z 的边际（z = 0 即预算已满、无攻击词条空间）。';
+    '螭骨剑 510 / 暴击 27.6%、赤角石溃杵 542 / 暴伤 88.2%（特效不作用于星超导，不计）。';
 
   M['sandrone/star_superconduct'] = {
     title: '「桑多涅」星超导词条分配',
@@ -76,21 +74,6 @@
 
       /* 悬浮读数与结论条共用 core 的同一套攻击力 / 伤害口径 */
       function atkOf(s, z) { return S.panelAttack(s.weapon, s.extraPct, s.extraFlat, z); }
-
-      /* 页脚「词条等效」行：最优点的 d + 全图范围（当前面板下现算，2ms 量级） */
-      function updateEquivLine(s) {
-        var elLine = document.getElementById('equivLine');
-        if (!elLine) return;
-        var atMid = function (arr) { return '(' + arr[0].toFixed(0) + ', ' + arr[1].toFixed(0) + ')'; };
-        var r = S.equivRange(s, 81);
-        var bx = s.n / 3, by = s.n / 3;
-        var d0 = S.equiv(s, bx, by);
-        elLine.innerHTML = '基准点 (' + bx.toFixed(0) + ', ' + by.toFixed(0) + ') 处：精通 d = ' + d0.em.toFixed(2) +
-          (isFinite(d0.atk) ? '、攻击 d = ' + d0.atk.toFixed(2) : '') +
-          '；全图 精通 ' + r.lo.em.toFixed(2) + ' ~ ' + r.hi.em.toFixed(2) + '（低 @ ' + atMid(r.loAt.em) + '，高 @ ' + atMid(r.hiAt.em) + '）' +
-          '、攻击 ' + r.lo.atk.toFixed(2) + ' ~ ' + r.hi.atk.toFixed(2) +
-          '（低 @ ' + atMid(r.loAt.atk) + '，高 @ ' + atMid(r.hiAt.atk) + '；坐标为 精通 / 双暴 词条数）';
-      }
       function dmgOf(s, x, y) {
         var z = s.n - x - y;
         if (z < -1e-9) return null;
@@ -153,7 +136,6 @@
         var s = readState(s0);
         st = s;
         var scan = updateVerdict(s);
-        updateEquivLine(s);
 
         var shapes = [];
         for (var c = 5; Math.ceil(c) < s.n; c += 5) {
@@ -243,14 +225,21 @@
             { len: Math.min(Math.max(mag * 60000, 9), 66) });
           segs.push([hoverPx.x, hoverPx.y, tp.tx, tp.ty]);
         }
+        var rows = [
+          ['精通', x.toFixed(1) + ' 词条'],
+          ['双暴', y.toFixed(1) + ' 词条'],
+          ['攻击', atkOf(s, s.n - x - y).toFixed(0) + '（' + (s.n - x - y).toFixed(1) + ' 词条）'],
+        ];
+        var eq = S.equiv(s, x, y);
+        if (isFinite(eq.em) && isFinite(eq.atk)) {
+          rows.push(['词条等效', '1 精通 ≈ ' + eq.em.toFixed(2) + ' · 1 攻击 ≈ ' + eq.atk.toFixed(2) + ' 双暴词条']);
+        } else if (isFinite(eq.em)) {
+          rows.push(['词条等效', '1 精通 ≈ ' + eq.em.toFixed(2) + ' 双暴词条（预算已满，无攻击词条）']);
+        }
         tip.show(ctx.tip.card({
           title: '精通 ' + em.toFixed(0) + ' · 双暴 ' + t.cr.toFixed(1) + ' / ' + t.cd.toFixed(1),
           hero: { v: '×' + (d / base0).toFixed(3), cap: '相对基准面板' },
-          rows: [
-            ['精通', x.toFixed(1) + ' 词条'],
-            ['双暴', y.toFixed(1) + ' 词条'],
-            ['攻击', atkOf(s, s.n - x - y).toFixed(0) + '（' + (s.n - x - y).toFixed(1) + ' 词条）'],
-          ],
+          rows: rows,
         }), hoverPx.x, hoverPx.y, { segs: segs });
       });
       m.wrap.addEventListener('mouseleave', function () {
