@@ -254,40 +254,41 @@
       function tipHTML(x, y, s) {
         var info = Mi.pointInfo(x, y, s);
         var t = ctx.tip;
-        var html = t.title('精通 ' + x.toFixed(0) + ' · 双暴分 ' + fmt1(y)) +
-          t.hero('×' + info.mult.toFixed(3), '相较 0 词条');
         if (info.state === 'bad') {
-          html += t.bad('无法配平：' + info.reason);
-          html += t.rows([['参照 · ' + Mi.REF_CAPTION, '×' + info.ref.toFixed(3)]]);
-          return html;
+          return t.hero('×' + info.mult.toFixed(3), '相较 0 词条') +
+            t.bad('无法配平：' + info.reason) +
+            t.rows([['参照 · ' + Mi.REF_CAPTION, '×' + info.ref.toFixed(3)]]);
         }
-        var refNote = Mi.refFactorNote(s);
-        html += t.rows([[Mi.REF_CAPTION, '×' + info.ref.toFixed(3)]]);
-        if (refNote) html += t.note(refNote);
+        var dC = Mi.equivEm(x, y, s);       // 1 精通词条 ≈ d 双暴词条（局部）
+        var dR = Mi.equivRange(s, 61);      // 全图范围（随参数现算）
         var al = Mi.nextAlloc(x, y, s);
         var im = Mi.importance(x, y, s);
-        var lab = function (k, v, cls) {
-          return '<span class="' + cls + '">' + k + ' ' + v.toFixed(2) + '</span>';
-        };
-        var dC = Mi.equivEm(x, y, s);   // 词条等效：1 精通词条 ≈ d 双暴词条（局部、每点相对增益之比）
-        html += t.div() +
-          t.cap('下一词条最优分配') +
-          t.bar(al.du, '#a9cfcf', '#ddd4d9') +
-          t.barlbl(lab('精通', al.du, 's-em'), lab('双暴', al.dv, 's-cr')) +
-          t.cap('词条重要性', true) +
-          t.bar(im.em, '#a9cfcf', '#ddd4d9') +
-          t.barlbl(lab('精通', im.em, 's-em'), lab('双暴', im.crit, 's-cr')) +
-          t.div() +
-          t.rows([
-            ['词条', '精通 ' + fmt1(info.emRolls) + ' · 双暴 ' + fmt1(info.critRolls) + '（共 ' + fmt1(info.emRolls + info.critRolls) + '）'],
-            ['配平后', '暴击 ' + fmt1(info.rate) + '% / 暴伤 ' + fmt1(info.dmg) + '%'],
-            ['精通 ≈', dC.toFixed(2) + ' 双暴词条'],
-          ]);
+        var refNote = Mi.refFactorNote(s);
+        var html =
+          '<div class="tip__hero"><b>×' + info.mult.toFixed(3) + '</b><span class="u">相较 0 词条</span></div>' +
+          '<div class="tip__hd"><span class="nm">精通</span><span class="rl">' + fmt1(info.emRolls) + ' 词条</span><span class="vl">' + info.x.toFixed(0) + '</span></div>' +
+          '<div class="tip__hd"><span class="nm">双暴</span><span class="rl">' + fmt1(info.critRolls) + ' 词条</span><span class="vl">' + fmt1(info.y) + '</span></div>' +
+          '<div class="tip__eq"><div><span class="lb">精通：</span><b class="' + (dC >= 1 ? 'hi' : 'lo') + '">' + dC.toFixed(2) +
+            '</b><span class="dim"> ∈ [' + dR.lo.toFixed(2) + ', ' + dR.hi.toFixed(2) + ']</span></div></div>' +
+          '<div class="tip__cap">下一词条最优分配</div>' + segBar(al.du, al.dv) +
+          '<div class="tip__cap mt">归一化梯度</div>' + segBar(im.em, im.crit);
+        html += '<div class="tip__note">参照面板：×' + info.ref.toFixed(3) +
+          '　配平后：暴击 ' + fmt1(info.rate) + ' / 暴伤 ' + fmt1(info.dmg) + '</div>' +
+          (refNote ? t.note(refNote) : '');
         if (info.state === 'band') {
           var side = Mi.pinnedSide(s);
           html += t.note('1:2 配平不可达：' + side + '压在基准，超额全在' + (side === '暴伤' ? '暴击率' : '暴伤'));
         }
         return html;
+      }
+
+      /** 两维度单条分段条：左精通（青）· 右双暴（紫），数值在条上方。
+       *  flex-grow 按值分配，每侧保底 0.04 —— 某侧为 0 时也留一丝颜色可见。 */
+      function segBar(a, b) {
+        var g = function (v) { return Math.max(0.04, v).toFixed(3); };
+        return '<div class="tip__barlbl"><span class="s-em">精通 ' + a.toFixed(2) + '</span><span class="s-cr">双暴 ' + b.toFixed(2) + '</span></div>' +
+          '<div class="tip__seg"><i class="em" style="flex-grow:' + g(a) + '"></i>' +
+          '<i class="cr" style="flex-grow:' + g(b) + '"></i></div>';
       }
 
       /* ── 叠加层：基准标注、交点倍数、固定点十字与双箭头、悬浮双箭头 ── */

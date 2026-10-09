@@ -77,7 +77,7 @@
 
       /* 卡片小件：等效项（≥1 绿 / <1 红棕）与三维度条（精通 / 双暴 / 攻击） */
       function eqItem(name, v) {
-        return '<b class="' + (v >= 1 ? 'hi' : 'lo') + '">' + name + ' ' + v.toFixed(2) + '</b>';
+        return '<b class="' + (v >= 1 ? 'hi' : 'lo') + '">' + (name ? name + ' ' : '') + v.toFixed(2) + '</b>';
       }
       function triBar(w) {
         var one = function (name, cls, val) {
@@ -108,8 +108,6 @@
 
       host.appendChild(verdict);
       host.appendChild(card);
-      var equivNote = el('div', 'chartnote');
-      host.appendChild(equivNote);
       host.appendChild(GS.ui.panels.note(FOOT, 'pagenote'));
 
       var st = null;
@@ -150,11 +148,6 @@
         var s = readState(s0);
         st = s;
         var scan = updateVerdict(s);
-        /* 词条等效的全图范围：随参数现算的小读数（图下，独立于页脚说明文字） */
-        var eqR = S.equivRange(s, 81);
-        equivNote.textContent = '词条等效 · 全图 1 精通词条 = 双暴词条的 ' +
-          eqR.lo.em.toFixed(2) + ' ~ ' + eqR.hi.em.toFixed(2) + ' 倍、1 攻击词条 = ' +
-          eqR.lo.atk.toFixed(2) + ' ~ ' + eqR.hi.atk.toFixed(2) + ' 倍';
 
         var shapes = [];
         for (var c = 5; Math.ceil(c) < s.n; c += 5) {
@@ -245,11 +238,18 @@
             { len: Math.min(Math.max(mag * 60000, 9), 66) });
           segs.push([hoverPx.x, hoverPx.y, tp.tx, tp.ty]);
         }
-        /* 区 2：属性 词条数 数值；区 3：单位等效（1 词条 = 多少双暴词条）；区 4：三维度条 */
+        /* 区 2：属性 词条数 数值；区 3：单位词条等效（当前值 + 整图范围）；区 4：三维度条 */
         var eq = S.equiv(s, x, y);
+        var rng = S.equivRange(s, 61);
         var eqHTML = '';
-        if (isFinite(eq.em)) eqHTML += eqItem('精通', eq.em);
-        if (isFinite(eq.atk)) eqHTML += (eqHTML ? '<span class="gap"></span>' : '') + eqItem('攻击', eq.atk);
+        if (isFinite(eq.em)) {
+          eqHTML += '<div><span class="lb">精通： </span>' + eqItem('', eq.em) +
+            '<span class="dim"> ∈ [' + rng.lo.em.toFixed(2) + ', ' + rng.hi.em.toFixed(2) + ']</span></div>';
+        }
+        if (isFinite(eq.atk)) {
+          eqHTML += '<div><span class="lb">攻击： </span>' + eqItem('', eq.atk) +
+            '<span class="dim"> ∈ [' + rng.lo.atk.toFixed(2) + ', ' + rng.hi.atk.toFixed(2) + ']</span></div>';
+        }
         var alw = S.nextAlloc(s, x, y);
         var grw = S.gradWeights(s, x, y);
         var html =
@@ -257,7 +257,7 @@
           '<div class="tip__hd"><span>精通</span><span class="rl">' + x.toFixed(1) + ' 词条</span><span class="vl">' + em.toFixed(0) + '</span></div>' +
           '<div class="tip__hd"><span>双暴</span><span class="rl">' + y.toFixed(1) + ' 词条</span><span class="vl">' + t.cr.toFixed(1) + ' / ' + t.cd.toFixed(1) + '</span></div>' +
           '<div class="tip__hd"><span>攻击</span><span class="rl">' + z.toFixed(1) + ' 词条</span><span class="vl">' + atkOf(s, z).toFixed(0) + '</span></div>' +
-          (eqHTML ? '<div class="tip__eq"><span class="lb">等效双暴词条：</span><span class="gap"></span>' + eqHTML + '</div>' : '') +
+          (eqHTML ? '<div class="tip__eq"><div><span class="lb">单位词条等效双暴词条</span></div>' + eqHTML + '</div>' : '') +
           '<div class="tip__cap">下一词条最优分配</div>' + triBar(alw) +
           '<div class="tip__cap mt">归一化梯度</div>' + triBar(grw);
         tip.show(html, hoverPx.x, hoverPx.y, { segs: segs });
