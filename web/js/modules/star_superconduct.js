@@ -93,9 +93,10 @@
         return dmgAny(s, x2, y2) / base0;
       }
 
-      /* 卡片小件：等效项（≥1 绿 / <1 红棕）与三维度条（精通 / 双暴 / 攻击） */
-      function eqItem(name, v) {
-        return '<b class="' + (v >= 1 ? 'hi' : 'lo') + '">' + (name ? name + ' ' : '') + v.toFixed(2) + '</b>';
+      /* 卡片小件：等效项（≥1 绿 / <1 红棕；grp 为额外容器类）与三维度条（精通 / 双暴 / 攻击） */
+      function eqItem(name, v, grp) {
+        return '<span class="' + (grp || '') + '"><b class="' + (v >= 1 ? 'hi' : 'lo') + '">' +
+          (name ? name + ' ' : '') + v.toFixed(2) + '</b></span>';
       }
       function triBar(w) {
         var one = function (name, cls, val) {
@@ -283,11 +284,11 @@
         var rng = S.equivRange(s, 61);
         var eqHTML = '';
         if (isFinite(eq.em)) {
-          eqHTML += '<div class="tip__eqr"><span><span class="lb">精通：</span>' + eqItem('', eq.em) + '</span>' +
+          eqHTML += '<div class="tip__eqr"><span class="lb">精通</span>' + eqItem('', eq.em, 'val') +
             '<span class="rg">∈ [' + rng.lo.em.toFixed(2) + ', ' + rng.hi.em.toFixed(2) + ']</span></div>';
         }
         if (isFinite(eq.atk)) {
-          eqHTML += '<div class="tip__eqr"><span><span class="lb">攻击：</span>' + eqItem('', eq.atk) + '</span>' +
+          eqHTML += '<div class="tip__eqr"><span class="lb">攻击</span>' + eqItem('', eq.atk, 'val') +
             '<span class="rg">∈ [' + rng.lo.atk.toFixed(2) + ', ' + rng.hi.atk.toFixed(2) + ']</span></div>';
         }
         var alw = S.nextAlloc(s, x, y);

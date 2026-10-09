@@ -309,9 +309,11 @@ a:hover { text-decoration: underline; }
 .tip__hd .rl { text-align: right; font-family: var(--mono); font-size: 11.5px; color: var(--text-dim); }
 .tip__hd .vl { text-align: right; font-family: var(--mono); font-size: 11.5px; }
 .tip__hd .rg { text-align: right; font-size: 11px; color: var(--text-dim); white-space: nowrap; }
-/* 等效行：标签与值连写（居左一组），范围推右 */
-.tip__eqr { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; white-space: nowrap; }
+/* 等效行：属性贴左、数值与上方「xx 词条」同列对齐、范围推右 */
+.tip__eqr { display: grid; grid-template-columns: 44px 48px 1fr; column-gap: 6px; align-items: baseline; white-space: nowrap; }
 .tip__eqr .lb { color: var(--text-dim); }
+.tip__eqr .val { text-align: right; font-family: var(--mono); }
+.tip__eqr .rg { text-align: right; color: var(--text-dim); }
 /* 参照行：倍率在左（比正文大、比英雄读数小），口径说明在后 */
 .tip__ref { display: flex; align-items: baseline; gap: 8px; margin-top: 1px; }
 .tip__ref .lb { color: var(--text-dim); }
