@@ -104,6 +104,53 @@
     return { xs: xs, zs: zs, best: best, base0: base0 };
   };
 
+  /** 词条等效（用户口径，2026-10-09）：1 该词条 = 双暴词条的 d 倍伤害（保留符号：负值 =
+   *  该词条在该点减值，如精通 / 双暴已过饱和）。按「每点相对增益」算，三种词条同一量纲：
+   *    d = (∂D/∂该词条 ÷ D) / (∂D/∂双暴词条 ÷ D)，求导用中心差分（h = 0.05 点）。
+   *  z = 0（预算已满，攻击词条无空间）时攻击行无定义（NaN）。 */
+  function multAt(s, x, y, z) {
+    if (z === undefined) z = s.n - x - y;
+    if (z < -1e-9) return null;
+    var em = s.em + S.PER_EM * x;
+    var bracket = 1 + C.emTerm(em) + s.bonus + S.SET_BONUS;
+    var t = S.critSplit(s.cr + S.SET_CR + s.weapon.cr, s.cd + s.weapon.cd + s.weapon.extraCd, y);
+    return S.panelAttack(s.weapon, s.extraPct, s.extraFlat, z) * bracket *
+           (1 + Math.min(t.cr, 100) / 100 * t.cd / 100);
+  }
+  S.equiv = function (s, x, y) {
+    var z = s.n - x - y;
+    if (z < -1e-9) return { em: NaN, atk: NaN };
+    var h = 0.05;
+    var m0 = multAt(s, x, y, z);
+    var gEm = (multAt(s, x + h, y, z) - multAt(s, x - h, y, z)) / (2 * h) / m0;   // 精通点边际
+    var gCr = (multAt(s, x, y + h, z) - multAt(s, x, y - h, z)) / (2 * h) / m0;   // 双暴点边际
+    var gAt = z >= h ? ((multAt(s, x, y, z + h) - multAt(s, x, y, z - h)) / (2 * h) / m0) : NaN;   // 攻击点边际
+    if (Math.abs(gCr) < 1e-12) return { em: NaN, atk: NaN };
+    return { em: gEm / gCr, atk: gAt / gCr };
+  };
+  /** 全图（x, y ≥ 0、x + y ≤ n）扫描 d 的范围与位置。 */
+  S.equivRange = function (s, G) {
+    G = G || 141;
+    var lo = { em: Infinity, atk: Infinity }, hi = { em: -Infinity, atk: -Infinity };
+    var loAt = {}, hiAt = {};
+    for (var i = 0; i <= G; i++) {
+      for (var j = 0; j <= G; j++) {
+        var x = s.n * i / G, y = s.n * j / G;
+        if (x + y > s.n + 1e-9) continue;
+        var e = S.equiv(s, x, y);
+        if (isFinite(e.em)) {
+          if (e.em < lo.em) { lo.em = e.em; loAt.em = [x, y]; }
+          if (e.em > hi.em) { hi.em = e.em; hiAt.em = [x, y]; }
+        }
+        if (isFinite(e.atk)) {
+          if (e.atk < lo.atk) { lo.atk = e.atk; loAt.atk = [x, y]; }
+          if (e.atk > hi.atk) { hi.atk = e.atk; hiAt.atk = [x, y]; }
+        }
+      }
+    }
+    return { lo: lo, hi: hi, loAt: loAt, hiAt: hiAt };
+  };
+
   /** 伤害对数的梯度（中心差分 h = 0.05 词条；贴边界退化为单侧差分）。 */
   S.grad = function (x, y, s) {
     var h = 0.05;

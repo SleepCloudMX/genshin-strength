@@ -49,7 +49,22 @@
     },
   };
 
-  var GAP = 14, PAD = 6;
+  var GAP = 14, PAD = 6, ARROW_GAP = 6;
+
+  /** 线段 (x1,y1)→(x2,y2) 与矩形 [rx0,ry0,rx1,ry1] 是否相交（slab 法，含边缘）. */
+  function segHitsRect(x1, y1, x2, y2, rx0, ry0, rx1, ry1) {
+    var dx = x2 - x1, dy = y2 - y1;
+    var t0 = 0, t1 = 1;
+    var p = [-dx, dx, -dy, dy];
+    var q = [x1 - rx0, rx1 - x1, y1 - ry0, ry1 - y1];
+    for (var i = 0; i < 4; i++) {
+      if (Math.abs(p[i]) < 1e-9) { if (q[i] < 0) return false; continue; }
+      var r = q[i] / p[i];
+      if (p[i] < 0) { if (r > t1) return false; if (r > t0) t0 = r; }
+      else { if (r < t0) return false; if (r < t1) t1 = r; }
+    }
+    return true;
+  }
 
   /**
    * 挂在图表容器上。geom() 返回绘图区几何（相对 wrap），
@@ -75,6 +90,40 @@
         ne: [x + GAP, y - GAP - th],
         nw: [x - GAP - tw, y - GAP - th],
       };
+      // 箭头线段（像素，相对 wrap）：优先放「不与箭头相交」的象限（稳定排序，保持原偏好序）
+      var segs = (opt && opt.segs) || [];
+      var hits = function () {   // 当前 pos 里，哪些象限被箭头压住
+        return order.map(function (k) {
+          var p = pos[k];
+          return segs.some(function (s) {
+            return segHitsRect(s[0], s[1], s[2], s[3],
+              p[0] + g.left - ARROW_GAP, p[1] + g.top - ARROW_GAP,
+              p[0] + g.left + tw + ARROW_GAP, p[1] + g.top + th + ARROW_GAP);
+          });
+        });
+      };
+      if (segs.length) {
+        var free = [], hit = [];
+        var h0 = hits();
+        order.forEach(function (k, i) { (h0[i] ? hit : free).push(k); });
+        order = free.concat(hit);
+        if (!free.length) {
+          // 全被压：把卡片整体推远（GAP + max(箭头长) + 12），再挑一次
+          var Lmax = 0;
+          segs.forEach(function (s) { Lmax = Math.max(Lmax, Math.hypot(s[2] - s[0], s[3] - s[1])); });
+          var G2 = GAP + Lmax + 12;
+          pos = {
+            se: [x + G2, y + G2],
+            sw: [x - G2 - tw, y + G2],
+            ne: [x + G2, y - G2 - th],
+            nw: [x - G2 - tw, y - G2 - th],
+          };
+          free = []; hit = [];
+          var h1 = hits();
+          order.forEach(function (k, i) { (h1[i] ? hit : free).push(k); });
+          order = free.concat(hit);
+        }
+      }
       var pick = null;
       for (var i = 0; i < order.length; i++) {
         var p = pos[order[i]];

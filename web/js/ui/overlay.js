@@ -64,11 +64,8 @@
     }).join('') + '</defs>';
   }
 
-  /**
-   * 从 (px, py) 沿像素空间方向（ax, ay，向上为正）画箭头；
-   * 贴边按比例缩短（方向不变）、兜底 30% 长。返回端点像素。
-   */
-  function arrow(parts, px, py, ax, ay, g, opts) {
+  /** 箭头的端点（贴边按比例缩短、方向不变、兜底 30% 长）—— 画箭头与悬浮框避让共用同一套几何. */
+  function arrowTip(px, py, ax, ay, g, opts) {
     opts = opts || {};
     var L = opts.len || 31, PAD = 8;
     var len = Math.hypot(ax, ay) || 1;
@@ -79,17 +76,27 @@
     if (dy < 0) shrink = Math.min(shrink, Math.max(py - PAD, 0) / -dy);
     if (dy > 0) shrink = Math.min(shrink, Math.max(g.h - PAD - py, 0) / dy);
     shrink = Math.max(shrink, 0.3);
-    var tx = px + dx * shrink, ty = py + dy * shrink;
-    parts.push('<line x1="' + px + '" y1="' + py + '" x2="' + tx + '" y2="' + ty + '" stroke="' +
+    return { tx: px + dx * shrink, ty: py + dy * shrink };
+  }
+
+  /**
+   * 从 (px, py) 沿像素空间方向（ax, ay，向上为正）画箭头；
+   * 贴边按比例缩短（方向不变）、兜底 30% 长。返回端点像素。
+   */
+  function arrow(parts, px, py, ax, ay, g, opts) {
+    opts = opts || {};
+    var t = arrowTip(px, py, ax, ay, g, opts);
+    parts.push('<line x1="' + px + '" y1="' + py + '" x2="' + t.tx + '" y2="' + t.ty + '" stroke="' +
       (opts.color || '#111') + '" stroke-width="' + (opts.width || 2) +
       '" marker-end="url(#' + opts.marker + ')"/>');
-    return { tx: tx, ty: ty };
+    return t;
   }
 
   UI.overlay = {
     mount: mount,
     defs: defs,
     arrow: arrow,
+    arrowTip: arrowTip,
     /** 白描边文字（压过等高线 / 色带仍可读）。 */
     text: function (parts, x, y, str, color, anchor) {
       parts.push('<text x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" font-size="11" fill="' +

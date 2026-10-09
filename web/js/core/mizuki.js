@@ -188,6 +188,48 @@
            M.mapDamage(M.REF_EM, 0, M.REF_CR, M.REF_CD, s) * M.configFactor(s);
   };
 
+  /** 词条等效（用户口径，2026-10-09）：1 精通词条 = 双暴词条的 d 倍伤害。
+   *  d = ΔD(精通 +1 词条) / ΔD(双暴 +1 词条)，都以「1 词条」的增量算（D 与倍数的比恒定，用倍数即可）。
+   *  步进越出轴域时改用单侧差分（贴边仍可算）。 */
+  function meq(c, sc, s) {
+    var t = M.splitAt(sc, s.cr, s.cd);
+    return M.mapDamage(c, s.bonus, t[0], t[1], s);
+  }
+  function fwd(c0, sc0, dc, dsc, s) {
+    var f = function (c, sc) { return meq(c, sc, s); };
+    var step = function (a, b) { return [c0 + a, sc0 + b]; };
+    var p1 = step(dc, dsc), p0 = step(0, 0), p2 = step(-dc, -dsc);
+    if (p1[0] <= s.em + M.EM_ADD_MAX && p1[1] <= C.baseScore(s.cr, s.cd) + M.ROLL_LIMIT * C.SCORE_PER_ROLL) {
+      return f(p1[0], p1[1]) - f(p0[0], p0[1]);
+    }
+    if (p2[0] >= s.em && p2[1] >= C.baseScore(s.cr, s.cd)) {
+      return f(p0[0], p0[1]) - f(p2[0], p2[1]);
+    }
+    return NaN;   // 域太窄（几乎不可能）
+  }
+  M.equivEm = function (x, y, s) {
+    return fwd(x, y, C.EM_PER_ROLL, 0, s) / fwd(x, y, 0, C.SCORE_PER_ROLL, s);
+  };
+
+  /** 全图扫描：d 的最小 / 最大值（与位置）。G 为每轴网格数。 */
+  M.equivRange = function (s, G) {
+    G = G || 141;
+    var x0 = s.em, x1 = s.em + M.EM_ADD_MAX;
+    var y0 = C.baseScore(s.cr, s.cd), y1 = y0 + M.ROLL_LIMIT * C.SCORE_PER_ROLL;
+    var lo = Infinity, hi = -Infinity, loAt = null, hiAt = null;
+    for (var i = 0; i <= G; i++) {
+      for (var j = 0; j <= G; j++) {
+        var x = x0 + (x1 - x0) * i / G, y = y0 + (y1 - y0) * j / G;
+        if (M.mapInfeasible(x, y, s)) continue;
+        var e = M.equivEm(x, y, s);
+        if (!isFinite(e)) continue;
+        if (e < lo) { lo = e; loAt = [x, y]; }
+        if (e > hi) { hi = e; hiAt = [x, y]; }
+      }
+    }
+    return { lo: lo, hi: hi, loAt: loAt, hiAt: hiAt };
+  };
+
   /** 配置级乘区 ≠ 1 时的补充说明（默认值下没有这句）。 */
   M.refFactorNote = function (s) {
     var f = M.configFactor(s);

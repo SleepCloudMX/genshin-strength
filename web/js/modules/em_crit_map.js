@@ -20,7 +20,9 @@
     '跨配置可比（占比 &lt; 100% 时需在相同占比下比较）。参照面板按「同一敌人、<b>不减抗、无基础提升、不擢升</b>」计，配置级的差由面板底部四项补上、' +
     '只进这个参照数（本配置的减抗收益 = κ(r₀ − S) / κ(r₀)，口径同<a href="#/basics/resistance">「抗性区」页</a>）。' +
     '每点都假设双暴已按约束最优配平；1 词条 = 20 精通 = 3.3% 暴击 = 6.6% 暴伤。<br>' +
-    '<b>操作</b>：悬浮即出卡片与双箭头（卡片自动避开右上——箭头只在右上，不会遮挡）；点击固定该点，chip 两行 —— ' +
+    '<b>词条等效</b>：1 精通词条 = 双暴词条的 d 倍伤害（d = 每点相对增益之比：精通 d 与双暴 1 相比，' +
+    '<span id="equivLine">—</span>）。往精通饱和方向 d 下降、往双暴饱和方向 d 上升。<br>' +
+    '<b>操作</b>：悬浮即出卡片与双箭头（卡片自动避开箭头）；点击固定该点，chip 两行 —— ' +
     '<b>归一化梯度</b>（钢蓝，即卡片里的「词条重要性」）与<b>最优的分配</b>（黑）。' +
     '<b>黑（主）</b> = 「下一词条」的最优分配方向（只拆新的一条：α·20 精通 + (1−α)·6.6 双暴，已有词条不动）；' +
     '<b>钢蓝（次）</b> = 梯度方向（画面空间每像素增益最大，⊥ 等高线）。两箭头都按两轴刻度映射、长度固定、只指示方向。<br>' +
@@ -91,7 +93,8 @@
 
       host.appendChild(verdict);
       host.appendChild(card);
-      host.appendChild(GS.ui.panels.note(FOOT, 'pagenote'));
+      var foot = GS.ui.panels.note(FOOT, 'pagenote');
+      host.appendChild(foot);
 
       var pin = null;        // 固定点（数据坐标）
       var hoverPx = null;    // 悬浮位置（相对绘图区的像素）
@@ -386,6 +389,18 @@
         st = s;
         draw(s);
         updatePinBox(s);
+        updateEquivLine(s);
+      }
+
+      /* 页脚「词条等效」行：当前基准点的 d + 全图范围（面板参数变化时重算，几百微秒） */
+      function updateEquivLine(s) {
+        var elLine = document.getElementById('equivLine');
+        if (!elLine) return;
+        var d0 = Mi.equivEm(s.em, C.baseScore(s.cr, s.cd), s);
+        var r = Mi.equivRange(s, 61);
+        elLine.innerHTML = '基准点 d = ' + d0.toFixed(2) + '，全图 ' + r.lo.toFixed(2) + ' ~ ' + r.hi.toFixed(2) +
+          '（低 @ 精通 ' + (r.loAt[0] - s.em).toFixed(0) + ' / 双暴分 ' + (r.loAt[1] - C.baseScore(s.cr, s.cd)).toFixed(0) +
+          '，高 @ 精通 ' + (r.hiAt[0] - s.em).toFixed(0) + ' / 双暴分 ' + (r.hiAt[1] - C.baseScore(s.cr, s.cd)).toFixed(0) + '）';
       }
 
       /* 滑条拖动：只更新读数与固定点框，不碰绘图 */
@@ -401,9 +416,22 @@
         ovl.queue();
         if (!hoverPx || !st || !cache.base) { tip.hide(); return; }
         var base = cache.base;
-        var hx = base.x0 + hoverPx.x / m.geom().w * (base.x1 - base.x0);
-        var hy = base.y1 - hoverPx.y / m.geom().h * (base.y1 - base.y0);
-        tip.show(tipHTML(hx, hy, st), hoverPx.x, hoverPx.y, { avoidNE: true });
+        var g = m.geom();
+        var hx = base.x0 + hoverPx.x / g.w * (base.x1 - base.x0);
+        var hy = base.y1 - hoverPx.y / g.h * (base.y1 - base.y0);
+        /* 两条箭头线段（黑 + 钢蓝，与叠加层同一几何）——卡片避开它们放 */
+        var segs = [];
+        if (Mi.pointInfo(hx, hy, st).state !== 'bad') {
+          var al = Mi.nextAlloc(hx, hy, st);
+          var t1 = ctx.overlay.arrowTip(hoverPx.x, hoverPx.y,
+            al.du * C.EM_PER_ROLL * g.w / (base.x1 - base.x0),
+            al.dv * C.SCORE_PER_ROLL * g.h / (base.y1 - base.y0), g, {});
+          var t2 = ctx.overlay.arrowTip(hoverPx.x, hoverPx.y,
+            Mi.dlnFdx(hx, st.bonus, st) * (base.x1 - base.x0) / g.w,
+            Mi.dlnGdy(hy, st.cr, st.cd) * (base.y1 - base.y0) / g.h, g, {});
+          segs.push([hoverPx.x, hoverPx.y, t1.tx, t1.ty], [hoverPx.x, hoverPx.y, t2.tx, t2.ty]);
+        }
+        tip.show(tipHTML(hx, hy, st), hoverPx.x, hoverPx.y, { segs: segs });
       });
       m.wrap.addEventListener('mouseleave', function () {
         hoverPx = null;
