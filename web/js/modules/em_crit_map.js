@@ -91,6 +91,8 @@
 
       host.appendChild(verdict);
       host.appendChild(card);
+      var equivNote = el('div', 'chartnote');
+      host.appendChild(equivNote);
       host.appendChild(GS.ui.panels.note(FOOT, 'pagenote'));
 
       var pin = null;        // 固定点（数据坐标）
@@ -268,7 +270,6 @@
           return '<span class="' + cls + '">' + k + ' ' + v.toFixed(2) + '</span>';
         };
         var dC = Mi.equivEm(x, y, s);   // 词条等效：1 精通词条 ≈ d 双暴词条（局部、每点相对增益之比）
-        var dR = Mi.equivRange(s, 61);  // 全图范围（随参数变，现算）
         html += t.div() +
           t.cap('下一词条最优分配') +
           t.bar(al.du, '#a9cfcf', '#ddd4d9') +
@@ -280,7 +281,7 @@
           t.rows([
             ['词条', '精通 ' + fmt1(info.emRolls) + ' · 双暴 ' + fmt1(info.critRolls) + '（共 ' + fmt1(info.emRolls + info.critRolls) + '）'],
             ['配平后', '暴击 ' + fmt1(info.rate) + '% / 暴伤 ' + fmt1(info.dmg) + '%'],
-            ['词条等效', '1 精通词条 ≈ ' + dC.toFixed(2) + ' 双暴词条（全图 ' + dR.lo.toFixed(2) + ' ~ ' + dR.hi.toFixed(2) + '）'],
+            ['精通 ≈', dC.toFixed(2) + ' 双暴词条'],
           ]);
         if (info.state === 'band') {
           var side = Mi.pinnedSide(s);
@@ -389,6 +390,10 @@
         st = s;
         draw(s);
         updatePinBox(s);
+        /* 词条等效的全图范围：随参数现算的小读数（图下，独立于页脚说明文字） */
+        var dR = Mi.equivRange(s, 61);
+        equivNote.textContent = '词条等效 · 全图 1 精通词条 = 双暴词条的 ' +
+          dR.lo.toFixed(2) + ' ~ ' + dR.hi.toFixed(2) + ' 倍';
       }
 
       /* 滑条拖动：只更新读数与固定点框，不碰绘图 */

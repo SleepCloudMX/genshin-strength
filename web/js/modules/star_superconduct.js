@@ -96,6 +96,8 @@
 
       host.appendChild(verdict);
       host.appendChild(card);
+      var equivNote = el('div', 'chartnote');
+      host.appendChild(equivNote);
       host.appendChild(GS.ui.panels.note(FOOT, 'pagenote'));
 
       var st = null;
@@ -136,6 +138,11 @@
         var s = readState(s0);
         st = s;
         var scan = updateVerdict(s);
+        /* 词条等效的全图范围：随参数现算的小读数（图下，独立于页脚说明文字） */
+        var eqR = S.equivRange(s, 81);
+        equivNote.textContent = '词条等效 · 全图 1 精通词条 = 双暴词条的 ' +
+          eqR.lo.em.toFixed(2) + ' ~ ' + eqR.hi.em.toFixed(2) + ' 倍、1 攻击词条 = ' +
+          eqR.lo.atk.toFixed(2) + ' ~ ' + eqR.hi.atk.toFixed(2) + ' 倍';
 
         var shapes = [];
         for (var c = 5; Math.ceil(c) < s.n; c += 5) {
@@ -231,12 +238,12 @@
           ['攻击', atkOf(s, s.n - x - y).toFixed(0) + '（' + (s.n - x - y).toFixed(1) + ' 词条）'],
         ];
         var eq = S.equiv(s, x, y);
-        var eqR = S.equivRange(s, 81);   // 全图范围（随参数变，现算）
-        var eqTxt = '1 精通 ≈ ' + eq.em.toFixed(2) +
-          (isFinite(eq.atk) ? ' · 1 攻击 ≈ ' + eq.atk.toFixed(2) : '（无攻击词条空间）') +
-          ' 双暴词条（全图 精通 ' + eqR.lo.em.toFixed(2) + ' ~ ' + eqR.hi.em.toFixed(2) +
-          ' · 攻击 ' + eqR.lo.atk.toFixed(2) + ' ~ ' + eqR.hi.atk.toFixed(2) + '）';
-        rows.push(['词条等效', eqTxt]);
+        if (isFinite(eq.em)) {
+          rows.push(['精通 ≈', eq.em.toFixed(2) + ' 双暴词条']);
+        }
+        if (isFinite(eq.atk)) {
+          rows.push(['攻击 ≈', eq.atk.toFixed(2) + ' 双暴词条']);
+        }
         tip.show(ctx.tip.card({
           title: '精通 ' + em.toFixed(0) + ' · 双暴 ' + t.cr.toFixed(1) + ' / ' + t.cd.toFixed(1),
           hero: { v: '×' + (d / base0).toFixed(3), cap: '相对基准面板' },
