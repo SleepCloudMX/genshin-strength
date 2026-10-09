@@ -255,7 +255,8 @@
         if (info.state === 'bad') {
           return t.hero('×' + info.mult.toFixed(3), '相较 0 词条') +
             t.bad(info.reason) +
-            t.rows([['参照 · ' + Mi.REF_CAPTION, '×' + info.ref.toFixed(3)]]);
+            '<div class="tip__ref"><b class="tip__num">×' + info.ref.toFixed(3) + '</b>' +
+              '<span class="lb">' + Mi.REF_CAPTION + '</span></div>';
         }
         var dC = Mi.equivEm(x, y, s);       // 1 精通词条 ≈ d 双暴词条（局部）
         var dR = Mi.equivRange(s, 61);      // 全图范围（随参数现算）
