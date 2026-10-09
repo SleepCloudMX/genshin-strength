@@ -243,12 +243,12 @@
         var rng = S.equivRange(s, 61);
         var eqHTML = '';
         if (isFinite(eq.em)) {
-          eqHTML += '<div><span class="lb">精通： </span>' + eqItem('', eq.em) +
-            '<span class="dim"> ∈ [' + rng.lo.em.toFixed(2) + ', ' + rng.hi.em.toFixed(2) + ']</span></div>';
+          eqHTML += '<div class="tip__hd"><span class="lb">精通：</span><span></span><span class="vl">' + eqItem('', eq.em) +
+            '<span class="dim"> ∈ [' + rng.lo.em.toFixed(2) + ', ' + rng.hi.em.toFixed(2) + ']</span></span></div>';
         }
         if (isFinite(eq.atk)) {
-          eqHTML += '<div><span class="lb">攻击： </span>' + eqItem('', eq.atk) +
-            '<span class="dim"> ∈ [' + rng.lo.atk.toFixed(2) + ', ' + rng.hi.atk.toFixed(2) + ']</span></div>';
+          eqHTML += '<div class="tip__hd"><span class="lb">攻击：</span><span></span><span class="vl">' + eqItem('', eq.atk) +
+            '<span class="dim"> ∈ [' + rng.lo.atk.toFixed(2) + ', ' + rng.hi.atk.toFixed(2) + ']</span></span></div>';
         }
         var alw = S.nextAlloc(s, x, y);
         var grw = S.gradWeights(s, x, y);
@@ -257,9 +257,9 @@
           '<div class="tip__hd"><span>精通</span><span class="rl">' + x.toFixed(1) + ' 词条</span><span class="vl">' + em.toFixed(0) + '</span></div>' +
           '<div class="tip__hd"><span>双暴</span><span class="rl">' + y.toFixed(1) + ' 词条</span><span class="vl">' + t.cr.toFixed(1) + ' / ' + t.cd.toFixed(1) + '</span></div>' +
           '<div class="tip__hd"><span>攻击</span><span class="rl">' + z.toFixed(1) + ' 词条</span><span class="vl">' + atkOf(s, z).toFixed(0) + '</span></div>' +
-          (eqHTML ? '<div class="tip__eq"><div><span class="lb">单位词条等效双暴词条</span></div>' + eqHTML + '</div>' : '') +
-          '<div class="tip__cap">下一词条最优分配</div>' + triBar(alw) +
-          '<div class="tip__cap mt">归一化梯度</div>' + triBar(grw);
+          (eqHTML ? '<div class="tip__eq"><div style="font-weight:600">单位词条等效双暴词条</div>' + eqHTML + '</div>' : '') +
+          '<div class="tip__cap" style="font-weight:600">下一词条最优分配</div>' + triBar(alw) +
+          '<div class="tip__cap mt" style="font-weight:600">归一化梯度</div>' + triBar(grw);
         tip.show(html, hoverPx.x, hoverPx.y, { segs: segs });
       });
       m.wrap.addEventListener('mouseleave', function () {

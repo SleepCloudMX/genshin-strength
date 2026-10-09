@@ -91,8 +91,6 @@
 
       host.appendChild(verdict);
       host.appendChild(card);
-      var equivNote = el('div', 'chartnote');
-      host.appendChild(equivNote);
       host.appendChild(GS.ui.panels.note(FOOT, 'pagenote'));
 
       var pin = null;        // 固定点（数据坐标）
@@ -266,14 +264,14 @@
         var refNote = Mi.refFactorNote(s);
         var html =
           '<div class="tip__hero"><b>×' + info.mult.toFixed(3) + '</b><span class="u">相较 0 词条</span></div>' +
+          '<div class="tip__hd" style="grid-template-columns:44px 50px 1fr"><span class="nm">参照</span><span class="rl">589/5/50</span><span class="vl">×' + info.ref.toFixed(3) + '</span></div>' +
           '<div class="tip__hd"><span class="nm">精通</span><span class="rl">' + fmt1(info.emRolls) + ' 词条</span><span class="vl">' + info.x.toFixed(0) + '</span></div>' +
           '<div class="tip__hd"><span class="nm">双暴</span><span class="rl">' + fmt1(info.critRolls) + ' 词条</span><span class="vl">' + fmt1(info.y) + '</span></div>' +
           '<div class="tip__eq"><div><span class="lb">精通：</span><b class="' + (dC >= 1 ? 'hi' : 'lo') + '">' + dC.toFixed(2) +
             '</b><span class="dim"> ∈ [' + dR.lo.toFixed(2) + ', ' + dR.hi.toFixed(2) + ']</span></div></div>' +
-          '<div class="tip__cap">下一词条最优分配</div>' + segBar(al.du, al.dv) +
-          '<div class="tip__cap mt">归一化梯度</div>' + segBar(im.em, im.crit);
-        html += '<div class="tip__note">参照面板：×' + info.ref.toFixed(3) +
-          '　配平后：暴击 ' + fmt1(info.rate) + ' / 暴伤 ' + fmt1(info.dmg) + '</div>' +
+          '<div class="tip__cap" style="font-weight:600">下一词条最优分配</div>' + segBar(al.du, al.dv) +
+          '<div class="tip__cap mt" style="font-weight:600">归一化梯度</div>' + segBar(im.em, im.crit) +
+          '<div class="tip__note">配平后：暴击 ' + fmt1(info.rate) + ' / 暴伤 ' + fmt1(info.dmg) + '</div>' +
           (refNote ? t.note(refNote) : '');
         if (info.state === 'band') {
           var side = Mi.pinnedSide(s);
@@ -391,10 +389,6 @@
         st = s;
         draw(s);
         updatePinBox(s);
-        /* 词条等效的全图范围：随参数现算的小读数（图下，独立于页脚说明文字） */
-        var dR = Mi.equivRange(s, 61);
-        equivNote.textContent = '词条等效 · 全图 1 精通词条 = 双暴词条的 ' +
-          dR.lo.toFixed(2) + ' ~ ' + dR.hi.toFixed(2) + ' 倍';
       }
 
       /* 滑条拖动：只更新读数与固定点框，不碰绘图 */
