@@ -302,6 +302,30 @@ a:hover { text-decoration: underline; }
 .tip__note { margin-top: 7px; padding-top: 6px; border-top: 1px solid var(--surface-2); color: var(--text-dim); }
 .tip__sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 
+/* 属性行：属性 / 词条数 / 数值（桑多涅卡片，2026-10-10） */
+.tip__hd { display: grid; grid-template-columns: 34px 62px 1fr; align-items: baseline; }
+.tip__hd .rl { font-family: var(--mono); font-size: 11.5px; color: var(--text-dim); }
+.tip__hd .vl { text-align: right; font-family: var(--mono); font-size: 11.5px; }
+/* 等效行：标签 + 数值同行，上下分割线；≥1 绿 / <1 红棕 */
+.tip__eq { border-top: 1px solid var(--surface-2); border-bottom: 1px solid var(--surface-2);
+           margin: 5px 0; padding: 4px 0; font-size: 11.5px; }
+.tip__eq .lb { color: var(--text-dim); }
+.tip__eq b { font-family: var(--mono); font-weight: 600; }
+.tip__eq .gap { display: inline-block; width: 14px; }
+.tip__eq .hi { color: #2e8b57; }
+.tip__eq .lo { color: #a2542f; }
+/* 三维度条（精通 / 双暴 / 攻击） */
+.tip__tri { display: flex; gap: 10px; }
+.tip__tri .t { flex: 1; min-width: 0; }
+.tip__tri .k { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px; }
+.tip__tri .k .n { color: var(--text-dim); }
+.tip__tri .k .v { font-family: var(--mono); }
+.tip__tri .b { height: 7px; border-radius: 3px; background: #ddd4d9; overflow: hidden; }
+.tip__tri .b i { display: block; height: 100%; }
+.tip__tri .b i.em { background: #a9cfcf; }
+.tip__tri .b i.cr { background: #c3a1b4; }
+.tip__tri .b i.at { background: #9db3d4; }
+
 /* 叠加层（自绘 SVG / DOM，覆盖在图上；几何读 Plotly 渲染后的真实值） */
 .ovl { position: absolute; pointer-events: none; overflow: visible; z-index: 5; }
 .ovl svg { position: absolute; left: 0; top: 0; overflow: visible; }

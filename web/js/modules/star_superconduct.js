@@ -74,6 +74,18 @@
 
       /* 悬浮读数与结论条共用 core 的同一套攻击力 / 伤害口径 */
       function atkOf(s, z) { return S.panelAttack(s.weapon, s.extraPct, s.extraFlat, z); }
+
+      /* 卡片小件：等效项（≥1 绿 / <1 红棕）与三维度条（精通 / 双暴 / 攻击） */
+      function eqItem(name, v) {
+        return '<b class="' + (v >= 1 ? 'hi' : 'lo') + '">' + name + ' ' + v.toFixed(2) + '</b>';
+      }
+      function triBar(w) {
+        var one = function (name, cls, val) {
+          return '<div class="t"><div class="k"><span class="n">' + name + '</span><span class="v">' + val.toFixed(2) +
+            '</span></div><div class="b"><i class="' + cls + '" style="width:' + (Math.max(0, val) * 100).toFixed(1) + '%"></i></div></div>';
+        };
+        return '<div class="tip__tri">' + one('精通', 'em', w.em) + one('双暴', 'cr', w.crit) + one('攻击', 'at', w.atk) + '</div>';
+      }
       function dmgOf(s, x, y) {
         var z = s.n - x - y;
         if (z < -1e-9) return null;
@@ -220,6 +232,7 @@
         var s = st;
         var d = dmgOf(s, x, y);
         var base0 = dmgOf(Object.assign({}, s, { n: 0 }), 0, 0);
+        var z = s.n - x - y;
         var em = s.em + S.PER_EM * x;
         var t = S.critSplit(s.cr + S.SET_CR + s.weapon.cr, s.cd + s.weapon.cd + s.weapon.extraCd, y);
         /* 梯度箭头线段（与叠加层同一算法）——卡片避开它放 */
@@ -232,23 +245,22 @@
             { len: Math.min(Math.max(mag * 60000, 9), 66) });
           segs.push([hoverPx.x, hoverPx.y, tp.tx, tp.ty]);
         }
-        var rows = [
-          ['精通', x.toFixed(1) + ' 词条'],
-          ['双暴', y.toFixed(1) + ' 词条'],
-          ['攻击', atkOf(s, s.n - x - y).toFixed(0) + '（' + (s.n - x - y).toFixed(1) + ' 词条）'],
-        ];
+        /* 区 2：属性 词条数 数值；区 3：单位等效（1 词条 = 多少双暴词条）；区 4：三维度条 */
         var eq = S.equiv(s, x, y);
-        if (isFinite(eq.em)) {
-          rows.push(['精通 ≈', eq.em.toFixed(2) + ' 双暴词条']);
-        }
-        if (isFinite(eq.atk)) {
-          rows.push(['攻击 ≈', eq.atk.toFixed(2) + ' 双暴词条']);
-        }
-        tip.show(ctx.tip.card({
-          title: '精通 ' + em.toFixed(0) + ' · 双暴 ' + t.cr.toFixed(1) + ' / ' + t.cd.toFixed(1),
-          hero: { v: '×' + (d / base0).toFixed(3), cap: '相对基准面板' },
-          rows: rows,
-        }), hoverPx.x, hoverPx.y, { segs: segs });
+        var eqHTML = '';
+        if (isFinite(eq.em)) eqHTML += eqItem('精通', eq.em);
+        if (isFinite(eq.atk)) eqHTML += (eqHTML ? '<span class="gap"></span>' : '') + eqItem('攻击', eq.atk);
+        var alw = S.nextAlloc(s, x, y);
+        var grw = S.gradWeights(s, x, y);
+        var html =
+          '<div class="tip__hero"><b>×' + (d / base0).toFixed(3) + '</b><span class="u">相对基准面板</span></div>' +
+          '<div class="tip__hd"><span>精通</span><span class="rl">' + x.toFixed(1) + ' 词条</span><span class="vl">' + em.toFixed(0) + '</span></div>' +
+          '<div class="tip__hd"><span>双暴</span><span class="rl">' + y.toFixed(1) + ' 词条</span><span class="vl">' + t.cr.toFixed(1) + ' / ' + t.cd.toFixed(1) + '</span></div>' +
+          '<div class="tip__hd"><span>攻击</span><span class="rl">' + z.toFixed(1) + ' 词条</span><span class="vl">' + atkOf(s, z).toFixed(0) + '</span></div>' +
+          (eqHTML ? '<div class="tip__eq"><span class="lb">等效双暴词条：</span><span class="gap"></span>' + eqHTML + '</div>' : '') +
+          '<div class="tip__cap">下一词条最优分配</div>' + triBar(alw) +
+          '<div class="tip__cap mt">归一化梯度</div>' + triBar(grw);
+        tip.show(html, hoverPx.x, hoverPx.y, { segs: segs });
       });
       m.wrap.addEventListener('mouseleave', function () {
         hoverPx = null;

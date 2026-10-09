@@ -151,6 +151,54 @@
     return { lo: lo, hi: hi, loAt: loAt, hiAt: hiAt };
   };
 
+  /** 单点伤害倍数（x + y + z = n），公开给模块与探针用。 */
+  S.multAt = function (s, x, y, z) { return multAt(s, x, y, z); };
+
+  /** 三类词条各 +1 的边际增益（相对当前点）：
+   *  下一词条分配：精通 x+1（z−1）、双暴 y+1（z−1）、攻击 z+1（其他不动）—— 一整个 k 词条拆三份的候选；
+   *  归一化梯度：三类都 +1 词条的大小（z 相对少 1）—— 纯边际，量纲一致。 */
+  S.wordGains = function (s, x, y) {
+    var z = s.n - x - y;
+    if (z < -1e-9) return null;
+    var m0 = multAt(s, x, y, z);
+    if (m0 === null) return null;
+    var g = function (m) { return m === null ? NaN : m / m0 - 1; };
+    return {
+      em: g(multAt(s, x + 1, y, z - 1)),
+      crit: g(multAt(s, x, y + 1, z - 1)),
+      atk: g(multAt(s, x, y, z + 1)),
+    };
+  };
+  S.gradWeights = function (s, x, y) {
+    var z = s.n - x - y;
+    if (z < -1e-9) return null;
+    var m0 = multAt(s, x, y, z);
+    if (m0 === null) return null;
+    var g = function (m) { return m === null ? NaN : m / m0 - 1; };
+    var w = { em: g(multAt(s, x + 1, y, z)), crit: g(multAt(s, x, y + 1, z)), atk: g(multAt(s, x, y, z + 1)) };
+    var t = (isFinite(w.em) ? Math.abs(w.em) : 0) + (isFinite(w.crit) ? Math.abs(w.crit) : 0) + (isFinite(w.atk) ? Math.abs(w.atk) : 0);
+    if (!isFinite(t) || t <= 1e-12) return { em: 1 / 3, crit: 1 / 3, atk: 1 / 3 };
+    return { em: Math.abs(w.em) / t, crit: Math.abs(w.crit) / t, atk: Math.abs(w.atk) / t };
+  };
+
+  /** 下一词条最优分配：在三角形 x′+y′+z′ = 1（三类各占一份）上最大化伤害 —— 直接网格扫描。 */
+  S.nextAlloc = function (s, x, y) {
+    var z = s.n - x - y;
+    if (z < -1e-9) return { em: NaN, crit: NaN, atk: NaN };
+    var m0 = multAt(s, x, y, z);
+    if (m0 === null) return { em: NaN, crit: NaN, atk: NaN };
+    var best = null, bestV = -Infinity;
+    var G = 60;
+    for (var i = 0; i <= G; i++) {
+      for (var j = 0; i + j <= G; j++) {
+        var a = i / G, b = j / G, c = 1 - a - b;
+        var m = multAt(s, x + a, y + b, z + c);
+        if (m !== null && m > bestV) { bestV = m; best = { em: a, crit: b, atk: c }; }
+      }
+    }
+    return best || { em: NaN, crit: NaN, atk: NaN };
+  };
+
   /** 伤害对数的梯度（中心差分 h = 0.05 词条；贴边界退化为单侧差分）。 */
   S.grad = function (x, y, s) {
     var h = 0.05;
