@@ -268,7 +268,8 @@ a:hover { text-decoration: underline; }
 /* --- 悬浮卡片（自绘，全站统一） -------------------------------------------- */
 .tip {
   position: absolute; display: none; z-index: 6; pointer-events: none;
-  min-width: 172px; max-width: 292px;
+  /* 固定宽度：容纳「此时双暴 1:2 无法配平」红字行；出现该行不改变卡片宽度 */
+  width: 268px; max-width: 292px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-sm);

@@ -170,6 +170,31 @@
             name: '等高线', showscale: false, showlegend: true, legendrank: 2,
           });
         }
+
+        /* 配平下界（细点线，同瑞希热图）：y < bandY 时 1:2 配不平（暴伤过 2 倍暴击率）。
+           下界线横贯可行域：x ∈ [0, n − bandY]。 */
+        var bandY = S.bandY(s), yHigh = S.bandYHigh(s);
+        var anns = [];
+        if (bandY > 0.05 && bandY < s.n) {
+          traces.push({
+            type: 'scatter', mode: 'lines', x: [0, s.n - bandY], y: [bandY, bandY],
+            line: { color: '#888', width: 1.2, dash: 'dot' }, showlegend: false,
+          });
+          anns.push({
+            x: s.n - bandY, y: bandY, xanchor: 'right', yanchor: 'bottom',
+            text: '1:2 配平不可达', showarrow: false, font: { size: 11, color: '#888' },
+          });
+        }
+        if (yHigh < s.n - 0.05) {
+          traces.push({
+            type: 'scatter', mode: 'lines', x: [0, s.n - yHigh], y: [yHigh, yHigh],
+            line: { color: '#888', width: 1.2, dash: 'dot' }, showlegend: false,
+          });
+          anns.push({
+            x: s.n - yHigh, y: yHigh, xanchor: 'right', yanchor: 'bottom',
+            text: '暴击率顶 100%', showarrow: false, font: { size: 11, color: '#888' },
+          });
+        }
         traces.push({
           type: 'scatter', mode: 'markers', x: [scan.best.x], y: [scan.best.y],
           marker: { symbol: 'circle', size: 7, color: '#e8710a', line: { color: '#fff', width: 1.5 } },
@@ -180,6 +205,7 @@
           xaxis: charts.axis({ title: { text: '精通词条数' }, range: [0, s.n] }),
           yaxis: charts.axis({ title: { text: '双暴词条数' }, range: [0, s.n] }),
           shapes: shapes,
+          annotations: anns,
           showlegend: true,
           legend: { orientation: 'h', x: 0, y: 1.06, font: { size: 12, color: charts.DIM } },
           margin: { t: 24, r: 24, b: 52, l: 60 }, height: 620,
@@ -257,13 +283,10 @@
           '<div class="tip__hd"><span>精通</span><span class="rl">' + x.toFixed(1) + ' 词条</span><span class="vl">' + em.toFixed(0) + '</span></div>' +
           '<div class="tip__hd"><span>双暴</span><span class="rl">' + y.toFixed(1) + ' 词条</span><span class="vl">' + t.cr.toFixed(1) + ' / ' + t.cd.toFixed(1) + '</span></div>' +
           '<div class="tip__hd"><span>攻击</span><span class="rl">' + z.toFixed(1) + ' 词条</span><span class="vl">' + atkOf(s, z).toFixed(0) + '</span></div>' +
+          (S.critBand(s, y) ? '<div class="tip__bad">此时双暴 1:2 无法配平</div>' : '') +
           (eqHTML ? '<div class="tip__eq"><div style="font-weight:600">单位词条等效双暴词条</div>' + eqHTML + '</div>' : '') +
           '<div class="tip__cap" style="font-weight:600">下一词条最优分配</div>' + triBar(alw) +
           '<div class="tip__cap mt" style="font-weight:600">归一化梯度</div>' + triBar(grw);
-        if (S.critBand(s, y)) {   // 双暴配平不可达（与瑞希同义的红字提示；两行短句，不撑宽卡片）
-          var side = S.pinnedSide(s, y);
-          html += '<div class="tip__bad">1:2 配平不可达<br>' + side + '压在基准，超额全在' + (side === '暴伤' ? '暴击率' : '暴伤') + '</div>';
-        }
         tip.show(html, hoverPx.x, hoverPx.y, { segs: segs });
       });
       m.wrap.addEventListener('mouseleave', function () {

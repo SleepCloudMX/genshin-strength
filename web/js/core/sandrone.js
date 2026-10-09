@@ -53,16 +53,20 @@
 
   /** 配平不可达（与瑞希同义）：1:2 拆分被一端卡住。被压的是暴伤还是暴击率（两者相反）。
    *  卡点看拆分端点：暴击率顶 100% → 暴伤被压；暴伤停在基准 → 暴击率侧超额。 */
-  S.critBand = function (s, y) {
+  S.critBand = function (s, y) { return y < S.bandY(s) - 1e-9 || y > S.bandYHigh(s) + 1e-9; };
+  /** 下界 band 的边界词条数：y < bandY → 配不平（暴伤已过 2 倍暴击率，被压在基准）。 */
+  S.bandY = function (s) {
     var cr0 = s.cr + S.SET_CR + s.weapon.cr, cd0 = s.cd + s.weapon.cd + s.weapon.extraCd;
-    var t = S.critSplit(cr0, cd0, y);
-    return Math.abs(t.cr - 100) < 1e-6 || Math.abs(t.cd - cd0) < 1e-6;
+    return Math.max(0, (cd0 - 2 * cr0) / S.PER_CD);
+  };
+  /** 上界 band 的边界词条数：y > bandYHigh → 暴击率顶 100%，配不平。 */
+  S.bandYHigh = function (s) {
+    var cr0 = s.cr + S.SET_CR + s.weapon.cr;
+    return (100 - cr0) / S.PER_CR;
   };
   /** 不可达时被压在基准的那一侧：'暴伤' / '暴击率'（页卡红字用，与瑞希 pinnedSide 同义）。 */
   S.pinnedSide = function (s, y) {
-    var cr0 = s.cr + S.SET_CR + s.weapon.cr, cd0 = s.cd + s.weapon.cd + s.weapon.extraCd;
-    var t = S.critSplit(cr0, cd0, y);
-    return Math.abs(t.cd - cd0) < 1e-6 ? '暴伤' : '暴击率';
+    return y < S.bandY(s) ? '暴伤' : '暴击率';
   };
 
   /** b 个双暴词条在暴击率 / 暴伤之间最优拆分后的配比（期望口径；暴击率上限 100%）。b 的单位是词条。 */
