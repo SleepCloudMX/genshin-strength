@@ -231,11 +231,12 @@
           ['攻击', atkOf(s, s.n - x - y).toFixed(0) + '（' + (s.n - x - y).toFixed(1) + ' 词条）'],
         ];
         var eq = S.equiv(s, x, y);
-        if (isFinite(eq.em) && isFinite(eq.atk)) {
-          rows.push(['词条等效', '1 精通 ≈ ' + eq.em.toFixed(2) + ' · 1 攻击 ≈ ' + eq.atk.toFixed(2) + ' 双暴词条']);
-        } else if (isFinite(eq.em)) {
-          rows.push(['词条等效', '1 精通 ≈ ' + eq.em.toFixed(2) + ' 双暴词条（预算已满，无攻击词条）']);
-        }
+        var eqR = S.equivRange(s, 81);   // 全图范围（随参数变，现算）
+        var eqTxt = '1 精通 ≈ ' + eq.em.toFixed(2) +
+          (isFinite(eq.atk) ? ' · 1 攻击 ≈ ' + eq.atk.toFixed(2) : '（无攻击词条空间）') +
+          ' 双暴词条（全图 精通 ' + eqR.lo.em.toFixed(2) + ' ~ ' + eqR.hi.em.toFixed(2) +
+          ' · 攻击 ' + eqR.lo.atk.toFixed(2) + ' ~ ' + eqR.hi.atk.toFixed(2) + '）';
+        rows.push(['词条等效', eqTxt]);
         tip.show(ctx.tip.card({
           title: '精通 ' + em.toFixed(0) + ' · 双暴 ' + t.cr.toFixed(1) + ' / ' + t.cd.toFixed(1),
           hero: { v: '×' + (d / base0).toFixed(3), cap: '相对基准面板' },

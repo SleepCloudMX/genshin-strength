@@ -268,6 +268,7 @@
           return '<span class="' + cls + '">' + k + ' ' + v.toFixed(2) + '</span>';
         };
         var dC = Mi.equivEm(x, y, s);   // 词条等效：1 精通词条 ≈ d 双暴词条（局部、每点相对增益之比）
+        var dR = Mi.equivRange(s, 61);  // 全图范围（随参数变，现算）
         html += t.div() +
           t.cap('下一词条最优分配') +
           t.bar(al.du, '#a9cfcf', '#ddd4d9') +
@@ -279,7 +280,7 @@
           t.rows([
             ['词条', '精通 ' + fmt1(info.emRolls) + ' · 双暴 ' + fmt1(info.critRolls) + '（共 ' + fmt1(info.emRolls + info.critRolls) + '）'],
             ['配平后', '暴击 ' + fmt1(info.rate) + '% / 暴伤 ' + fmt1(info.dmg) + '%'],
-            ['词条等效', isFinite(dC) ? '1 精通词条 ≈ ' + dC.toFixed(2) + ' 双暴词条' : '—'],
+            ['词条等效', '1 精通词条 ≈ ' + dC.toFixed(2) + ' 双暴词条（全图 ' + dR.lo.toFixed(2) + ' ~ ' + dR.hi.toFixed(2) + '）'],
           ]);
         if (info.state === 'band') {
           var side = Mi.pinnedSide(s);
