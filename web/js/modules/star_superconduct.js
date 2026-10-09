@@ -243,12 +243,12 @@
         var rng = S.equivRange(s, 61);
         var eqHTML = '';
         if (isFinite(eq.em)) {
-          eqHTML += '<div class="tip__hd"><span class="lb">精通</span><span></span><span class="vl">' + eqItem('', eq.em) +
-            '</span><span class="rg">∈ [' + rng.lo.em.toFixed(2) + ', ' + rng.hi.em.toFixed(2) + ']</span></div>';
+          eqHTML += '<div class="tip__eqr"><span><span class="lb">精通：</span>' + eqItem('', eq.em) + '</span>' +
+            '<span class="rg">∈ [' + rng.lo.em.toFixed(2) + ', ' + rng.hi.em.toFixed(2) + ']</span></div>';
         }
         if (isFinite(eq.atk)) {
-          eqHTML += '<div class="tip__hd"><span class="lb">攻击</span><span></span><span class="vl">' + eqItem('', eq.atk) +
-            '</span><span class="rg">∈ [' + rng.lo.atk.toFixed(2) + ', ' + rng.hi.atk.toFixed(2) + ']</span></div>';
+          eqHTML += '<div class="tip__eqr"><span><span class="lb">攻击：</span>' + eqItem('', eq.atk) + '</span>' +
+            '<span class="rg">∈ [' + rng.lo.atk.toFixed(2) + ', ' + rng.hi.atk.toFixed(2) + ']</span></div>';
         }
         var alw = S.nextAlloc(s, x, y);
         var grw = S.gradWeights(s, x, y);
@@ -260,6 +260,9 @@
           (eqHTML ? '<div class="tip__eq"><div style="font-weight:600">单位词条等效双暴词条</div>' + eqHTML + '</div>' : '') +
           '<div class="tip__cap" style="font-weight:600">下一词条最优分配</div>' + triBar(alw) +
           '<div class="tip__cap mt" style="font-weight:600">归一化梯度</div>' + triBar(grw);
+        if (S.critBand(s, y)) {   // 双暴配平不可达（与瑞希同义的红字提示；文案控制在卡宽内不撑宽）
+          html += '<div class="tip__bad">1:2 配平不可达：暴击率压 100%</div>';
+        }
         tip.show(html, hoverPx.x, hoverPx.y, { segs: segs });
       });
       m.wrap.addEventListener('mouseleave', function () {

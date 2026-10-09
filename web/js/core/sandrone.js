@@ -51,6 +51,13 @@
       S.MAINS_FLAT + (extraFlat || 0);
   };
 
+  /** 配平不可达：1:2 拆分被暴击率上限（100%）卡住（该点双暴词条多 → 暴击率顶 100%、
+   *  超额只能全给暴伤…… 反过来是该区间暴伤被压）。用于卡片红字提示（与瑞希同义）。 */
+  S.critBand = function (s, y) {
+    var t = S.critSplit(s.cr + S.SET_CR + s.weapon.cr, s.cd + s.weapon.cd + s.weapon.extraCd, y);
+    return Math.abs(t.cr - 100) < 1e-6;
+  };
+
   /** b 个双暴词条在暴击率 / 暴伤之间最优拆分后的配比（期望口径；暴击率上限 100%）。b 的单位是词条。 */
   S.critSplit = function (cr0, cd0, b) {
     var aStar = b / 2 + (cd0 / S.PER_CD - cr0 / S.PER_CR) / 2;
