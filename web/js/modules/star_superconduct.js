@@ -260,8 +260,9 @@
           (eqHTML ? '<div class="tip__eq"><div style="font-weight:600">单位词条等效双暴词条</div>' + eqHTML + '</div>' : '') +
           '<div class="tip__cap" style="font-weight:600">下一词条最优分配</div>' + triBar(alw) +
           '<div class="tip__cap mt" style="font-weight:600">归一化梯度</div>' + triBar(grw);
-        if (S.critBand(s, y)) {   // 双暴配平不可达（与瑞希同义的红字提示；文案控制在卡宽内不撑宽）
-          html += '<div class="tip__bad">1:2 配平不可达：暴击率压 100%</div>';
+        if (S.critBand(s, y)) {   // 双暴配平不可达（与瑞希同义的红字提示；两行短句，不撑宽卡片）
+          var side = S.pinnedSide(s, y);
+          html += '<div class="tip__bad">1:2 配平不可达<br>' + side + '压在基准，超额全在' + (side === '暴伤' ? '暴击率' : '暴伤') + '</div>';
         }
         tip.show(html, hoverPx.x, hoverPx.y, { segs: segs });
       });

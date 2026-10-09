@@ -265,7 +265,8 @@
         var html =
           t.title('精通 ' + x.toFixed(0) + ' · 双暴分 ' + fmt1(y)) +
           t.hero('×' + info.mult.toFixed(3), '相较 0 词条') +
-          t.rows([[Mi.REF_CAPTION, '×' + info.ref.toFixed(3)]]) +
+          '<div class="tip__ref"><b class="tip__num">×' + info.ref.toFixed(3) + '</b>' +
+            '<span class="lb">' + Mi.REF_CAPTION + '</span></div>' +
           '<div class="tip__hd"><span class="nm">精通</span><span class="rl">' + fmt1(info.emRolls) + ' 词条</span><span class="vl">' + info.x.toFixed(0) + '</span></div>' +
           '<div class="tip__hd"><span class="nm">双暴</span><span class="rl">' + fmt1(info.critRolls) + ' 词条</span><span class="vl">' + fmt1(info.y) + '</span></div>' +
           '<div class="tip__eq"><div style="font-weight:600">单位词条等效双暴词条</div>' +

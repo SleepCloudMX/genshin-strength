@@ -311,6 +311,10 @@ a:hover { text-decoration: underline; }
 /* 等效行：标签与值连写（居左一组），范围推右 */
 .tip__eqr { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; white-space: nowrap; }
 .tip__eqr .lb { color: var(--text-dim); }
+/* 参照行：倍率在左（比正文大、比英雄读数小），口径说明在后 */
+.tip__ref { display: flex; align-items: baseline; gap: 8px; margin-top: 1px; }
+.tip__ref .lb { color: var(--text-dim); }
+.tip__num { font-size: 14px; font-weight: 650; font-family: var(--mono); }
 /* 等效行：标签 + 数值同行，上下分割线；≥1 绿 / <1 红棕；灰色小字 = 整图范围 */
 .tip__eq { border-top: 1px solid var(--surface-2); border-bottom: 1px solid var(--surface-2);
            margin: 5px 0; padding: 4px 0; font-size: 11.5px; }
