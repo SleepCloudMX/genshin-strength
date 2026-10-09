@@ -54,7 +54,12 @@
       { key: 'em', type: 'number', label: '基准精通', def: 0, step: 10, min: 0 },
       { key: 'cr', type: 'number', label: '基准暴击率 %', def: 24.2, step: 0.1, min: 0 },
       { key: 'cd', type: 'number', label: '基准暴伤 %', def: 112.2, step: 0.1, min: 50 },
-      { key: 'patk', type: 'number', label: '额外攻击 %', def: 0, step: 1, min: 0 },
+      { key: 'patk', type: 'number', label: '大攻击 %', def: 0, step: 1, min: -9999 },
+      { key: 'fatk', type: 'number', label: '小攻击', def: 0, step: 1, min: -9999 },
+      { key: 'n2', type: 'readout', full: true, label: '基准面板攻击力（基准武器）', compute: function (s) {
+        var w = S.weaponById(S.BASE_W);
+        return S.panelAttack(w, s.patk / 100, s.fatk, 0).toFixed(0) + '（' + w.name + '）';
+      } },
     ],
 
     create: function (host) {
@@ -66,7 +71,7 @@
         update: function (s) {
           var st = {
             n: s.n, em: s.em, cr: s.cr, cd: s.cd,
-            extraPct: s.patk / 100, extraFlat: 0, bonus: 0,
+            extraPct: s.patk / 100, extraFlat: s.fatk, bonus: 0,
           };
           var rows = S.WEAPONS.map(function (w) { return { w: w, best: S.bestFor(w, st) }; });
           var refAbs = 0, maxAbs = 0;

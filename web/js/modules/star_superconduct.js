@@ -46,17 +46,16 @@
       { key: 'em', type: 'number', label: '基准精通', def: 0, step: 10, min: 0 },
       { key: 'cr', type: 'number', label: '基准暴击率 %', def: 24.2, step: 0.1, min: 0 },
       { key: 'cd', type: 'number', label: '基准暴伤 %', def: 112.2, step: 0.1, min: 50 },
-      { key: 'patk', type: 'number', label: '额外攻击 %', def: 0, step: 1, min: 0 },
-      { key: 'fatk', type: 'number', label: '额外固定攻击', def: 0, step: 1, min: 0 },
+      { key: 'patk', type: 'number', label: '大攻击 %', def: 0, step: 1, min: -9999 },
+      { key: 'fatk', type: 'number', label: '小攻击', def: 0, step: 1, min: -9999 },
       { key: 'n', type: 'range', label: '词条预算', def: 30, min: 2, max: S.N_MAX, step: 1 },
-      { key: 'baseAtk', type: 'readout', full: true, label: '基础攻击力', compute: function (s) {
+      { key: 'baseAtk', type: 'readout', full: true, label: '基础攻击力（白值）', compute: function (s) {
         var w = S.weaponById(s.weapon);
         return (S.CHAR_BASE + w.base).toFixed(0) + '（' + S.CHAR_BASE + ' + ' + w.base + '）';
       } },
-      { key: 'panelAtk', type: 'readout', full: true, label: '基准攻击力（计入伤害）', compute: function (s) {
+      { key: 'panelAtk', type: 'readout', full: true, label: '基准面板攻击力（计入伤害）', compute: function (s) {
         var w = S.weaponById(s.weapon);
-        var base = S.CHAR_BASE + w.base;
-        return (base * (1 + S.MAINS_ATK_PCT + w.atkPct + w.extraAtk + s.patk / 100) + S.MAINS_FLAT + s.fatk).toFixed(0);
+        return S.panelAttack(w, s.patk / 100, s.fatk, 0).toFixed(0);
       } },
       { key: 'conv', type: 'readout', full: true, label: '攻击词条换算', compute: function (s) {
         var w = S.weaponById(s.weapon);
@@ -72,6 +71,17 @@
 
     create: function (host, ctx) {
       var charts = ctx.charts;
+
+      /* 悬浮读数与结论条共用 core 的同一套攻击力 / 伤害口径 */
+      function atkOf(s, z) { return S.panelAttack(s.weapon, s.extraPct, s.extraFlat, z); }
+      function dmgOf(s, x, y) {
+        var z = s.n - x - y;
+        if (z < -1e-9) return null;
+        var em = s.em + S.PER_EM * x;
+        var bracket = 1 + GS.core.emTerm(em) + s.bonus + S.SET_BONUS;
+        var t = S.critSplit(s.cr + S.SET_CR + s.weapon.cr, s.cd + s.weapon.cd + s.weapon.extraCd, y);
+        return atkOf(s, z) * bracket * (1 + Math.min(t.cr, 100) / 100 * t.cd / 100);
+      }
 
       var verdict = el('div', 'verdict');
       verdict.innerHTML =
@@ -102,25 +112,23 @@
         };
       }
 
-      function updateVerdict(s) {
-        var scan = S.scan(s, GRID);
+      function updateVerdict(rs) {          // rs = 归一化 state（readState 的输出）
+        var scan = S.scan(rs, GRID);
         var best = scan.best;
-        var base = S.CHAR_BASE + s.weapon.base;
-        var bigGain = base * S.PER_ATK;
-        var bz = s.n - best.x - best.y;
+        var bigGain = (S.CHAR_BASE + rs.weapon.base) * S.PER_ATK;
+        var bz = rs.n - best.x - best.y;
         document.getElementById('bestMul').textContent = best.v.toFixed(3);
         document.getElementById('bestSplit').textContent =
           '精通 ' + best.x.toFixed(1) + ' · 双暴 ' + best.y.toFixed(1) + ' · 攻击 ' + bz.toFixed(1) + ' 词条';
-        var t = S.critSplit(s.cr + S.SET_CR + s.weapon.cr, s.cd + s.weapon.cd + s.weapon.extraCd, best.y);
-        var emBest = s.em + S.PER_EM * best.x;
-        var s0 = Object.assign({}, s, { n: 0 });
+        var t = S.critSplit(rs.cr + S.SET_CR + rs.weapon.cr, rs.cd + rs.weapon.cd + rs.weapon.extraCd, best.y);
+        var emBest = rs.em + S.PER_EM * best.x;
         document.getElementById('cornerLine').textContent =
           '最优处：精通 ' + emBest.toFixed(0) + '（增伤项 ' + (GS.core.emTerm(emBest) * 100).toFixed(1) + '%）、' +
           '双暴 ' + t.cr.toFixed(1) + ' / ' + t.cd.toFixed(1) + '、攻击词条 ' + bz.toFixed(1) +
           '（+' + (bigGain * bz).toFixed(0) + ' 攻击）' +
-          ' ｜ 全攻击 ×' + (S.damage(s, 0, 0) / S.damage(s0, 0, 0)).toFixed(3) +
-          '　全精通 ×' + (S.damage(s, s.n, 0) / S.damage(s0, 0, 0)).toFixed(3) +
-          '　全双暴 ×' + (S.damage(s, 0, s.n) / S.damage(s0, 0, 0)).toFixed(3);
+          ' ｜ 全攻击 ×' + (dmgOf(rs, 0, 0) / scan.base0).toFixed(3) +
+          '　全精通 ×' + (dmgOf(rs, rs.n, 0) / scan.base0).toFixed(3) +
+          '　全双暴 ×' + (dmgOf(rs, 0, rs.n) / scan.base0).toFixed(3);
         return scan;
       }
 
@@ -203,21 +211,17 @@
         var y = st.n - hoverPx.y / g.h * st.n;
         if (x < 0 || y < 0 || x + y > st.n + 1e-9) { tip.hide(); return; }
         var s = st;
-        var d = S.damage(s, x, y);
-        var base0 = S.damage(Object.assign({}, s, { n: 0 }), 0, 0);
-        var w = s.weapon;
-        var bbase = S.CHAR_BASE + w.base;
-        var atk = bbase * (1 + S.MAINS_ATK_PCT + w.atkPct + w.extraAtk + s.extraPct + S.PER_ATK * (s.n - x - y)) +
-                  S.MAINS_FLAT + s.extraFlat;
+        var d = dmgOf(s, x, y);
+        var base0 = dmgOf(Object.assign({}, s, { n: 0 }), 0, 0);
         var em = s.em + S.PER_EM * x;
-        var t = S.critSplit(s.cr + S.SET_CR + w.cr, s.cd + w.cd + w.extraCd, y);
+        var t = S.critSplit(s.cr + S.SET_CR + s.weapon.cr, s.cd + s.weapon.cd + s.weapon.extraCd, y);
         tip.show(ctx.tip.card({
           title: '精通 ' + em.toFixed(0) + ' · 双暴 ' + t.cr.toFixed(1) + ' / ' + t.cd.toFixed(1),
           hero: { v: '×' + (d / base0).toFixed(3), cap: '相对基准面板' },
           rows: [
             ['精通', x.toFixed(1) + ' 词条'],
             ['双暴', y.toFixed(1) + ' 词条'],
-            ['攻击', atk.toFixed(0) + '（' + (s.n - x - y).toFixed(1) + ' 词条）'],
+            ['攻击', atkOf(s, s.n - x - y).toFixed(0) + '（' + (s.n - x - y).toFixed(1) + ' 词条）'],
           ],
         }), hoverPx.x, hoverPx.y);
       });

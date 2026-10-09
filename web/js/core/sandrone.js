@@ -40,6 +40,17 @@
     return S.WEAPONS[0];
   };
 
+  /** 基础攻击力（白值）= 角色基础 + 武器基础。 */
+  S.baseAttack = function (w) { return S.CHAR_BASE + w.base; };
+
+  /** 面板攻击力 = 基础攻击力 × (1 + 大攻击合计) + 小攻击合计（攻攻主词条、武器副词条与特效、
+      面板填的额外大攻击 / 小攻击，以及攻击词条的大攻击都进利率；羽与面板小攻击进常数项）。 */
+  S.panelAttack = function (w, extraPct, extraFlat, zRolls) {
+    return S.baseAttack(w) *
+      (1 + S.MAINS_ATK_PCT + w.atkPct + w.extraAtk + extraPct + S.PER_ATK * (zRolls || 0)) +
+      S.MAINS_FLAT + (extraFlat || 0);
+  };
+
   /** b 个双暴词条在暴击率 / 暴伤之间最优拆分后的配比（期望口径；暴击率上限 100%）。b 的单位是词条。 */
   S.critSplit = function (cr0, cd0, b) {
     var aStar = b / 2 + (cd0 / S.PER_CD - cr0 / S.PER_CR) / 2;
@@ -52,9 +63,7 @@
     var z = s.n - x - y;
     if (z < 0) return null;
     var w = s.weapon;
-    var base = S.CHAR_BASE + w.base;
-    var atk = base * (1 + S.MAINS_ATK_PCT + w.atkPct + w.extraAtk + s.extraPct + S.PER_ATK * z) +
-              S.MAINS_FLAT + s.extraFlat;
+    var atk = S.panelAttack(w, s.extraPct, s.extraFlat, z);
     var em = s.em + S.PER_EM * x;
     var bracket = 1 + C.emTerm(em) + s.bonus + w.reaction + S.SET_BONUS;
     var crit = S.critSplit(s.cr + S.SET_CR + w.cr, s.cd + w.cd + w.extraCd, y);
