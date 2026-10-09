@@ -269,14 +269,13 @@
             '<span class="lb">' + Mi.REF_CAPTION + '</span></div>' +
           '<div class="tip__div"></div>' +
           '<div class="tip__hd"><span class="nm">精通</span><span class="rl">' + fmt1(info.emRolls) + ' 词条</span><span class="vl">' + info.x.toFixed(0) + '</span></div>' +
-          '<div class="tip__hd"><span class="nm">双暴</span><span class="rl">' + fmt1(info.critRolls) + ' 词条</span><span class="vl">' + fmt1(info.y) + '</span></div>' +
+          '<div class="tip__hd"><span class="nm">双暴</span><span class="rl">' + fmt1(info.critRolls) + ' 词条</span><span class="vl">' + fmt1(info.rate) + ' / ' + fmt1(info.dmg) + '</span></div>' +
           (info.state === 'band' ? '<div class="tip__bad">此时双暴 1:2 无法配平</div>' : '') +
           '<div class="tip__eq"><div style="font-weight:600">单位词条等效双暴词条</div>' +
             '<div class="tip__eqr"><span><span class="lb">精通：</span><b class="' + (dC >= 1 ? 'hi' : 'lo') + '">' + dC.toFixed(2) +
               '</b></span><span class="rg">∈ [' + dR.lo.toFixed(2) + ', ' + dR.hi.toFixed(2) + ']</span></div></div>' +
           '<div class="tip__cap" style="font-weight:600">下一词条最优分配</div>' + segBar(al.du, al.dv) +
           '<div class="tip__cap mt" style="font-weight:600">归一化梯度</div>' + segBar(im.em, im.crit) +
-          '<div class="tip__note">配平后：暴击 ' + fmt1(info.rate) + ' / 暴伤 ' + fmt1(info.dmg) + '</div>' +
           (refNote ? t.note(refNote) : '');
         return html;
       }
