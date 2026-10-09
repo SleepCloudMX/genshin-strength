@@ -75,6 +75,24 @@
       /* 悬浮读数与结论条共用 core 的同一套攻击力 / 伤害口径 */
       function atkOf(s, z) { return S.panelAttack(s.weapon, s.extraPct, s.extraFlat, z); }
 
+      /** 任意 (x, y) 的伤害（不做域检查；z 可为负 —— 超出词条上限时按比例折算，
+       *  倍率仍可算，同瑞希热图的域外倍数）。 */
+      function dmgAny(s, x, y) {
+        var z = s.n - x - y;
+        var em = s.em + S.PER_EM * x;
+        var bracket = 1 + GS.core.emTerm(em) + s.bonus + S.SET_BONUS;
+        var t = S.critSplit(s.cr + S.SET_CR + s.weapon.cr, s.cd + s.weapon.cd + s.weapon.extraCd, y);
+        return atkOf(s, z) * bracket * (1 + Math.min(t.cr, 100) / 100 * t.cd / 100);
+      }
+      /** 词条上限校验：超限时按比例折算到边界（x+y = n），倍率照常算（同瑞希「超过 43 词条上限」）。 */
+      function multOf(s, x, y) {
+        var base0 = dmgOf(Object.assign({}, s, { n: 0 }), 0, 0);
+        var sum = x + y;
+        var x2 = x, y2 = y;
+        if (sum > s.n) { x2 = x * s.n / sum; y2 = y * s.n / sum; }
+        return dmgAny(s, x2, y2) / base0;
+      }
+
       /* 卡片小件：等效项（≥1 绿 / <1 红棕）与三维度条（精通 / 双暴 / 攻击） */
       function eqItem(name, v) {
         return '<b class="' + (v >= 1 ? 'hi' : 'lo') + '">' + (name ? name + ' ' : '') + v.toFixed(2) + '</b>';
@@ -237,8 +255,14 @@
         var g = m.geom();
         var x = hoverPx.x / g.w * st.n;
         var y = st.n - hoverPx.y / g.h * st.n;
-        if (x < 0 || y < 0 || x + y > st.n + 1e-9) { tip.hide(); return; }
         var s = st;
+        if (x < 0 || y < 0) { tip.hide(); return; }
+        var overLimit = x + y > s.n + 1e-9;
+        if (overLimit) {   // 超过词条上限：照瑞希样式，显示倍率（按比例折算）+ 红字
+          tip.show('<div class="tip__hero"><b>×' + multOf(s, x, y).toFixed(3) + '</b><span class="u">相对基准面板</span></div>' +
+            '<div class="tip__bad">无法配平：超过 ' + s.n + ' 词条上限</div>', hoverPx.x, hoverPx.y, { segs: [] });
+          return;
+        }
         var d = dmgOf(s, x, y);
         var base0 = dmgOf(Object.assign({}, s, { n: 0 }), 0, 0);
         var z = s.n - x - y;
