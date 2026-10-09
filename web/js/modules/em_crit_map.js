@@ -254,9 +254,9 @@
         var t = ctx.tip;
         if (info.state === 'bad') {
           return t.hero('×' + info.mult.toFixed(3), '相较 0 词条') +
-            t.bad(info.reason) +
             '<div class="tip__ref"><b class="tip__num">×' + info.ref.toFixed(3) + '</b>' +
-              '<span class="lb">' + Mi.REF_CAPTION + '</span></div>';
+              '<span class="lb">' + Mi.REF_CAPTION + '</span></div>' +
+            t.bad(info.reason);
         }
         var dC = Mi.equivEm(x, y, s);       // 1 精通词条 ≈ d 双暴词条（局部）
         var dR = Mi.equivRange(s, 61);      // 全图范围（随参数现算）
