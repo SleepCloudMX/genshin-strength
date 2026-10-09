@@ -302,11 +302,13 @@ a:hover { text-decoration: underline; }
 .tip__note { margin-top: 7px; padding-top: 6px; border-top: 1px solid var(--surface-2); color: var(--text-dim); }
 .tip__sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 
-/* 属性行：属性 / 词条数 / 数值（悬浮卡片，2026-10-10）。
-   三列：属性贴左、词条数右对齐（紧靠属性）、数值右对齐 */
-.tip__hd { display: grid; grid-template-columns: 44px 58px 1fr; align-items: baseline; }
+/* 属性行：属性 / 词条数 / 数值 / 范围（悬浮卡片，2026-10-10）。
+   四列：属性贴左、词条数右对齐（紧靠属性）、数值右对齐、范围右对齐（末列，
+   等效行把数值与范围分开时用） */
+.tip__hd { display: grid; grid-template-columns: 46px 58px 1fr 60px; column-gap: 6px; align-items: baseline; }
 .tip__hd .rl { text-align: right; font-family: var(--mono); font-size: 11.5px; color: var(--text-dim); }
 .tip__hd .vl { text-align: right; font-family: var(--mono); font-size: 11.5px; }
+.tip__hd .rg { text-align: right; font-size: 11px; color: var(--text-dim); white-space: nowrap; }
 /* 等效行：标签 + 数值同行，上下分割线；≥1 绿 / <1 红棕；灰色小字 = 整图范围 */
 .tip__eq { border-top: 1px solid var(--surface-2); border-bottom: 1px solid var(--surface-2);
            margin: 5px 0; padding: 4px 0; font-size: 11.5px; }

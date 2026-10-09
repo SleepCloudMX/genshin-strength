@@ -243,12 +243,12 @@
         var rng = S.equivRange(s, 61);
         var eqHTML = '';
         if (isFinite(eq.em)) {
-          eqHTML += '<div class="tip__hd"><span class="lb">精通：</span><span></span><span class="vl">' + eqItem('', eq.em) +
-            '<span class="dim"> ∈ [' + rng.lo.em.toFixed(2) + ', ' + rng.hi.em.toFixed(2) + ']</span></span></div>';
+          eqHTML += '<div class="tip__hd"><span class="lb">精通</span><span></span><span class="vl">' + eqItem('', eq.em) +
+            '</span><span class="rg">∈ [' + rng.lo.em.toFixed(2) + ', ' + rng.hi.em.toFixed(2) + ']</span></div>';
         }
         if (isFinite(eq.atk)) {
-          eqHTML += '<div class="tip__hd"><span class="lb">攻击：</span><span></span><span class="vl">' + eqItem('', eq.atk) +
-            '<span class="dim"> ∈ [' + rng.lo.atk.toFixed(2) + ', ' + rng.hi.atk.toFixed(2) + ']</span></span></div>';
+          eqHTML += '<div class="tip__hd"><span class="lb">攻击</span><span></span><span class="vl">' + eqItem('', eq.atk) +
+            '</span><span class="rg">∈ [' + rng.lo.atk.toFixed(2) + ', ' + rng.hi.atk.toFixed(2) + ']</span></div>';
         }
         var alw = S.nextAlloc(s, x, y);
         var grw = S.gradWeights(s, x, y);
