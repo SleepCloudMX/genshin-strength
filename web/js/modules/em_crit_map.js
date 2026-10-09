@@ -254,7 +254,7 @@
         var t = ctx.tip;
         if (info.state === 'bad') {
           return t.hero('×' + info.mult.toFixed(3), '相较 0 词条') +
-            t.bad('无法配平：' + info.reason) +
+            t.bad(info.reason) +
             t.rows([['参照 · ' + Mi.REF_CAPTION, '×' + info.ref.toFixed(3)]]);
         }
         var dC = Mi.equivEm(x, y, s);       // 1 精通词条 ≈ d 双暴词条（局部）

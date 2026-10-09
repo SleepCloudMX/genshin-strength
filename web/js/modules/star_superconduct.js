@@ -261,7 +261,7 @@
         var overLimit = x + y > s.n + 1e-9;
         if (overLimit) {   // 超过词条上限：照瑞希样式，显示倍率（按比例折算）+ 红字
           tip.show('<div class="tip__hero"><b>×' + multOf(s, x, y).toFixed(3) + '</b><span class="u">相对基准面板</span></div>' +
-            '<div class="tip__bad">无法配平：超过 ' + s.n + ' 词条上限</div>', hoverPx.x, hoverPx.y, { segs: [] });
+            '<div class="tip__bad">超过 ' + s.n + ' 词条上限</div>', hoverPx.x, hoverPx.y, { segs: [] });
           return;
         }
         var d = dmgOf(s, x, y);
