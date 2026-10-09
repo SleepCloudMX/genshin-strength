@@ -263,7 +263,6 @@
         var im = Mi.importance(x, y, s);
         var refNote = Mi.refFactorNote(s);
         var html =
-          t.title('精通 ' + x.toFixed(0) + ' · 双暴分 ' + fmt1(y)) +
           t.hero('×' + info.mult.toFixed(3), '相较 0 词条') +
           '<div class="tip__ref"><b class="tip__num">×' + info.ref.toFixed(3) + '</b>' +
             '<span class="lb">' + Mi.REF_CAPTION + '</span></div>' +
