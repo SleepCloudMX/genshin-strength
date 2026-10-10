@@ -17,7 +17,8 @@
     '<b>默认参数（七七 · 木偶 · 阿罗夏 队）</b>：基础攻击力 828 = 80 级突破 318 + 浪影阔剑（90 级）510；' +
     '大攻击 109.4% = 浪影阔剑副词条 41.3% + 特效 48%（受治疗 +48% 攻击，按全覆盖）+ 阿罗夏 q9 20.1%；' +
     '基准暴击 55.2% = 自身 24.2% + 双冰共鸣 15% + 幻灭 4 件套 16%；' +
-    '反应增伤 160% = 炉火 50% + 幻灭 4 件套 40% + 阿罗夏 20% + 七七 50%；小攻击 0。';
+    '反应增伤 160% = 炉火 50% + 幻灭 4 件套 40% + 阿罗夏 20% + 七七 50%；' +
+    '基准精通 160 = 固有天赋 2（攻击力 > 2000 时 +160，默认面板 2817 恒满足）；小攻击 0。';
 
   M['sandrone/star_superconduct'] = {
     title: '「桑多涅」星超导词条分配',
@@ -39,7 +40,7 @@
       { key: 'baseAtk', type: 'number', label: '基础攻击力', def: 828, step: 1, min: 0 },
       { key: 'patk', type: 'number', label: '大攻击 %', def: 109.4, step: 0.1, min: -9999 },
       { key: 'fatk', type: 'number', label: '小攻击', def: 0, step: 1, min: -9999 },
-      { key: 'em', type: 'number', label: '基准精通', def: 0, step: 10, min: 0 },
+      { key: 'em', type: 'number', label: '基准精通', def: 160, step: 10, min: 0 },
       { key: 'cr', type: 'number', label: '基准暴击率 %', def: 55.2, step: 0.1, min: 0 },
       { key: 'cd', type: 'number', label: '基准暴伤 %', def: 112.2, step: 0.1, min: 50 },
       { key: 'bonus', type: 'number', label: '反应增伤 %', def: 160, step: 1, min: 0 },
