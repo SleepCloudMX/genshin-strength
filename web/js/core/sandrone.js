@@ -1,6 +1,11 @@
 /* 星超导（桑多涅）模型：武器表与伤害函数。
    公式与口径见 docs/ai-output/0-mechanism/3-星超导伤害机制.md；
-   纯函数、不碰 DOM —— Node 可直接加载做数值对照。 */
+   纯函数、不碰 DOM —— Node 可直接加载做数值对照。
+
+   口径（2026-10-10）：伤害函数只吃「已合成的面板字段」——
+   s = { baseAtk, atkPct, fatk, em, cr, cd, bonus, n }。
+   武器、幻灭套、队友 buff 的贡献由各页自己合成（分配页 = 用户输入；
+   对比页 = 武器表 + SET_* 常量），core 不再自动加任何来源。 */
 (function (global) {
   'use strict';
   var GS = global.GS = global.GS || {};
@@ -40,27 +45,21 @@
     return S.WEAPONS[0];
   };
 
-  /** 基础攻击力（白值）= 角色基础 + 武器基础。 */
-  S.baseAttack = function (w) { return S.CHAR_BASE + w.base; };
-
-  /** 面板攻击力 = 基础攻击力 × (1 + 大攻击合计) + 小攻击合计（攻攻主词条、武器副词条与特效、
-      面板填的额外大攻击 / 小攻击，以及攻击词条的大攻击都进利率；羽与面板小攻击进常数项）。 */
-  S.panelAttack = function (w, extraPct, extraFlat, zRolls) {
-    return S.baseAttack(w) *
-      (1 + S.MAINS_ATK_PCT + w.atkPct + w.extraAtk + extraPct + S.PER_ATK * (zRolls || 0)) +
-      S.MAINS_FLAT + (extraFlat || 0);
+  /** 面板攻击力 = 基础攻击力 × (1 + 攻攻主词条 + 大攻击合计 + 攻击词条的大攻击) + 羽 + 小攻击合计。
+      baseAtk / atkPct / fatk 都是已合成的值（角色 + 武器 + 队友 + ……）。 */
+  S.panelAttack = function (baseAtk, atkPct, fatk, zRolls) {
+    return baseAtk * (1 + S.MAINS_ATK_PCT + (atkPct || 0) + S.PER_ATK * (zRolls || 0)) +
+      S.MAINS_FLAT + (fatk || 0);
   };
 
   /** 配平不可达（与瑞希同义）：1:2 拆分的低侧不可达 —— 双暴词条太少、暴伤停在基准、
    *  超额全被压到暴击率。暴击率顶到 100% 不算配不平（拆分仍存在：100% + 超额全给暴伤）。 */
   S.critBand = function (s, y) {
-    var cr0 = s.cr + S.SET_CR + s.weapon.cr, cd0 = s.cd + s.weapon.cd + s.weapon.extraCd;
-    return y < (cd0 - 2 * cr0) / S.PER_CD - 1e-9;
+    return y < (s.cd - 2 * s.cr) / S.PER_CD - 1e-9;
   };
   /** 配平不可达的下界（词条数）：低于它则暴伤被压在基准。 */
   S.bandY = function (s) {
-    var cr0 = s.cr + S.SET_CR + s.weapon.cr, cd0 = s.cd + s.weapon.cd + s.weapon.extraCd;
-    return Math.max(0, (cd0 - 2 * cr0) / S.PER_CD);
+    return Math.max(0, (s.cd - 2 * s.cr) / S.PER_CD);
   };
 
   /** b 个双暴词条在暴击率 / 暴伤之间最优拆分后的配比（期望口径；暴击率上限 100%）。b 的单位是词条。 */
@@ -74,23 +73,21 @@
   S.damage = function (s, x, y) {
     var z = s.n - x - y;
     if (z < 0) return null;
-    var w = s.weapon;
-    var atk = S.panelAttack(w, s.extraPct, s.extraFlat, z);
+    var atk = S.panelAttack(s.baseAtk, s.atkPct, s.fatk, z);
     var em = s.em + S.PER_EM * x;
-    var bracket = 1 + C.emTerm(em) + s.bonus + w.reaction + S.SET_BONUS;
-    var crit = S.critSplit(s.cr + S.SET_CR + w.cr, s.cd + w.cd + w.extraCd, y);
+    var bracket = 1 + C.emTerm(em) + s.bonus;
+    var crit = S.critSplit(s.cr, s.cd, y);
     return atk * bracket * (1 + Math.min(crit.cr, 100) / 100 * crit.cd / 100);
   };
 
-  /** 该武器在给定预算下的最优分配（网格扫描）。 */
-  S.bestFor = function (w, s) {
-    var sw = Object.assign({}, s, { weapon: w });
+  /** 给定完整面板的最优分配（网格扫描）。 */
+  S.bestFor = function (s) {
     var best = { x: 0, y: 0, d: -1 };
     var G = 141;
     for (var i = 0; i <= G; i++) {
       for (var j = 0; j <= G; j++) {
-        var x = i * sw.n / G, y = j * sw.n / G;
-        var d = S.damage(sw, x, y);
+        var x = i * s.n / G, y = j * s.n / G;
+        var d = S.damage(s, x, y);
         if (d !== null && d > best.d) best = { x: x, y: y, d: d };
       }
     }
@@ -124,9 +121,9 @@
     if (z === undefined) z = s.n - x - y;
     if (z < -1e-9) return null;
     var em = s.em + S.PER_EM * x;
-    var bracket = 1 + C.emTerm(em) + s.bonus + S.SET_BONUS;
-    var t = S.critSplit(s.cr + S.SET_CR + s.weapon.cr, s.cd + s.weapon.cd + s.weapon.extraCd, y);
-    return S.panelAttack(s.weapon, s.extraPct, s.extraFlat, z) * bracket *
+    var bracket = 1 + C.emTerm(em) + s.bonus;
+    var t = S.critSplit(s.cr, s.cd, y);
+    return S.panelAttack(s.baseAtk, s.atkPct, s.fatk, z) * bracket *
            (1 + Math.min(t.cr, 100) / 100 * t.cd / 100);
   }
   S.equiv = function (s, x, y) {

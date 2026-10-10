@@ -14,10 +14,10 @@
     '反应系数（层数）、天赋加伤、抗性 / 减抗、擢升都是线性乘子，<b>不改变分配结论</b>；羽毛未计入。<br>' +
     '<b>词条预算上限 53</b> ≈ 桑多涅满档副词条容量（同瑞希 43 的算法：每件 4 条初始 + 5 次强化、满档值折算 —— ' +
     '双暴 41.4 + 大攻击 3.5 + 精通 5.8 + 小攻击 2.3 ≈ 52.9）。<br>' +
-    '武器数据（90 级）：浪影阔剑 510 / 攻击 41.3%（受治疗 +48% 攻击）；超越之匙 674 / 暴伤 44.1%（攻击 +28%、超越满层反应增伤 +48%）；' +
-    '焚曜千阳 741 / 暴击 11.0%（焚光：攻击 +28%、暴伤 +20%）；苇海信标 608 / 暴击 33.1%（战技命中 + 受击各 +20% 攻击）；' +
-    '狼的末路 608 / 攻击 49.6%（常驻 +20%）；无工之剑 608 / 攻击 49.6%（有盾叠满 +40%）；' +
-    '螭骨剑 510 / 暴击 27.6%、赤角石溃杵 542 / 暴伤 88.2%（特效不作用于星超导，不计）。';
+    '<b>默认参数（七七 · 木偶 · 阿罗夏 队）</b>：基础攻击力 828 = 80 级突破 318 + 浪影阔剑（90 级）510；' +
+    '大攻击 109.4% = 浪影阔剑副词条 41.3% + 特效 48%（受治疗 +48% 攻击，按全覆盖）+ 阿罗夏 q9 20.1%；' +
+    '基准暴击 55.2% = 自身 24.2% + 双冰共鸣 15% + 幻灭 4 件套 16%；' +
+    '反应增伤 160% = 炉火 50% + 幻灭 4 件套 40% + 阿罗夏 20% + 七七 50%；小攻击 0。';
 
   M['sandrone/star_superconduct'] = {
     title: '「桑多涅」星超导词条分配',
@@ -28,44 +28,27 @@
     controls: [
       {
         key: '', type: 'note',
-        html: '<b>基准面板 = 上完 buff、不含副词条</b>（桑多涅 + 武器 + 攻攻暴主词条 + 羽 + 队友都算在里面）；' +
-          '<b>不含套装特效</b> —— 幻灭 4 件的 +40% 增伤与条件 +16% 暴击（按全覆盖）由脚本自动加。',
+        html: '<b>基准面板 = 上完 buff、不含副词条</b> —— 全写在参数里（角色自身、武器、队友、圣遗物）；' +
+          '攻攻主词条（46.6% × 2）与羽（311）由脚本自动加。',
       },
       {
         key: '', type: 'note',
         html: '<b>词条口径</b>：1 词条 = 20 精通 = 3.3% 暴击 = 6.6% 暴伤 = 5% 大攻击（小攻击见换算行）。' +
           '<b>攻击词条按大攻击折算</b> —— 当前基础攻击力下大攻击每词条恒优于小攻击；双暴按 1 : 2 配平（先补基准的偏斜）。',
       },
-      {
-        key: 'weapon', type: 'select', label: '武器', def: 'tidal',
-        options: S.WEAPONS.map(function (w) {
-          return { value: w.id, label: w.name + '（' + w.base + ' 基础）' };
-        }),
-      },
-      { key: 'bonus', type: 'number', label: '反应增伤 %', def: 0, step: 1, min: 0 },
-      { key: 'em', type: 'number', label: '基准精通', def: 0, step: 10, min: 0 },
-      { key: 'cr', type: 'number', label: '基准暴击率 %', def: 24.2, step: 0.1, min: 0 },
-      { key: 'cd', type: 'number', label: '基准暴伤 %', def: 112.2, step: 0.1, min: 50 },
-      { key: 'patk', type: 'number', label: '大攻击 %', def: 0, step: 1, min: -9999 },
+      { key: 'baseAtk', type: 'number', label: '基础攻击力', def: 828, step: 1, min: 0 },
+      { key: 'patk', type: 'number', label: '大攻击 %', def: 109.4, step: 0.1, min: -9999 },
       { key: 'fatk', type: 'number', label: '小攻击', def: 0, step: 1, min: -9999 },
+      { key: 'em', type: 'number', label: '基准精通', def: 0, step: 10, min: 0 },
+      { key: 'cr', type: 'number', label: '基准暴击率 %', def: 55.2, step: 0.1, min: 0 },
+      { key: 'cd', type: 'number', label: '基准暴伤 %', def: 112.2, step: 0.1, min: 50 },
+      { key: 'bonus', type: 'number', label: '反应增伤 %', def: 160, step: 1, min: 0 },
       { key: 'n', type: 'range', label: '词条预算', def: 30, min: 2, max: S.N_MAX, step: 1 },
-      { key: 'baseAtk', type: 'readout', full: true, label: '基础攻击力（白值）', compute: function (s) {
-        var w = S.weaponById(s.weapon);
-        return (S.CHAR_BASE + w.base).toFixed(0) + '（' + S.CHAR_BASE + ' + ' + w.base + '）';
-      } },
       { key: 'panelAtk', type: 'readout', full: true, label: '基准面板攻击力（计入伤害）', compute: function (s) {
-        var w = S.weaponById(s.weapon);
-        return S.panelAttack(w, s.patk / 100, s.fatk, 0).toFixed(0);
+        return S.panelAttack(s.baseAtk, s.patk / 100, s.fatk, 0).toFixed(0);
       } },
       { key: 'conv', type: 'readout', full: true, label: '攻击词条换算', compute: function (s) {
-        var w = S.weaponById(s.weapon);
-        var gain = (S.CHAR_BASE + w.base) * S.PER_ATK;
-        return '大 ' + gain.toFixed(1) + ' · 小 ' + S.PER_FLAT;
-      } },
-      { key: 'critDisp', type: 'readout', full: true, label: '有效双暴', compute: function (s) {
-        var w = S.weaponById(s.weapon);
-        var cr = s.cr + S.SET_CR + w.cr, cd = s.cd + w.cd + w.extraCd;
-        return cr.toFixed(1) + ' / ' + cd.toFixed(1);
+        return '大 ' + (s.baseAtk * S.PER_ATK).toFixed(1) + ' · 小 ' + S.PER_FLAT;
       } },
     ],
 
@@ -73,15 +56,15 @@
       var charts = ctx.charts;
 
       /* 悬浮读数与结论条共用 core 的同一套攻击力 / 伤害口径 */
-      function atkOf(s, z) { return S.panelAttack(s.weapon, s.extraPct, s.extraFlat, z); }
+      function atkOf(s, z) { return S.panelAttack(s.baseAtk, s.atkPct, s.fatk, z); }
 
       /** 任意 (x, y) 的伤害（不做域检查；z 可为负 —— 超出词条上限时按比例折算，
        *  倍率仍可算，同瑞希热图的域外倍数）。 */
       function dmgAny(s, x, y) {
         var z = s.n - x - y;
         var em = s.em + S.PER_EM * x;
-        var bracket = 1 + GS.core.emTerm(em) + s.bonus + S.SET_BONUS;
-        var t = S.critSplit(s.cr + S.SET_CR + s.weapon.cr, s.cd + s.weapon.cd + s.weapon.extraCd, y);
+        var bracket = 1 + GS.core.emTerm(em) + s.bonus;
+        var t = S.critSplit(s.cr, s.cd, y);
         return atkOf(s, z) * bracket * (1 + Math.min(t.cr, 100) / 100 * t.cd / 100);
       }
       /** 词条上限校验：超限时按比例折算到边界（x+y = n），倍率照常算（同瑞希「超过 43 词条上限」）。 */
@@ -109,8 +92,8 @@
         var z = s.n - x - y;
         if (z < -1e-9) return null;
         var em = s.em + S.PER_EM * x;
-        var bracket = 1 + GS.core.emTerm(em) + s.bonus + S.SET_BONUS;
-        var t = S.critSplit(s.cr + S.SET_CR + s.weapon.cr, s.cd + s.weapon.cd + s.weapon.extraCd, y);
+        var bracket = 1 + GS.core.emTerm(em) + s.bonus;
+        var t = S.critSplit(s.cr, s.cd, y);
         return atkOf(s, z) * bracket * (1 + Math.min(t.cr, 100) / 100 * t.cd / 100);
       }
 
@@ -134,9 +117,9 @@
 
       function readState(s) {
         return {
-          weapon: S.weaponById(s.weapon),
-          extraPct: s.patk / 100,
-          extraFlat: s.fatk,
+          baseAtk: s.baseAtk,
+          atkPct: s.patk / 100,
+          fatk: s.fatk,
           em: s.em, cr: s.cr, cd: s.cd,
           bonus: s.bonus / 100,
           n: s.n,
@@ -146,12 +129,12 @@
       function updateVerdict(rs) {          // rs = 归一化 state（readState 的输出）
         var scan = S.scan(rs, GRID);
         var best = scan.best;
-        var bigGain = (S.CHAR_BASE + rs.weapon.base) * S.PER_ATK;
+        var bigGain = rs.baseAtk * S.PER_ATK;
         var bz = rs.n - best.x - best.y;
         document.getElementById('bestMul').textContent = best.v.toFixed(3);
         document.getElementById('bestSplit').textContent =
           '精通 ' + best.x.toFixed(1) + ' · 双暴 ' + best.y.toFixed(1) + ' · 攻击 ' + bz.toFixed(1) + ' 词条';
-        var t = S.critSplit(rs.cr + S.SET_CR + rs.weapon.cr, rs.cd + rs.weapon.cd + rs.weapon.extraCd, best.y);
+        var t = S.critSplit(rs.cr, rs.cd, best.y);
         var emBest = rs.em + S.PER_EM * best.x;
         document.getElementById('cornerLine').textContent =
           '最优处：精通 ' + emBest.toFixed(0) + '（增伤项 ' + (GS.core.emTerm(emBest) * 100).toFixed(1) + '%）、' +
@@ -268,7 +251,7 @@
         var base0 = dmgOf(Object.assign({}, s, { n: 0 }), 0, 0);
         var z = s.n - x - y;
         var em = s.em + S.PER_EM * x;
-        var t = S.critSplit(s.cr + S.SET_CR + s.weapon.cr, s.cd + s.weapon.cd + s.weapon.extraCd, y);
+        var t = S.critSplit(s.cr, s.cd, y);
         /* 梯度箭头线段（与叠加层同一算法）——卡片避开它放 */
         var segs = [];
         var grad = S.grad(x, y, s);

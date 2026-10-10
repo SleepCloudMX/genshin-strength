@@ -58,7 +58,8 @@
       { key: 'fatk', type: 'number', label: '小攻击', def: 0, step: 1, min: -9999 },
       { key: 'n2', type: 'readout', full: true, label: '基准面板攻击力（基准武器）', compute: function (s) {
         var w = S.weaponById(S.BASE_W);
-        return S.panelAttack(w, s.patk / 100, s.fatk, 0).toFixed(0) + '（' + w.name + '）';
+        return S.panelAttack(S.CHAR_BASE + w.base, s.patk / 100 + w.atkPct + w.extraAtk, s.fatk, 0).toFixed(0) +
+          '（' + w.name + '）';
       } },
     ],
 
@@ -67,13 +68,28 @@
       host.appendChild(list);
       host.appendChild(GS.ui.panels.note(FOOT, 'pagenote'));
 
+      /* 队伍（角色 / 队友）部分 + 该武器部分 → 一份完整 s；
+         幻灭 4 件固定计入（+40% 增伤 / +16% 暴击，按全覆盖）。 */
+      function sFor(w, st) {
+        return {
+          baseAtk: S.CHAR_BASE + w.base,
+          atkPct: st.atkPct + w.atkPct + w.extraAtk,
+          fatk: st.fatk,
+          em: st.em,
+          cr: st.cr + S.SET_CR + w.cr,
+          cd: st.cd + w.cd + w.extraCd,
+          bonus: st.bonus + S.SET_BONUS + w.reaction,
+          n: st.n,
+        };
+      }
+
       return {
         update: function (s) {
           var st = {
             n: s.n, em: s.em, cr: s.cr, cd: s.cd,
-            extraPct: s.patk / 100, extraFlat: s.fatk, bonus: 0,
+            atkPct: s.patk / 100, fatk: s.fatk, bonus: 0,
           };
-          var rows = S.WEAPONS.map(function (w) { return { w: w, best: S.bestFor(w, st) }; });
+          var rows = S.WEAPONS.map(function (w) { return { w: w, best: S.bestFor(sFor(w, st)) }; });
           var refAbs = 0, maxAbs = 0;
           rows.forEach(function (r) {
             if (r.w.id === S.BASE_W) refAbs = r.best.d;
