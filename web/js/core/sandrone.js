@@ -12,11 +12,9 @@
   var C = GS.core = GS.core || {};
   var S = C.sandrone = {};
 
-  S.CHAR_BASE = 342;        // 桑多涅 90 级基础攻击力（突破 +19.2% 暴击率）
+  S.CHAR_BASE = 318;        // 桑多涅 80 级突破基础攻击力（突破 +19.2% 暴击率；与分配页默认配队一致）
   S.MAINS_ATK_PCT = 0.932;  // 攻攻主词条（46.6% × 2）
   S.MAINS_FLAT = 311;       // 羽主词条
-  S.SET_BONUS = 0.40;       // 幻灭 4 件：星超导反应伤害 +40%
-  S.SET_CR = 16;            // 幻灭 4 件：条件 +16% 暴击率（按全覆盖）——百分点，与输入一致
 
   S.PER_EM = C.EM_PER_ROLL;
   S.PER_CR = C.CR_PER_ROLL;
