@@ -92,16 +92,20 @@
       var verdict = el('div', 'verdict');
       var card1 = el('div', 'card chartcard');
       var m1 = charts.mount(card1, { height: 400 });
+      card1.appendChild(GS.ui.panels.actionsRow(function () { return m1.plot; }, 'gain'));
       var card2 = el('div', 'card chartcard');
       card2.appendChild(el('div', 'chart-h', '等效血量 —— <b>同一减抗下</b>，各敌人相对 10% 抗性敌人的倍数'));
       var m2 = charts.mount(card2, { height: 400 });
+      card2.appendChild(GS.ui.panels.actionsRow(function () { return m2.plot; }, 'hp'));
       var grid = el('div', 'grid2');
       var card3 = el('div', 'card chartcard');
       card3.appendChild(el('div', 'chart-h', '抗性系数 κ(r) —— 曲线形状'));
       var m3 = charts.mount(card3, { height: 300 });
+      card3.appendChild(GS.ui.panels.actionsRow(function () { return m3.plot; }, 'kappa'));
       var card4 = el('div', 'card chartcard');
       card4.appendChild(el('div', 'chart-h', '边际收益 —— 每 1 点减抗值多少'));
       var m4 = charts.mount(card4, { height: 300 });
+      card4.appendChild(GS.ui.panels.actionsRow(function () { return m4.plot; }, 'margin'));
       grid.appendChild(card3);
       grid.appendChild(card4);
 

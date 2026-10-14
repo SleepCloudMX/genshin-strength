@@ -109,6 +109,7 @@
       var m = charts.mount(card, { height: 620 });
       var ovl = ctx.overlay.mount(m.wrap, m.geom);
       var tip = ctx.tip.mount(m.wrap, m.geom);
+      card.appendChild(GS.ui.panels.actionsRow(function () { return m.plot; }));
 
       host.appendChild(verdict);
       host.appendChild(card);

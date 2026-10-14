@@ -20,15 +20,16 @@
     });
   }
 
-  function fileName() {
+  function fileName(name) {
     var path = String(global.location.hash || '').replace(/^#\/?/, '').split('?')[0].split('#')[0];
-    return 'genshin-strength' + (path ? '-' + path.replace(/\//g, '-') : '') + '.png';
+    return 'genshin-strength' + (path ? '-' + path.replace(/\//g, '-') : '') +
+      (name ? '-' + name : '') + '.png';
   }
 
-  function download(url) {
+  function download(url, name) {
     var a = doc.createElement('a');
     a.href = url;
-    a.download = fileName();
+    a.download = fileName(name);
     doc.body.appendChild(a);
     a.click();
     doc.body.removeChild(a);
@@ -65,20 +66,20 @@
       toastTimer = global.setTimeout(function () { t.classList.remove('is-on'); }, 1800);
     },
 
-    /** 「复制图像 / 下载图像」两个按钮，作用于 getPlot() 返回的图。 */
-    chartActions: function (getPlot) {
+    /** 「复制图像 / 下载图像」两个按钮，作用于 getPlot() 返回的图；name 用于下载文件名区分（同页多图时给）。 */
+    chartActions: function (getPlot, name) {
       function act(kind) {
         var plot = getPlot();
         if (!plot) { UI.panels.toast('当前页面没有图表'); return; }
         chartPng(plot).then(function (url) {
-          if (kind === 'download') { download(url); UI.panels.toast('已开始下载'); return; }
+          if (kind === 'download') { download(url, name); UI.panels.toast('已开始下载'); return; }
           var clip = global.navigator.clipboard;
           if (!global.ClipboardItem || !clip || !clip.write) {
-            download(url); UI.panels.toast('浏览器不支持复制图像，已改为下载'); return;
+            download(url, name); UI.panels.toast('浏览器不支持复制图像，已改为下载'); return;
           }
           clip.write([new global.ClipboardItem({ 'image/png': toBlob(url) })])
             .then(function () { UI.panels.toast('已复制图像'); },
-                  function () { download(url); UI.panels.toast('复制失败，已改为下载'); });
+                  function () { download(url, name); UI.panels.toast('复制失败，已改为下载'); });
         });
       }
       var copy = el('button', 'btn btn--ghost');
@@ -90,6 +91,13 @@
       save.innerHTML = ICON_DOWN + '<span>下载图像</span>';
       save.onclick = function () { act('download'); };
       return [copy, save];
+    },
+
+    /** 图表卡片底部的导出行（右对齐）：复制 / 下载本图。 */
+    actionsRow: function (getPlot, name) {
+      var row = el('div', 'chartacts');
+      UI.panels.chartActions(getPlot, name).forEach(function (b) { row.appendChild(b); });
+      return row;
     },
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

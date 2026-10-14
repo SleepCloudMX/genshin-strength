@@ -57,6 +57,7 @@
       var verdict = el('div', 'verdict');
       var card = el('div', 'card chartcard');
       var m = charts.mount(card, { height: 620 });
+      card.appendChild(GS.ui.panels.actionsRow(function () { return m.plot; }));
       var foot = el('p', 'pagenote');
       foot.innerHTML =
         '<b>双暴分</b> = 2 × 基准暴击 + 基准暴伤（实时算出）。血红之证 4 件套的 +16% 暴击由脚本自己加，' +

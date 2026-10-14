@@ -174,8 +174,10 @@
       var rd = el('div', 'verdict');
       var card1 = el('div', 'card chartcard');
       var m1 = charts.mount(card1, { height: 340 });
+      card1.appendChild(GS.ui.panels.actionsRow(function () { return m1.plot; }, 'dist'));
       var card2 = el('div', 'card chartcard');
       var m2 = charts.mount(card2, { height: 340 });
+      card2.appendChild(GS.ui.panels.actionsRow(function () { return m2.plot; }, 'cdf'));
 
       host.appendChild(rd);
       host.appendChild(card1);

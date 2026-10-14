@@ -459,8 +459,9 @@ input[type="range"] {
   visibility: hidden; min-height: 1.6em;
 }
 
-.inspector__acts { display: flex; gap: var(--sp-2); margin-top: var(--sp-4); }
-.inspector__acts .btn { flex: 1; padding: 0 var(--sp-2); }
+/* 图表卡片底部的导出行（每张图自带复制 / 下载） */
+.chartacts { display: flex; justify-content: flex-end; gap: var(--sp-2); margin-top: var(--sp-1); }
+.chartacts .btn { min-height: 26px; font-size: var(--fs-xs); }
 
 /* --- 按钮 ----------------------------------------------------------------- */
 .btn {

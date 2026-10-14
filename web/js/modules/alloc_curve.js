@@ -65,6 +65,7 @@
       var m = charts.mount(card, { height: 700 });
       var ovl = ctx.overlay.mount(m.wrap, panelGeom);
       var tip = ctx.tip.mount(m.wrap, panelGeom);
+      card.appendChild(GS.ui.panels.actionsRow(function () { return m.plot; }));
       host.appendChild(card);
       host.appendChild(GS.ui.panels.note(FOOT, 'pagenote'));
 

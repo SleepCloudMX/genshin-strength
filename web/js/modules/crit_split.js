@@ -83,13 +83,16 @@
       var rd = el('div', 'verdict');
       var card1 = el('div', 'card chartcard');
       var m1 = charts.mount(card1, { height: 420 });
+      card1.appendChild(GS.ui.panels.actionsRow(function () { return m1.plot; }, 'family'));
       var grid = el('div', 'grid2');
       var card2 = el('div', 'card chartcard');
       card2.appendChild(el('div', 'chart-h', '最优暴击率随分位 —— 越赌越低、越稳越高'));
       var m2 = charts.mount(card2, { height: 300 });
+      card2.appendChild(GS.ui.panels.actionsRow(function () { return m2.plot; }, 'best-cr'));
       var card3 = el('div', 'card chartcard');
       card3.appendChild(el('div', 'chart-h', '偏离 1:2 的收益与代价'));
       var m3 = charts.mount(card3, { height: 300 });
+      card3.appendChild(GS.ui.panels.actionsRow(function () { return m3.plot; }, 'tradeoff'));
       grid.appendChild(card2);
       grid.appendChild(card3);
 

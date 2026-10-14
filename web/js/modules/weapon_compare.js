@@ -41,7 +41,6 @@
       '数字框失焦 / 回车后重算。词条分配主图见 <a href="#/sandrone/star_superconduct">伤害热图</a>页，' +
       '逐档最优面板见 <a href="#/sandrone/alloc_curve">词条分配</a>页。',
     noPlotly: true,
-    noChart: true,
     controls: [
       {
         key: '', type: 'note',

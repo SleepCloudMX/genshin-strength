@@ -46,9 +46,11 @@
       var mA = charts.mount(cardA, { height: 520 });
       var lossNote = el('p', 'chartnote');
       cardA.appendChild(lossNote);
+      cardA.appendChild(GS.ui.panels.actionsRow(function () { return mA.plot; }, 'curves'));
 
       var cardB = el('div', 'card chartcard');
       var mB = charts.mount(cardB, { height: 620 });
+      cardB.appendChild(GS.ui.panels.actionsRow(function () { return mB.plot; }, 'split'));
 
       host.appendChild(cardA);
       host.appendChild(cardB);

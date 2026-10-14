@@ -84,6 +84,7 @@
 
       var card = el('div', 'card chartcard');
       var m = charts.mount(card, { height: 620 });
+      card.appendChild(GS.ui.panels.actionsRow(function () { return m.plot; }));
       var chip = el('div', 'chip');
       var ovl = ctx.overlay.mount(m.wrap, m.geom);
       ovl.el.appendChild(chip);
