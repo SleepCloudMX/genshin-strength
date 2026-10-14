@@ -279,6 +279,8 @@ a:hover { text-decoration: underline; }
   font-variant-numeric: tabular-nums;
   line-height: 1.55;
 }
+/* 窄版：内容少的小卡（如瑞希分配页下半格的三条曲线读数），不占全宽 */
+.tip--sm { width: 150px; }
 .tip__t { color: var(--text-dim); margin-bottom: 3px; }
 .tip__hero b { font-size: 18px; font-weight: 650; }
 .tip__hero .u { font-size: 11px; color: var(--text-dim); margin-left: 6px; }

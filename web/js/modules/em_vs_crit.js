@@ -56,6 +56,8 @@
 
       var tipA = ctx.tip.mount(mA.wrap, mA.geom);
       var tipB = ctx.tip.mount(mB.wrap, mBGeom);
+      var tipBs = ctx.tip.mount(mB.wrap, mBGeom);   // 下半格的小卡：内容少，用窄版宽度
+      tipBs.el.classList.add('tip--sm');
       var st = null;
 
       /** 图 B 是上下两格（双暴词条数 / 精通·双暴）：几何取两格并集 ——
@@ -262,13 +264,13 @@
       mA.wrap.addEventListener('mouseleave', tipA.hide);
 
       mB.wrap.addEventListener('mousemove', function (e) {
-        if (!st) { tipB.hide(); return; }
+        if (!st) { tipB.hide(); tipBs.hide(); return; }
         var fl = mB.plot._fullLayout;
-        if (!fl || !fl.xaxis || !fl.xaxis._length || !fl.xaxis.range) { tipB.hide(); return; }
+        if (!fl || !fl.xaxis || !fl.xaxis._length || !fl.xaxis.range) { tipB.hide(); tipBs.hide(); return; }
         var g = mBGeom();
         var r = mB.wrap.getBoundingClientRect();
         var px = e.clientX - r.left - g.left, py = e.clientY - r.top - g.top;
-        if (px < -4 || px > g.w + 4 || py < -4 || py > g.h + 4) { tipB.hide(); return; }
+        if (px < -4 || px > g.w + 4 || py < -4 || py > g.h + 4) { tipB.hide(); tipBs.hide(); return; }
         px = Math.min(Math.max(px, 0), g.w);
         var xr = fl.xaxis.range;
         var n = xr[0] + px / g.w * (xr[1] - xr[0]);
@@ -278,7 +280,8 @@
 
         /* 下半格（精通 / 暴击率 / 暴伤 三条曲线）：只读三条曲线在该 n 的值，色标 = 曲线颜色 */
         if (fl.yaxis2 && py > fl.yaxis2._offset - g.top) {
-          tipB.show(ctx.tip.card({
+          tipB.hide();
+          tipBs.show(ctx.tip.card({
             title: '共 ' + n.toFixed(1) + ' 词条',
             rows: [
               [ctx.tip.sw(COL_CR) + '暴击率', t.cr.toFixed(1) + '%'],
@@ -288,6 +291,7 @@
           }), px, py);
           return;
         }
+        tipBs.hide();
 
         /* 上半格（最优双暴词条数 + 平台带） */
         var pl = Mi.plateau(st, n, best.f, st.level);
@@ -301,8 +305,8 @@
           after = ctx.tip.div() +
             ctx.tip.cap(pct + '两端（双暴 ' + pl.lo.toFixed(1) + ' ~ ' + pl.hi.toFixed(1) + ' 词条）') +
             ctx.tip.rows([
-              ['最低', '双暴 ' + loT.cr.toFixed(1) + '% / ' + loT.cd.toFixed(1) + '% · 精通 ' + (C.EM_PER_ROLL * (n - pl.lo) + st.em).toFixed(0)],
-              ['最高', '双暴 ' + hiT.cr.toFixed(1) + '% / ' + hiT.cd.toFixed(1) + '% · 精通 ' + (C.EM_PER_ROLL * (n - pl.hi) + st.em).toFixed(0)],
+              ['左端', '双暴 ' + loT.cr.toFixed(1) + '% / ' + loT.cd.toFixed(1) + '% · 精通 ' + (C.EM_PER_ROLL * (n - pl.lo) + st.em).toFixed(0)],
+              ['右端', '双暴 ' + hiT.cr.toFixed(1) + '% / ' + hiT.cd.toFixed(1) + '% · 精通 ' + (C.EM_PER_ROLL * (n - pl.hi) + st.em).toFixed(0)],
             ]);
         }
         tipB.show(ctx.tip.card({
@@ -315,7 +319,7 @@
           after: after,
         }), px, py);
       });
-      mB.wrap.addEventListener('mouseleave', tipB.hide);
+      mB.wrap.addEventListener('mouseleave', function () { tipB.hide(); tipBs.hide(); });
 
       return { plot: mA.plot, update: update };
     },
