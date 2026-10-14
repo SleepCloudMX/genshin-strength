@@ -70,7 +70,7 @@
   /** 一套分配下的伤害指数（倍率 = 1）。x / y = 精通 / 双暴词条数；z（攻击）= 预算里剩余的部分。 */
   S.damage = function (s, x, y) {
     var z = s.n - x - y;
-    if (z < 0) return null;
+    if (z < -1e-9) return null;
     var atk = S.panelAttack(s.baseAtk, s.atkPct, s.fatk, z);
     var em = s.em + S.PER_EM * x;
     var bracket = 1 + C.emTerm(em) + s.bonus;
@@ -78,18 +78,53 @@
     return atk * bracket * (1 + Math.min(crit.cr, 100) / 100 * crit.cd / 100);
   };
 
-  /** 给定完整面板的最优分配（网格扫描）。 */
+  /** 局部细化：从 (x0, y0) 出发做模式搜索（8 邻域，无改进则步长减半）。
+      bestFor / scan / bestPath 共用 —— 曲线页扫出的最优解不带网格台阶。 */
+  function refine(s, x0, y0, d0, step0) {
+    var step = step0, bx = x0, by = y0, bd = d0;
+    for (var k = 0; k < 160 && step > 1e-9; k++) {
+      var improved = false;
+      for (var ix = -1; ix <= 1; ix++) {
+        for (var iy = -1; iy <= 1; iy++) {
+          if (!ix && !iy) continue;
+          var x = bx + ix * step, y = by + iy * step;
+          if (x < -1e-12 || y < -1e-12 || x + y > s.n + 1e-12) continue;
+          var d = S.damage(s, x, y);
+          if (d !== null && d > bd + 1e-14) { bx = x; by = y; bd = d; improved = true; }
+        }
+      }
+      if (!improved) step *= 0.5;
+    }
+    return { x: bx, y: by, d: bd };
+  }
+
+  /** 给定完整面板的最优分配（141 网格 + 局部细化；两页共用）。 */
   S.bestFor = function (s) {
     var best = { x: 0, y: 0, d: -1 };
     var G = 141;
     for (var i = 0; i <= G; i++) {
-      for (var j = 0; j <= G; j++) {
+      for (var j = 0; i + j <= G; j++) {
         var x = i * s.n / G, y = j * s.n / G;
         var d = S.damage(s, x, y);
         if (d !== null && d > best.d) best = { x: x, y: y, d: d };
       }
     }
-    return best;
+    return refine(s, best.x, best.y, best.d, s.n / G);
+  };
+
+  /** 各档词条总数下的最优分配（词条分配曲线页用）：n = 0 … nmax、步长 step。
+      返回 [{ n, x, y, z, d }]，d 为该档最优的伤害指数。 */
+  S.bestPath = function (s, nmax, step) {
+    step = step || 0.25;
+    var cnt = Math.round(nmax / step);
+    var out = [];
+    for (var k = 0; k <= cnt; k++) {
+      var n = Math.min(nmax, k * step);
+      var sn = Object.assign({}, s, { n: n });
+      var b = n > 1e-9 ? S.bestFor(sn) : { x: 0, y: 0, d: S.damage(sn, 0, 0) };
+      out.push({ n: n, x: b.x, y: b.y, z: n - b.x - b.y, d: b.d });
+    }
+    return out;
   };
 
   /** 全网格扫描：相对基准面板的倍数（域外 null）与最优分配。 */
@@ -108,6 +143,8 @@
         return v;
       });
     });
+    var rb = refine(s, best.x, best.y, best.d, s.n / (G - 1));
+    best = { x: rb.x, y: rb.y, v: rb.d / base0, d: rb.d };
     return { xs: xs, zs: zs, best: best, base0: base0 };
   };
 

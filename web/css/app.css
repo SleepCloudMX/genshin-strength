@@ -540,6 +540,7 @@ input[type="range"] {
 .s7 { background: linear-gradient(90deg, #2f6f9f, #2e8b57, #e07b39, #7b5ea7, #c2453a); }
 .s8 { background: linear-gradient(90deg, #fde725, #35b779, #31688e, #440154); }
 .s9 { background: linear-gradient(90deg, #f0c987, #e8710a, #8c3b00); }
+.s10 { background: linear-gradient(90deg, #d62728, #ff7f0e, #8c564b, #2e8b57); }
 
 /* 武器对比的行表 */
 .wlist { border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; background: var(--surface); box-shadow: var(--shadow-1); }

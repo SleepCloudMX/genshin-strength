@@ -56,7 +56,8 @@
     {
       group: '「桑多涅」星超导',
       items: [
-        { id: 'sandrone/star_superconduct', label: '词条分配', icon: 'spark' },
+        { id: 'sandrone/alloc_curve', label: '词条分配', icon: 'curve' },
+        { id: 'sandrone/star_superconduct', label: '伤害热图', icon: 'grid' },
         { id: 'sandrone/weapon_compare', label: '武器对比', icon: 'sword' },
       ],
     },
