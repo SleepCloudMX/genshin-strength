@@ -9,6 +9,9 @@
 
   var FOOT = '1 等效词条 = 20 精通 = 3.3% 暴击 = 6.6% 暴伤。<b>星扩散直伤</b> = 瑞希天赋「廓然梦生」的精通倍率伤害。';
 
+  /* 图 B 下半格三条曲线的颜色（卡片色标与曲线同一来源） */
+  var COL_CR = '#d62728', COL_CD = '#ff7f0e', COL_EM = '#2e8b57';
+
   M['mizuki/em_vs_crit'] = {
     title: '「梦见月瑞希」精通和双暴的词条分配',
     tab: '瑞希·词条分配',
@@ -176,11 +179,11 @@
           { type: 'scatter', mode: 'lines', x: ns, y: ns, name: '全部词条给双暴',
             line: { color: '#999', width: 1.4, dash: 'dash' } },
           { type: 'scatter', mode: 'lines', x: ns, y: ems, name: '元素精通',
-            line: { color: '#2e8b57', width: 2.2 }, xaxis: 'x2', yaxis: 'y2' },
+            line: { color: COL_EM, width: 2.2 }, xaxis: 'x2', yaxis: 'y2' },
           { type: 'scatter', mode: 'lines', x: ns, y: crs, name: '暴击率',
-            line: { color: '#d62728', width: 2.2 }, xaxis: 'x2', yaxis: 'y3' },
+            line: { color: COL_CR, width: 2.2 }, xaxis: 'x2', yaxis: 'y3' },
           { type: 'scatter', mode: 'lines', x: ns, y: cds, name: '暴伤',
-            line: { color: '#ff7f0e', width: 2.2, dash: 'dash' }, xaxis: 'x2', yaxis: 'y3' },
+            line: { color: COL_CD, width: 2.2, dash: 'dash' }, xaxis: 'x2', yaxis: 'y3' },
         ];
 
         return {
@@ -191,7 +194,7 @@
             yaxis: charts.axis({ title: { text: '给双暴的等效词条数' } }),
             xaxis2: charts.axis({ title: { text: '等效词条总数 n' } }),
             yaxis2: charts.axis({ title: { text: '元素精通' },
-              titlefont: { color: '#2e8b57' }, tickfont: { family: charts.MONO, size: 11, color: '#2e8b57' } }),
+              titlefont: { color: COL_EM }, tickfont: { family: charts.MONO, size: 11, color: COL_EM } }),
             yaxis3: charts.axis({ title: { text: '暴击率 / 暴伤 %' }, overlaying: 'y2', side: 'right', showgrid: false }),
             legend: { x: 0.01, y: 0.99, bgcolor: 'rgba(255,255,255,0.9)' },
             margin: { t: 28, r: 70, b: 52, l: 70 }, height: 620,
@@ -270,8 +273,24 @@
         var xr = fl.xaxis.range;
         var n = xr[0] + px / g.w * (xr[1] - xr[0]);
         var best = Mi.bestSplit(st, n);
-        var pl = Mi.plateau(st, n, best.f, st.level);
         var t = Mi.allocAt(best.b, st.cr, st.cd);
+        var em = C.EM_PER_ROLL * (n - best.b) + st.em;
+
+        /* 下半格（精通 / 暴击率 / 暴伤 三条曲线）：只读三条曲线在该 n 的值，色标 = 曲线颜色 */
+        if (fl.yaxis2 && py > fl.yaxis2._offset - g.top) {
+          tipB.show(ctx.tip.card({
+            title: '共 ' + n.toFixed(1) + ' 词条',
+            rows: [
+              [ctx.tip.sw(COL_CR) + '暴击率', t.cr.toFixed(1) + '%'],
+              [ctx.tip.sw(COL_CD) + '暴伤', t.cd.toFixed(1) + '%'],
+              [ctx.tip.sw(COL_EM) + '精通', em.toFixed(0)],
+            ],
+          }), px, py);
+          return;
+        }
+
+        /* 上半格（最优双暴词条数 + 平台带） */
+        var pl = Mi.plateau(st, n, best.f, st.level);
         var pct = (st.level * 100).toFixed(0) + '% 平台';
         var after;
         if (pl.lo === null) {
@@ -279,12 +298,11 @@
         } else {
           var loT = Mi.allocAt(pl.lo, st.cr, st.cd);
           var hiT = Mi.allocAt(pl.hi, st.cr, st.cd);
-          after = ctx.tip.div() + ctx.tip.cap(pct + '两端') +
+          after = ctx.tip.div() +
+            ctx.tip.cap(pct + '两端（双暴 ' + pl.lo.toFixed(1) + ' ~ ' + pl.hi.toFixed(1) + ' 词条）') +
             ctx.tip.rows([
-              [pl.lo.toFixed(1) + ' 词条',
-                loT.cr.toFixed(1) + '% / ' + loT.cd.toFixed(1) + '% · 精通 ' + (C.EM_PER_ROLL * (n - pl.lo) + st.em).toFixed(0)],
-              [pl.hi.toFixed(1) + ' 词条',
-                hiT.cr.toFixed(1) + '% / ' + hiT.cd.toFixed(1) + '% · 精通 ' + (C.EM_PER_ROLL * (n - pl.hi) + st.em).toFixed(0)],
+              ['最低', '双暴 ' + loT.cr.toFixed(1) + '% / ' + loT.cd.toFixed(1) + '% · 精通 ' + (C.EM_PER_ROLL * (n - pl.lo) + st.em).toFixed(0)],
+              ['最高', '双暴 ' + hiT.cr.toFixed(1) + '% / ' + hiT.cd.toFixed(1) + '% · 精通 ' + (C.EM_PER_ROLL * (n - pl.hi) + st.em).toFixed(0)],
             ]);
         }
         tipB.show(ctx.tip.card({
@@ -292,7 +310,7 @@
           rows: [
             ['最优双暴词条数', best.b.toFixed(1)],
             ['暴击率 / 暴伤', t.cr.toFixed(1) + '% / ' + t.cd.toFixed(1) + '%'],
-            ['精通', (C.EM_PER_ROLL * (n - best.b) + st.em).toFixed(0)],
+            ['精通', em.toFixed(0)],
           ],
           after: after,
         }), px, py);
