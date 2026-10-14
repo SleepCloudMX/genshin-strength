@@ -52,8 +52,23 @@
       host.appendChild(GS.ui.panels.note(FOOT, 'pagenote'));
 
       var tipA = ctx.tip.mount(mA.wrap, mA.geom);
-      var tipB = ctx.tip.mount(mB.wrap, mB.geom);
+      var tipB = ctx.tip.mount(mB.wrap, mBGeom);
       var st = null;
+
+      /** 图 B 是上下两格（双暴词条数 / 精通·双暴）：几何取两格并集 ——
+       *  悬浮落在任何一格都要出卡片（mB.geom 只覆盖上格，下半格会判成图外）。 */
+      function mBGeom() {
+        var fl = mB.plot._fullLayout;
+        if (fl && fl.xaxis && fl.xaxis._length && fl.yaxis && fl.yaxis._offset !== undefined && fl.yaxis2) {
+          return {
+            left: fl.xaxis._offset, top: fl.yaxis._offset,
+            w: fl.xaxis._length,
+            h: fl.yaxis2._offset + fl.yaxis2._length - fl.yaxis._offset,
+          };
+        }
+        var cw = mB.plot.clientWidth || 900, ch = mB.plot.clientHeight || 620;
+        return { left: 70, top: 28, w: Math.max(cw - 140, 120), h: Math.max(ch - 80, 120) };
+      }
 
       function readState(s) {
         return {
@@ -244,25 +259,43 @@
       mA.wrap.addEventListener('mouseleave', tipA.hide);
 
       mB.wrap.addEventListener('mousemove', function (e) {
-        var p = mB.pxIn(e);
-        if (!p || !st) { tipB.hide(); return; }
+        if (!st) { tipB.hide(); return; }
         var fl = mB.plot._fullLayout;
-        if (!fl || !fl.xaxis || !fl.xaxis._length) { tipB.hide(); return; }
+        if (!fl || !fl.xaxis || !fl.xaxis._length || !fl.xaxis.range) { tipB.hide(); return; }
+        var g = mBGeom();
+        var r = mB.wrap.getBoundingClientRect();
+        var px = e.clientX - r.left - g.left, py = e.clientY - r.top - g.top;
+        if (px < -4 || px > g.w + 4 || py < -4 || py > g.h + 4) { tipB.hide(); return; }
+        px = Math.min(Math.max(px, 0), g.w);
         var xr = fl.xaxis.range;
-        var n = xr[0] + p.x / fl.xaxis._length * (xr[1] - xr[0]);
-        if (n < xr[0] || n > xr[1]) { tipB.hide(); return; }
+        var n = xr[0] + px / g.w * (xr[1] - xr[0]);
         var best = Mi.bestSplit(st, n);
         var pl = Mi.plateau(st, n, best.f, st.level);
         var t = Mi.allocAt(best.b, st.cr, st.cd);
+        var pct = (st.level * 100).toFixed(0) + '% 平台';
+        var after;
+        if (pl.lo === null) {
+          after = ctx.tip.div() + ctx.tip.cap(pct + '：—');
+        } else {
+          var loT = Mi.allocAt(pl.lo, st.cr, st.cd);
+          var hiT = Mi.allocAt(pl.hi, st.cr, st.cd);
+          after = ctx.tip.div() + ctx.tip.cap(pct + '两端') +
+            ctx.tip.rows([
+              [pl.lo.toFixed(1) + ' 词条',
+                loT.cr.toFixed(1) + '% / ' + loT.cd.toFixed(1) + '% · 精通 ' + (C.EM_PER_ROLL * (n - pl.lo) + st.em).toFixed(0)],
+              [pl.hi.toFixed(1) + ' 词条',
+                hiT.cr.toFixed(1) + '% / ' + hiT.cd.toFixed(1) + '% · 精通 ' + (C.EM_PER_ROLL * (n - pl.hi) + st.em).toFixed(0)],
+            ]);
+        }
         tipB.show(ctx.tip.card({
           title: '共 ' + n.toFixed(1) + ' 词条',
           rows: [
             ['最优双暴词条数', best.b.toFixed(1)],
-            [(st.level * 100).toFixed(0) + '% 平台', (pl.lo === null ? '—' : pl.lo.toFixed(1) + ' ~ ' + pl.hi.toFixed(1))],
-            ['精通', (C.EM_PER_ROLL * (n - best.b) + st.em).toFixed(0)],
             ['暴击率 / 暴伤', t.cr.toFixed(1) + '% / ' + t.cd.toFixed(1) + '%'],
+            ['精通', (C.EM_PER_ROLL * (n - best.b) + st.em).toFixed(0)],
           ],
-        }), p.x, p.y);
+          after: after,
+        }), px, py);
       });
       mB.wrap.addEventListener('mouseleave', tipB.hide);
 
