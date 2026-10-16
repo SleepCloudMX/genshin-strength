@@ -509,10 +509,10 @@ input[type="range"] {
 .segcard .del:hover { color: var(--bad); border-color: var(--bad); }
 
 .readout {
-  display: flex; align-items: baseline; gap: var(--sp-2);
+  display: flex; align-items: baseline; gap: var(--sp-2); flex-wrap: wrap;   /* 值太长时整体折到第二行 */
   font-size: var(--fs-xs); color: var(--text-dim);
-  white-space: nowrap;
 }
+.readout > span { white-space: nowrap; }   /* 单个标签 / 值内部不折行 */
 .readout__v {
   font-family: var(--mono); font-size: var(--fs-sm); font-weight: 600;
   font-variant-numeric: tabular-nums; color: var(--accent-deep);
@@ -621,9 +621,9 @@ input[type="range"] {
 }
 .wrow:first-child { border-top: 0; }
 /* 品阶底色：浅色底、同亮度带、低饱和 —— 色相取自游戏内实测 RGB（2026-10-16），冷色加一点暖调与页面底色协调 */
-.wrow.t5 { background: #ebdfc9; }   /* 五星：暖砂棕（163,107,39） */
-.wrow.t4 { background: #e2d9ea; }   /* 四星：丁香紫（114,97,134） */
-.wrow.t3 { background: #d5dfea; }   /* 三星：钢蓝（104,118,134） */
+.wrow.t5 { background: #f7efdc; }   /* 五星：浅暖砂（163,107,39） */
+.wrow.t4 { background: #f1ebf7; }   /* 四星：浅丁香紫（114,97,134） */
+.wrow.t3 { background: #e7eef7; }   /* 三星：浅钢蓝（104,118,134） */
 .wrow.base { box-shadow: inset 3px 0 0 var(--steel); }
 .wrow .wname { font-weight: 600; }
 .wrow .wsub { color: var(--text-dim); font-size: var(--fs-xs); margin-top: 2px; }
