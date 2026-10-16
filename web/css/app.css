@@ -620,10 +620,10 @@ input[type="range"] {
   font-variant-numeric: tabular-nums;
 }
 .wrow:first-child { border-top: 0; }
-/* 品阶底色：浅色底，色相取自游戏内实测 RGB（2026-10-16），三档调到一眼可区分 */
-.wrow.t5 { background: #efe4d2; }   /* 五星：暖棕（163,107,39） */
-.wrow.t4 { background: #ddd3e9; }   /* 四星：紫（114,97,134） */
-.wrow.t3 { background: #d3dce6; }   /* 三星：蓝灰（104,118,134） */
+/* 品阶底色：浅色底、同亮度带、低饱和 —— 色相取自游戏内实测 RGB（2026-10-16），冷色加一点暖调与页面底色协调 */
+.wrow.t5 { background: #ebdfc9; }   /* 五星：暖砂棕（163,107,39） */
+.wrow.t4 { background: #e2d9ea; }   /* 四星：丁香紫（114,97,134） */
+.wrow.t3 { background: #d5dfea; }   /* 三星：钢蓝（104,118,134） */
 .wrow.base { box-shadow: inset 3px 0 0 var(--steel); }
 .wrow .wname { font-weight: 600; }
 .wrow .wsub { color: var(--text-dim); font-size: var(--fs-xs); margin-top: 2px; }
