@@ -616,20 +616,24 @@ input[type="range"] {
 .wlist { border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; background: var(--surface); box-shadow: var(--shadow-1); }
 .wrow {
   display: grid; grid-template-columns: 210px 1fr 240px 250px; gap: 12px; align-items: center;
-  padding: 9px 14px; font-size: var(--fs-sm); border-top: 1px solid var(--surface-2);
+  padding: 9px 14px; font-size: var(--fs-sm);
+  border-top: 1px solid rgba(255, 255, 255, .16);
   font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, .92);
 }
 .wrow:first-child { border-top: 0; }
-.wrow.t5 { background: #f8f1e3; }   /* 五星：浅棕黄 */
-.wrow.t4 { background: #f3f0fa; }   /* 四星：浅紫 */
-.wrow.t3 { background: #f2f1ec; }   /* 三星：浅灰 */
-.wrow.base { box-shadow: inset 3px 0 0 var(--steel); }
-.wrow .wsub { color: var(--text-dim); font-size: var(--fs-xs); margin-top: 2px; }
-.wrow .wnote { color: var(--text-dim); font-size: var(--fs-xs); }
-.wrow .wsplit { color: var(--text-dim); font-size: var(--fs-xs); }
+/* 品阶底色近似游戏内色（浅端取自实测 RGB），全文换浅色 */
+.wrow.t5 { background: linear-gradient(135deg, #9d6623, #7a4b14); }   /* 五星：棕金（163,107,39） */
+.wrow.t4 { background: linear-gradient(135deg, #70608a, #534569); }   /* 四星：紫（114,97,134） */
+.wrow.t3 { background: linear-gradient(135deg, #667585, #4a5767); }   /* 三星：蓝灰（104,118,134） */
+.wrow.base { box-shadow: inset 3px 0 0 rgba(255, 255, 255, .95); }
+.wrow .wname { color: #fff; font-weight: 600; }
+.wrow .wsub { color: rgba(255, 255, 255, .78); font-size: var(--fs-xs); margin-top: 2px; }
+.wrow .wnote { color: rgba(255, 255, 255, .78); font-size: var(--fs-xs); }
+.wrow .wsplit { color: rgba(255, 255, 255, .78); font-size: var(--fs-xs); }
 .wbar { display: flex; align-items: center; gap: 8px; }
-.wbar .fill { height: 8px; border-radius: 4px; background: var(--accent); }
-.wbar b { font-variant-numeric: tabular-nums; font-size: var(--fs-sm); min-width: 44px; }
+.wbar .fill { height: 8px; border-radius: 4px; background: rgba(255, 255, 255, .85); }
+.wbar b { color: #fff; font-variant-numeric: tabular-nums; font-size: var(--fs-sm); min-width: 44px; }
 
 /* --- 说明页排版（机制页） -------------------------------------------------- */
 .prose { max-width: 78ch; }

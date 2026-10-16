@@ -27,7 +27,7 @@
   function rowHTML(r, s) {
     var z = Math.max(0, s.n - r.best.x - r.best.y);
     return '<div class="wrow t' + r.w.tier + (r.w.id === S.BASE_W ? ' base' : '') + '">' +
-      '<div><div>' + r.w.name + '</div><div class="wsub">' + r.w.base + ' 基础 · ' + subDesc(r.w) + '</div></div>' +
+      '<div><div class="wname">' + r.w.name + '</div><div class="wsub">' + r.w.base + ' 基础 · ' + subDesc(r.w) + '</div></div>' +
       '<div class="wbar"><div class="fill" style="width:' + r.width.toFixed(1) + '%"></div><b>' + r.idx.toFixed(1) + '</b></div>' +
       '<div class="wsplit">最优：防御 ' + r.best.x.toFixed(1) + ' · 双暴 ' + r.best.y.toFixed(1) + ' · 攻击 ' + z.toFixed(1) + '</div>' +
       '<div class="wnote">' + r.w.note + '</div>' +
