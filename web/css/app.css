@@ -238,6 +238,7 @@ a:hover { text-decoration: underline; }
 
 /* --- 结论条 --------------------------------------------------------------- */
 .verdict {
+  position: relative;
   background: var(--surface);
   border: 1px solid var(--border);
   border-left: 3px solid var(--accent);
@@ -254,8 +255,10 @@ a:hover { text-decoration: underline; }
 .verdict__who { font-size: var(--fs-lg); font-weight: 600; }
 .verdict__sub { font-size: var(--fs-sm); color: var(--text-dim); font-variant-numeric: tabular-nums; }
 .verdict__sub b { color: var(--text); }
-/* 底部两行：分配词条 / 面板值（标签与数值同字号同色，仅字重不同） */
-.verdict__foot { display: flex; flex-direction: column; gap: 1px; font-variant-numeric: tabular-nums; }
+/* 底部：左 = 分配 / 面板两行，右 = 假设说明（右下角，不另起行） */
+.verdict__foot { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+.verdict__vrows { display: flex; flex-direction: column; gap: 1px; }
+.verdict__note { text-align: right; color: var(--text-dim); font-size: var(--fs-xs); line-height: 1.7; white-space: nowrap; }
 .verdict__vk { color: var(--text); font-size: var(--fs-lg); font-weight: 600; margin-right: 8px; }
 .verdict__vv { font-size: var(--fs-lg); }
 .verdict__bar { display: flex; align-items: center; gap: 8px; font-size: var(--fs-sm); color: var(--text-dim); }
@@ -270,11 +273,19 @@ a:hover { text-decoration: underline; }
 .verdict__reset[hidden] { display: none; }
 /* 三部件伤害格：标签 / 期望（大号）/ 暴击·未暴击 */
 .verdict__dmg { display: flex; gap: 10px; margin: 4px 0 2px; }
+.verdict__cells { display: flex; gap: 10px; flex: 1; }
 .dcell { flex: 1; border: 1px solid var(--border); border-radius: var(--r-sm); padding: 4px 12px 6px; }
 .dcell__k { color: var(--text-dim); font-size: var(--fs-xs); font-weight: 600; margin-right: 6px; }
 .dcell__v { font-size: var(--fs-2xl); font-weight: 650; font-variant-numeric: tabular-nums; }
 .dcell__c { display: block; font-size: var(--fs-xs); color: var(--text-dim); font-variant-numeric: tabular-nums; }
 .dcell__c b { color: var(--text); }
+/* 计算过程公式面板（悬浮数字时出现、跟随鼠标；KaTeX 渲染） */
+.calcpop {
+  position: fixed; display: none; z-index: 7; pointer-events: none;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-sm);
+  box-shadow: var(--shadow-2); padding: 8px 14px; font-size: 12.5px; max-width: 96vw;
+}
+.calcpop__t { color: var(--text); font-size: var(--fs-lg); font-weight: 600; margin-bottom: 5px; }
 .verdict .bad { color: var(--bad); }
 
 .v-grid {

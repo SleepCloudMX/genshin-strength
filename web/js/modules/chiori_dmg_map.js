@@ -8,13 +8,30 @@
 
   var GRID = 121;
 
+  /* 公式面板配色：同名量同色；深色系、不刺眼 */
+  var C_COEF = '#7a6a55',   // 倍率类常量
+      C_ATK = '#2f6f8f',    // 攻击力
+      C_DEF = '#3f7d4f',    // 防御力
+      C_BASE = '#7b4fa0',   // 基础伤害（两式中出现，同色）
+      C_BONUS = '#c05621',  // 伤害加成
+      C_CR = '#b5453c',     // 暴击率
+      C_CD = '#8f3f5f',     // 暴击伤害
+      C_ENEMY = '#6e685c',  // 敌人区辅助量（等级 / 减防 / 无视防御 / 抗性）
+      C_DEFF = '#5a8ca0',   // 敌人防御系数（两处出现：定义行 + 最终伤害行）
+      C_RESF = '#a0764e',   // 敌人岩抗系数（同上）
+      C_FINAL = '#23201a';  // 最终伤害
+
+  var ENEMY_FACT = S.DEF_FACTOR * S.RES_FACTOR;   // 敌人区假设合计（0.475 × 0.90）：页面伤害数字 = 裸伤 × 它
+
   var FOOT =
     '部件伤害（均 10 级）=（攻击系数 × 攻击力 + 防御系数 × 防御力）× (1 + 伤害加成) × 暴击区；' +
     '系数（攻击 / 防御）：「袖」斩切 1.48 / 1.85、E 上挑 2.69 / 3.36、Q 4.61 / 5.77 —— ' +
     '防御系数恒为攻击系数的 1.25 倍，只看斩切即可代表整体，见机制文档 <code>docs/ai-output/0-mechanism/4-千织伤害机制.md</code>。' +
     '三个部件的伤害主数字取期望（暴击区 = 1 + 暴击率 × 暴伤），小字给出暴击（1 + 暴伤）与未暴击（1）两个极端。' +
     '结论框默认取最优分配 —— 点击图面可固定所选点、复位回到最优；鼠标在图面上时另显示所指处的读数。' +
-    '<b>敌人防御 / 岩抗系数是公共乘数，不计入</b>；图上颜色与各处倍率均为相对基准面板的倍数。<br>' +
+    '格内数字与鼠标读数均为<b>计入敌人区的最终伤害</b>（按固定假设：<b>角色 90 级、敌人 110 级、全抗 10%、减防 / 无视防御 0</b>' +
+    '→ 防御系数 190 / (190 + 210) = 0.475、岩抗系数 0.90；防御系数按 90 级固定，与面板基础值的手填等级无关）。' +
+    '悬浮格内数字给出到最终伤害的完整计算；图上颜色与各处倍率均为相对基准面板的倍数，不受敌人区影响。<br>' +
     '<b>词条预算上限 50</b> ≈ 千织满档副词条容量（逐件按主词条占用后的可用副词条满值折算，估算 ≈ 50.6，取 50）。<br>' +
     '<b>默认参数（千织 80 级突破 + 黎明神剑 R5 + 剧团防岩爆）</b>：来源逐项见各「明细」；' +
     '伤害加成 136.6% = 锦上添花 20% + 黄金剧团 4 件套 70%（后台满层）+ 岩伤杯 46.6%。';
@@ -22,9 +39,11 @@
   M['chiori/dmg_map'] = {
     title: '「千织」伤害热图',
     tab: '千织·伤害热图',
+    math: true,
     intro: '把 n 个等效词条分给防御 / 双暴 / 攻击（攻击吃剩余）：颜色 = 相对基准面板的伤害倍数，叠加倍数等高线；' +
       '鼠标在图上时，箭头指向该点<b>上升最快</b>的方向（画面空间每像素增益最大），<b>长度反映梯度大小</b>；' +
-      '鼠标在图面上时显示所指点的读数；点击图面把结论框固定到该点（默认为最优分配，可复位）。各词条总数下的最优面板值见 ' +
+      '鼠标在图面上时显示所指点的读数；点击图面把结论框固定到该点（默认为最优分配，可复位）；' +
+      '悬浮结论框三格数字可见完整计算过程。各词条总数下的最优面板值见 ' +
       '<a href="#/chiori/alloc_curve">词条分配</a>页，武器横评见 <a href="#/chiori/weapon_compare">武器对比</a>页。',
     controls: [
       {
@@ -80,13 +99,14 @@
       function partSplits(s, x, y) {
         return S.PARTS.map(function (part) { return S.damageSplit(s, x, y, part); });
       }
-      /** 三部件读数格（结论框用）：标签 / 期望 / 暴击·未暴击。 */
+      /** 三部件读数格（结论框用）：标签 / 期望 / 暴击·未暴击（均含敌人区系数）；data-part + data-k 供公式面板选型。 */
       function cellsHTML(cs) {
         return S.PARTS.map(function (part, i) {
           var c = cs[i];
-          return '<div class="dcell"><span class="dcell__k">' + part.label + '</span>' +
-            '<b class="dcell__v">' + c.exp.toFixed(0) + '</b>' +
-            '<span class="dcell__c">暴击 <b>' + c.crit.toFixed(0) + '</b>、未暴击 <b>' + c.noncrit.toFixed(0) + '</b></span></div>';
+          return '<div class="dcell" data-part="' + i + '"><span class="dcell__k">' + part.label + '</span>' +
+            '<b class="dcell__v" data-k="exp">' + Math.round(c.exp * ENEMY_FACT) + '</b>' +
+            '<span class="dcell__c"><span data-k="crit">暴击 <b>' + Math.round(c.crit * ENEMY_FACT) + '</b></span>、' +
+            '<span data-k="noncrit">未暴击 <b>' + Math.round(c.noncrit * ENEMY_FACT) + '</b></span></span></div>';
         }).join('');
       }
 
@@ -108,11 +128,19 @@
         '<div class="verdict__bar"><span class="verdict__st" id="vState">最优分配</span>' +
         '<span class="verdict__mul" id="vMul">—</span><span>相对基准面板</span>' +
         '<button class="verdict__reset" id="vReset" type="button" hidden>复位</button></div>' +
-        '<div class="verdict__dmg" id="vdmgRow">—</div>' +
-        '<div class="verdict__foot"><div class="verdict__vrow"><span class="verdict__vk">分配</span>' +
+        '<div class="verdict__dmg"><div class="verdict__cells" id="vdmgRow">—</div></div>' +
+        '<div class="verdict__foot"><div class="verdict__vrows">' +
+        '<div class="verdict__vrow"><span class="verdict__vk">分配</span>' +
         '<span class="verdict__vv" id="bestSplit">—</span></div>' +
         '<div class="verdict__vrow"><span class="verdict__vk">面板</span>' +
-        '<span class="verdict__vv" id="cornerLine">—</span></div></div>';
+        '<span class="verdict__vv" id="cornerLine">—</span></div></div>' +
+        '<div class="verdict__note">伤害计算假设角色 90 级、敌人 110 级<br>全抗 10%，减防 0%，无视防御 0%</div></div>';
+      var calcpop = el('div', 'calcpop');
+      var calcpopT = el('div', 'calcpop__t');   // 左上角标题（哪个数字的计算）
+      var calcpopM = el('div', 'calcpop__m');   // KaTeX 公式容器
+      calcpop.appendChild(calcpopT);
+      calcpop.appendChild(calcpopM);
+      verdict.appendChild(calcpop);
 
       var card = el('div', 'card chartcard');
       var m = charts.mount(card, { height: 620 });
@@ -128,6 +156,8 @@
       var hoverPx = null;
       var pinned = null;    // 点击固定的分配点（数据坐标）；null = 结论框显示最优
       var lastRaw = null;   // 最近一次提交的原始参数（点击固定后重绘用）
+      var curP = null;      // 结论框当前点（公式面板按它取各量）
+      var calcActive = null;   // 公式面板当前指向 { part, kind }；null = 不显示
 
       function readState(s) {
         return {
@@ -147,6 +177,7 @@
         var best = scan.best;
         if (pinned && pinned.x + pinned.y > rs.n + 1e-9) pinned = null;   // 预算改小后固定点越界：丢弃
         var p = pinned || { x: best.x, y: best.y };
+        curP = { x: p.x, y: p.y };
         var pz = Math.max(0, rs.n - p.x - p.y);
         var pv = partSplits(rs, p.x, p.y);
         document.getElementById('vState').textContent = pinned ? '所选点' : '最优分配';
@@ -164,6 +195,7 @@
 
       function update(s0) {
         lastRaw = s0;
+        hideCalc();
         var s = readState(s0);
         st = s;
         var scan = updateVerdict(s);
@@ -271,8 +303,8 @@
         if (x + y > s.n + 1e-9) {   // 超过词条上限：显示折算后的 E 伤害与倍率 + 红字
           var sum = x + y;
           var spF = S.damageSplit(s, x * s.n / sum, y * s.n / sum, S.PARTS[0]);
-          tip.show('<div class="tip__hero"><b>E 每跳 ' + spF.exp.toFixed(0) + '</b><span class="u">「袖」斩切（E10）</span></div>' +
-            '<div class="tip__crit">暴击 ' + spF.crit.toFixed(0) + '、未暴击 ' + spF.noncrit.toFixed(0) + '</div>' +
+          tip.show('<div class="tip__hero"><b>E 每跳 ' + Math.round(spF.exp * ENEMY_FACT) + '</b><span class="u">「袖」斩切（E10）</span></div>' +
+            '<div class="tip__crit">暴击 ' + Math.round(spF.crit * ENEMY_FACT) + '、未暴击 ' + Math.round(spF.noncrit * ENEMY_FACT) + '</div>' +
             '<div class="tip__hero tip__hero--sm"><b>×' + (spF.exp / base0).toFixed(3) + '</b><span class="u">相对基准面板</span></div>' +
             '<div class="tip__bad">超过 ' + s.n + ' 词条上限</div>', hoverPx.x, hoverPx.y, { segs: [] });
           return;
@@ -305,8 +337,8 @@
         var alw = S.nextAlloc(s, x, y);
         var grw = S.gradWeights(s, x, y);
         var html =
-          '<div class="tip__hero"><b>E 每跳 ' + sp.exp.toFixed(0) + '</b><span class="u">「袖」斩切（E10）</span></div>' +
-          '<div class="tip__crit">暴击 ' + sp.crit.toFixed(0) + '、未暴击 ' + sp.noncrit.toFixed(0) + '</div>' +
+          '<div class="tip__hero"><b>E 每跳 ' + Math.round(sp.exp * ENEMY_FACT) + '</b><span class="u">「袖」斩切（E10）</span></div>' +
+          '<div class="tip__crit">暴击 ' + Math.round(sp.crit * ENEMY_FACT) + '、未暴击 ' + Math.round(sp.noncrit * ENEMY_FACT) + '</div>' +
           '<div class="tip__hero tip__hero--sm"><b>×' + (sp.exp / base0).toFixed(3) + '</b><span class="u">相对基准面板</span></div>' +
           '<div class="tip__div"></div>' +
           '<div class="tip__hd"><span>防御</span><span class="rl">' + x.toFixed(1) + ' 词条</span><span class="vl">' + defOf(s, x).toFixed(0) + '</span></div>' +
@@ -340,6 +372,100 @@
         if (!pinned || !lastRaw) return;
         pinned = null;
         update(lastRaw);
+      });
+
+      /* 数字的公式面板：跟随鼠标；按所指数字选型（期望 / 暴击 / 未暴击），并列出敌人区系数的计算 */
+      function hideCalc() { calcActive = null; calcpop.style.display = 'none'; }
+      function placeCalc(cx, cy) {
+        var w = calcpop.offsetWidth, h = calcpop.offsetHeight;
+        var left = cx + 16, top = cy + 16;
+        if (left + w > global.innerWidth - 8) left = cx - w - 16;
+        if (top + h > global.innerHeight - 8) top = cy - h - 16;
+        calcpop.style.left = left + 'px';
+        calcpop.style.top = top + 'px';
+      }
+      /** 按显示精度格式化 / 取数（先取显示值、再参与计算 —— 印出的数乘出来正好等于印出的结果）。 */
+      function fmtTrim(v, minDp, maxDp) {
+        var s = v.toFixed(maxDp);
+        while (s.indexOf('.') >= 0 && s.length - s.indexOf('.') - 1 > minDp && s.charAt(s.length - 1) === '0') {
+          s = s.slice(0, -1);
+        }
+        return s;
+      }
+      function q(v, minDp, maxDp) { return Number(fmtTrim(v, minDp, maxDp)); }
+
+      function showCalc(cx, cy) {
+        if (!st || !curP || !calcActive || !global.katex) return;
+        var s = st, x = curP.x, y = curP.y;
+        var z = Math.max(0, s.n - x - y);
+        var part = S.PARTS[calcActive.part];
+        var sp = S.damageSplit(s, x, y, part);
+        var kindName = calcActive.kind === 'crit' ? '暴击' : calcActive.kind === 'noncrit' ? '未暴击' : '期望';
+        var titleVal = Math.round(
+          (calcActive.kind === 'crit' ? sp.crit : calcActive.kind === 'noncrit' ? sp.noncrit : sp.exp) * ENEMY_FACT);
+        calcpopT.textContent = part.label + ' · ' + kindName + ' ' + titleVal;
+        var t = S.critSplit(s.cr, s.cd, y);
+        var atkQ = q(atkOf(s, z), 0, 2), defQ = q(defOf(s, x), 0, 2);
+        var basicQ = q(part.a * atkQ + part.d * defQ, 2, 2);
+        var bonusQ = q(s.bonus, 2, 3);
+        var crQ = q(Math.min(t.cr, 100) / 100, 2, 5), cdQ = q(t.cd / 100, 2, 5);
+        var zoneTex, zoneQ;
+        if (calcActive.kind === 'crit') {           // 暴击：暴击区省去暴击率，只用 (1 + 暴击伤害)
+          zoneTex = '(1+\\textcolor{' + C_CD + '}{\\underset{' + fmtTrim(cdQ, 2, 5) + '}{\\text{暴击伤害}}})\\cdot';
+          zoneQ = 1 + cdQ;
+        } else if (calcActive.kind === 'noncrit') { // 未暴击：暴击区整体去掉
+          zoneTex = '';
+          zoneQ = 1;
+        } else {                                    // 期望
+          zoneTex = '(1+\\textcolor{' + C_CR + '}{\\underset{' + fmtTrim(crQ, 2, 5) + '}{\\text{暴击率}}}\\cdot' +
+            '\\textcolor{' + C_CD + '}{\\underset{' + fmtTrim(cdQ, 2, 5) + '}{\\text{暴击伤害}}})\\cdot';
+          zoneQ = 1 + crQ * cdQ;
+        }
+        var finalQ = basicQ * (1 + bonusQ) * zoneQ * S.DEF_FACTOR * S.RES_FACTOR;
+        var tex = '\\begin{aligned}' +
+          '\\textcolor{' + C_BASE + '}{\\text{基础伤害}} &= \\textcolor{' + C_COEF + '}{\\underset{' + part.a.toFixed(2) + '}{\\text{攻击力倍率}}}\\cdot' +
+          '\\textcolor{' + C_ATK + '}{\\underset{' + fmtTrim(atkQ, 0, 2) + '}{\\text{攻击力}}}+' +
+          '\\textcolor{' + C_COEF + '}{\\underset{' + part.d.toFixed(2) + '}{\\text{防御力倍率}}}\\cdot' +
+          '\\textcolor{' + C_DEF + '}{\\underset{' + fmtTrim(defQ, 0, 2) + '}{\\text{防御力}}}= ' +
+          '\\textcolor{' + C_BASE + '}{' + fmtTrim(basicQ, 2, 2) + '}\\\\[2pt]' +
+          '\\textcolor{' + C_DEFF + '}{\\text{敌人防御系数}} &= \\frac{\\textcolor{' + C_ENEMY + '}{\\underset{' + S.LV_CHAR + '}{\\text{角色等级}}} + 100}' +
+          '{(' + '\\textcolor{' + C_ENEMY + '}{\\underset{' + S.LV_CHAR + '}{\\text{角色等级}}} + 100) + (' +
+          '\\textcolor{' + C_ENEMY + '}{\\underset{' + S.LV_ENEMY + '}{\\text{敌人等级}}} + 100)' +
+          '(1 - \\textcolor{' + C_ENEMY + '}{\\underset{0}{\\text{减防}}})(1 - \\textcolor{' + C_ENEMY + '}{\\underset{0}{\\text{无视防御}}})}' +
+          ' = \\textcolor{' + C_DEFF + '}{' + S.DEF_FACTOR.toFixed(3) + '}\\\\' +
+          '\\textcolor{' + C_RESF + '}{\\text{敌人岩抗系数}} &= \\begin{cases} ' +
+          '1 - \\text{抗性} / 2, & \\text{抗性} < 0, \\\\ ' +
+          '1 - \\text{抗性}, & 0 \\le \\text{抗性} < 0.75, \\\\ ' +
+          '1 / (4 \\text{抗性} + 1), & \\text{抗性} \\ge 0.75. \\end{cases}' +
+          '\\quad \\xlongequal{0 \\le \\text{抗性} < 0.75} ' +
+          '1 - \\textcolor{' + C_ENEMY + '}{\\underset{' + S.ENEMY_RES.toFixed(1) + '}{\\text{抗性}}}' +
+          ' = \\textcolor{' + C_RESF + '}{' + S.RES_FACTOR.toFixed(2) + '}\\\\[2pt]' +
+          '\\textcolor{' + C_FINAL + '}{\\text{最终伤害}} &= \\textcolor{' + C_BASE + '}{\\underset{' + fmtTrim(basicQ, 2, 2) + '}{\\text{基础伤害}}}\\cdot' +
+          '(1+\\textcolor{' + C_BONUS + '}{\\underset{' + fmtTrim(bonusQ, 2, 3) + '}{\\text{伤害加成}}})\\cdot' + zoneTex +
+          '\\textcolor{' + C_DEFF + '}{\\underset{' + S.DEF_FACTOR.toFixed(3) + '}{\\text{敌人防御系数}}}\\cdot' +
+          '\\textcolor{' + C_RESF + '}{\\underset{' + S.RES_FACTOR.toFixed(2) + '}{\\text{敌人岩抗系数}}}= ' +
+          '\\textcolor{' + C_FINAL + '}{' + finalQ.toFixed(2) + '}' +
+          '\\end{aligned}';
+        calcpop.style.display = 'block';
+        global.katex.render(tex, calcpopM, { displayMode: true, throwOnError: false });
+        placeCalc(cx, cy);
+      }
+      verdict.addEventListener('mouseover', function (e) {
+        var num = e.target.closest && e.target.closest('[data-k]');
+        var cell = num && num.closest('.dcell[data-part]');
+        if (num && cell) {
+          calcActive = { part: Number(cell.getAttribute('data-part')), kind: num.getAttribute('data-k') };
+          showCalc(e.clientX, e.clientY);
+        } else {
+          hideCalc();
+        }
+      });
+      verdict.addEventListener('mouseout', function (e) {
+        var num = e.target.closest && e.target.closest('[data-k]');
+        if (num && !num.contains(e.relatedTarget)) hideCalc();
+      });
+      verdict.addEventListener('mousemove', function (e) {
+        if (calcActive) placeCalc(e.clientX, e.clientY);
       });
 
       return { plot: m.plot, update: update };
