@@ -36,20 +36,38 @@
       {
         key: '', type: 'note',
         html: '<b>基准面板 = 上完 buff、不含副词条</b> —— 全写在参数里（角色自身、武器、队友、圣遗物，含主词条与羽）；' +
-          '逐项明细见伤害热图页。',
+          '每个数值可点「明细」查看与编辑逐项来源。',
       },
       {
         key: '', type: 'note',
         html: '<b>词条口径</b>：1 词条 = 20 精通 = 3.3% 暴击 = 6.6% 暴伤 = 5% 大攻击；<b>双暴按 1 : 2 配平</b>' +
           '（先补基准偏斜；暴击率封顶 100% 后全进暴伤），攻击词条按大攻击折算（小攻击见换算行）。',
       },
-      { key: 'baseAtk', type: 'number', label: '基础攻击力', def: 828, step: 1, min: 0 },
-      { key: 'patk', type: 'number', label: '大攻击 %', def: 202.6, step: 0.1, min: -9999 },
-      { key: 'fatk', type: 'number', label: '小攻击', def: 311, step: 1, min: -9999 },
-      { key: 'em', type: 'number', label: '基准精通', def: 160, step: 10, min: 0 },
-      { key: 'cr', type: 'number', label: '基准暴击率 %', def: 55.2, step: 0.1, min: 0 },
-      { key: 'cd', type: 'number', label: '基准暴伤 %', def: 112.2, step: 0.1, min: 50 },
-      { key: 'bonus', type: 'number', label: '反应增伤 %', def: 160, step: 1, min: 0 },
+      { key: 'baseAtk', type: 'items', label: '基础攻击力', step: 1, min: 0, items: [
+        { n: '桑多涅 80 级突破', v: 318 },
+        { n: '浪影阔剑 90 级', v: 510 }] },
+      { key: 'patk', type: 'items', label: '大攻击 %', step: 0.1, min: -9999, items: [
+        { n: '浪影阔剑主词条', v: 41.3 },
+        { n: '浪影阔剑特效', v: 48 },
+        { n: '阿罗夏 Q9', v: 20.1 },
+        { n: '攻击沙', v: 46.6 },
+        { n: '攻击杯', v: 46.6 }] },
+      { key: 'fatk', type: 'items', label: '小攻击', step: 1, min: -9999, items: [
+        { n: '羽主词条', v: 311 }] },
+      { key: 'em', type: 'items', label: '基准精通', step: 10, min: 0, items: [
+        { n: '固有天赋 2', v: 160 }] },
+      { key: 'cr', type: 'items', label: '基准暴击率 %', step: 0.1, min: 0, items: [
+        { n: '桑多涅自身', v: 24.2 },
+        { n: '双冰共鸣', v: 15 },
+        { n: '幻灭 4 件套', v: 16 }] },
+      { key: 'cd', type: 'items', label: '基准暴伤 %', step: 0.1, min: 50, items: [
+        { n: '角色基础', v: 50 },
+        { n: '暴伤头', v: 62.2 }] },
+      { key: 'bonus', type: 'items', label: '反应增伤 %', step: 1, min: 0, items: [
+        { n: '炉火', v: 50 },
+        { n: '幻灭 4 件套', v: 40 },
+        { n: '阿罗夏', v: 20 },
+        { n: '七七', v: 50 }] },
       { key: 'panelAtk', type: 'readout', full: true, label: '基准面板攻击力（计入伤害）', compute: function (s) {
         return S.panelAttack(s.baseAtk, s.patk / 100, s.fatk, 0).toFixed(0);
       } },

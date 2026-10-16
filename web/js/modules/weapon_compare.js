@@ -46,19 +46,33 @@
       {
         key: '', type: 'note',
         html: '<b>基准面板 = 上完 buff、不含副词条</b> —— 参数里是<b>不含武器</b>的部分（角色自身、队友、圣遗物含幻灭 4 件），' +
-          '武器部分由每行武器自带；攻攻主词条（93.2%）与羽（311）已计入下方参数。',
+          '武器部分由每行武器自带；每个数值可点「明细」查看与编辑逐项来源。',
       },
       {
         key: '', type: 'note',
         html: '<b>口径同伤害热图页</b>：1 词条 = 20 精通 = 6.6 双暴分 = 5% 大攻击（攻击词条按大攻击折算）；' +
           '特效<b>只计对星超导生效的常驻部分</b>，按全覆盖 / 满层，行内注明。',
       },
-      { key: 'patk', type: 'number', label: '大攻击 %', def: 113.3, step: 0.1, min: -9999 },
-      { key: 'fatk', type: 'number', label: '小攻击', def: 311, step: 1, min: -9999 },
-      { key: 'em', type: 'number', label: '基准精通', def: 160, step: 10, min: 0 },
-      { key: 'bonus', type: 'number', label: '反应增伤 %', def: 160, step: 1, min: 0 },
-      { key: 'cr', type: 'number', label: '基准暴击率 %', def: 55.2, step: 0.1, min: 0 },
-      { key: 'cd', type: 'number', label: '基准暴伤 %', def: 112.2, step: 0.1, min: 50 },
+      { key: 'patk', type: 'items', label: '大攻击 %', step: 0.1, min: -9999, items: [
+        { n: '阿罗夏 Q9', v: 20.1 },
+        { n: '攻击沙', v: 46.6 },
+        { n: '攻击杯', v: 46.6 }] },
+      { key: 'fatk', type: 'items', label: '小攻击', step: 1, min: -9999, items: [
+        { n: '羽主词条', v: 311 }] },
+      { key: 'em', type: 'items', label: '基准精通', step: 10, min: 0, items: [
+        { n: '固有天赋 2', v: 160 }] },
+      { key: 'bonus', type: 'items', label: '反应增伤 %', step: 1, min: 0, items: [
+        { n: '炉火', v: 50 },
+        { n: '幻灭 4 件套', v: 40 },
+        { n: '阿罗夏', v: 20 },
+        { n: '七七', v: 50 }] },
+      { key: 'cr', type: 'items', label: '基准暴击率 %', step: 0.1, min: 0, items: [
+        { n: '桑多涅自身', v: 24.2 },
+        { n: '双冰共鸣', v: 15 },
+        { n: '幻灭 4 件套', v: 16 }] },
+      { key: 'cd', type: 'items', label: '基准暴伤 %', step: 0.1, min: 50, items: [
+        { n: '角色基础', v: 50 },
+        { n: '暴伤头', v: 62.2 }] },
       { key: 'n', type: 'number', label: '词条预算', def: 30, step: 1, min: 2, max: 53 },
       { key: 'n2', type: 'readout', full: true, label: '基准面板攻击力（基准武器）', compute: function (s) {
         var w = S.weaponById(S.BASE_W);
