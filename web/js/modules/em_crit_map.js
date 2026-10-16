@@ -40,7 +40,8 @@
     controls: [
       {
         key: '', type: 'note',
-        html: '<b>基准面板 = 上完 buff、不含副词条</b>（主词条、武器、天赋、队友给的都算在基准里）—— 副词条正是这里要分配的东西。',
+        html: '<b>基准面板 = 上完 buff、不含副词条</b>（主词条、武器、天赋、队友给的都算在基准里）—— 副词条正是这里要分配的东西；' +
+          '每个数值可点「明细」查看与编辑逐项来源。',
       },
       {
         key: '', type: 'note',
@@ -48,10 +49,17 @@
           '计算中直接采用；本页<b>不</b>根据你的配置推算真实占比（实测约九成，见<a href="#/mizuki/stellar_swirl#share">机制页</a>）。' +
           '默认 90%；拉到 100% = 只看星扩散直伤。',
       },
-      { key: 'bonus', type: 'number', label: '星扩散增伤 %', def: 130, step: 5, min: 0 },
-      { key: 'em', type: 'number', label: '基准精通', def: 951, step: 10, min: 589 },
-      { key: 'cr', type: 'number', label: '基准暴击率 %', def: 36, step: 0.1, min: 5 },
-      { key: 'cd', type: 'number', label: '基准暴伤 %', def: 112.2, step: 0.1, min: 50 },
+      { key: 'bonus', type: 'items', label: '星扩散增伤 %', step: 5, min: 0, items: [
+        { n: '冰主 6 命', v: 40 },
+        { n: '炉火', v: 50 },
+        { n: '血红 4 件套', v: 40 }] },
+      { key: 'em', type: 'items', label: '基准精通', step: 10, min: 589, items: [
+        { n: '总数', v: 1000 }] },
+      { key: 'cr', type: 'items', label: '基准暴击率 %', step: 0.1, min: 5, items: [
+        { n: '总数', v: 36 }] },
+      { key: 'cd', type: 'items', label: '基准暴伤 %', step: 0.1, min: 50, items: [
+        { n: '角色基础', v: 50 },
+        { n: '暴伤头', v: 62.2 }] },
       { key: 'score', type: 'readout', label: '双暴分', compute: function (s) { return C.f(C.baseScore(s.cr, s.cd), 1); } },
       { key: 'd', type: 'range', label: '星扩散直伤占比', def: 90, min: 0, max: 100, step: 1, unit: '%' },
       {

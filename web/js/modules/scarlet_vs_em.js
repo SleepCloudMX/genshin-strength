@@ -28,7 +28,8 @@
     controls: [
       {
         key: '', type: 'note',
-        html: '<b>以下都填「上完 buff」后的实际数值</b>（含副词条；不含套装特效 —— 两套的套装效果由脚本自动加上）。',
+        html: '<b>以下都填「上完 buff」后的实际数值</b>（含副词条；不含套装特效 —— 两套的套装效果由脚本自动加上）；' +
+          '每个数值可点「明细」查看与编辑逐项来源。',
       },
       {
         key: '', type: 'note',
@@ -36,10 +37,15 @@
           '不随基准精通变化），计算中直接采用；本页<b>不</b>根据你的配置推算真实占比（实测约九成，见' +
           '<a href="#/mizuki/stellar_swirl#share">机制页</a>）。默认 90%；拉到 100% = 只看星扩散直伤。',
       },
-      { key: 'bonus', type: 'number', label: '星扩散增伤 %', def: 90, step: 5, min: 0 },
-      { key: 'em', type: 'number', label: '基准精通', def: 1000, step: 10, min: 589 },
-      { key: 'cr', type: 'number', label: '基准暴击率 %', def: 60, step: 0.1, min: 5 },
-      { key: 'cd', type: 'number', label: '基准暴伤 %', def: 120, step: 0.1, min: 50 },
+      { key: 'bonus', type: 'items', label: '星扩散增伤 %', step: 5, min: 0, items: [
+        { n: '冰主 6 命', v: 40 },
+        { n: '炉火', v: 50 }] },
+      { key: 'em', type: 'items', label: '基准精通', step: 10, min: 589, items: [
+        { n: '总数', v: 1000 }] },
+      { key: 'cr', type: 'items', label: '基准暴击率 %', step: 0.1, min: 5, items: [
+        { n: '总数', v: 60 }] },
+      { key: 'cd', type: 'items', label: '基准暴伤 %', step: 0.1, min: 50, items: [
+        { n: '总数', v: 120 }] },
       { key: 'score', type: 'readout', label: '双暴分', compute: function (s) { return (2 * s.cr + s.cd).toFixed(1); } },
       { key: 'd', type: 'range', label: '星扩散直伤占比', def: 90, min: 0, max: 100, step: 1, unit: '%' },
       {
