@@ -9,9 +9,12 @@
   var GRID = 121;
 
   var FOOT =
-    '「袖」斩切 10 级伤害 = (1.48 × 攻击力 + 1.85 × 防御力) × (1 + 伤害加成) × 暴击区；' +
-    '各部件（斩切 / 上挑 / 大招）的防御系数恒为攻击系数的 1.25 倍，只看斩切即可代表整体 —— ' +
-    '见机制文档 <code>docs/ai-output/0-mechanism/4-千织伤害机制.md</code>。<b>敌人防御 / 岩抗系数是公共乘数，不计入</b>，图上都是相对倍数。<br>' +
+    '部件伤害（均 10 级）=（攻击系数 × 攻击力 + 防御系数 × 防御力）× (1 + 伤害加成) × 暴击区；' +
+    '系数（攻击 / 防御）：「袖」斩切 1.48 / 1.85、E 上挑 2.69 / 3.36、Q 4.61 / 5.77 —— ' +
+    '防御系数恒为攻击系数的 1.25 倍，只看斩切即可代表整体，见机制文档 <code>docs/ai-output/0-mechanism/4-千织伤害机制.md</code>。' +
+    '三个部件的伤害主数字取期望（暴击区 = 1 + 暴击率 × 暴伤），小字给出暴击（1 + 暴伤）与未暴击（1）两个极端。' +
+    '结论框默认取最优分配 —— 点击图面可固定所选点、复位回到最优；鼠标在图面上时另显示所指处的读数。' +
+    '<b>敌人防御 / 岩抗系数是公共乘数，不计入</b>；图上颜色与各处倍率均为相对基准面板的倍数。<br>' +
     '<b>词条预算上限 50</b> ≈ 千织满档副词条容量（逐件按主词条占用后的可用副词条满值折算，估算 ≈ 50.6，取 50）。<br>' +
     '<b>默认参数（千织 80 级突破 + 黎明神剑 R5 + 剧团防岩爆）</b>：来源逐项见各「明细」；' +
     '伤害加成 136.6% = 锦上添花 20% + 黄金剧团 4 件套 70%（后台满层）+ 岩伤杯 46.6%。';
@@ -21,7 +24,7 @@
     tab: '千织·伤害热图',
     intro: '把 n 个等效词条分给防御 / 双暴 / 攻击（攻击吃剩余）：颜色 = 相对基准面板的伤害倍数，叠加倍数等高线；' +
       '鼠标在图上时，箭头指向该点<b>上升最快</b>的方向（画面空间每像素增益最大），<b>长度反映梯度大小</b>；' +
-      '悬浮读该点的面板与倍数。各词条总数下的最优面板值见 ' +
+      '鼠标在图面上时显示所指点的读数；点击图面把结论框固定到该点（默认为最优分配，可复位）。各词条总数下的最优面板值见 ' +
       '<a href="#/chiori/alloc_curve">词条分配</a>页，武器横评见 <a href="#/chiori/weapon_compare">武器对比</a>页。',
     controls: [
       {
@@ -31,7 +34,7 @@
       },
       {
         key: '', type: 'note',
-        html: '<b>词条口径</b>：1 词条 = 5% 大攻击 = 6.2% 大防御 = 3.3% 暴击 = 6.6% 暴伤（小攻击 / 小防御见换算行）。' +
+        html: '<b>词条口径</b>：1 词条 = 5% 大攻击 = 6.2% 大防御 = 3.3% 暴击 = 6.6% 暴伤（小攻击 16.5 / 小防御 19.7）。' +
           '<b>攻击 / 防御词条按各自大词条折算</b>；双暴按 1 : 2 配平（先补基准的偏斜）。',
       },
       { key: 'baseAtk', type: 'items', label: '基础攻击力', step: 1, min: 0, items: [
@@ -64,12 +67,6 @@
       { key: 'panelDef', type: 'readout', full: true, label: '基准面板防御力', compute: function (s) {
         return S.panelDef(s.baseDef, s.pdef / 100, s.fdef, 0).toFixed(0);
       } },
-      { key: 'convA', type: 'readout', full: true, label: '攻击词条换算', compute: function (s) {
-        return '大 ' + (s.baseAtk * S.PER_ATK).toFixed(1) + ' · 小 ' + S.PER_FLAT;
-      } },
-      { key: 'convD', type: 'readout', full: true, label: '防御词条换算', compute: function (s) {
-        return '大 ' + (s.baseDef * S.PER_DEF).toFixed(1) + ' · 小 ' + S.PER_FLAT_DEF;
-      } },
     ],
 
     create: function (host, ctx) {
@@ -79,20 +76,18 @@
       function atkOf(s, z) { return S.panelAtk(s.baseAtk, s.atkPct, s.fatk, z); }
       function defOf(s, w) { return S.panelDef(s.baseDef, s.defPct, s.fdef, w); }
 
-      /** 任意 (x, y) 的伤害（不做域检查；z 可为负 —— 超出词条上限时按比例折算，倍率仍可算）。 */
-      function dmgAny(s, x, y) {
-        var z = s.n - x - y;
-        var crit = S.critSplit(s.cr, s.cd, y);
-        return (S.E_COEF_ATK * atkOf(s, z) + S.E_COEF_DEF * defOf(s, x)) * (1 + s.bonus) *
-          (1 + Math.min(crit.cr, 100) / 100 * crit.cd / 100);
+      /** 三个部件在 (x, y) 的期望 / 暴击 / 未暴击。 */
+      function partSplits(s, x, y) {
+        return S.PARTS.map(function (part) { return S.damageSplit(s, x, y, part); });
       }
-      /** 词条上限校验：超限时按比例折算到边界（x + y = n）。 */
-      function multOf(s, x, y) {
-        var base0 = dmgOf(Object.assign({}, s, { n: 0 }), 0, 0);
-        var sum = x + y;
-        var x2 = x, y2 = y;
-        if (sum > s.n) { x2 = x * s.n / sum; y2 = y * s.n / sum; }
-        return dmgAny(s, x2, y2) / base0;
+      /** 三部件读数格（结论框用）：标签 / 期望 / 暴击·未暴击。 */
+      function cellsHTML(cs) {
+        return S.PARTS.map(function (part, i) {
+          var c = cs[i];
+          return '<div class="dcell"><span class="dcell__k">' + part.label + '</span>' +
+            '<b class="dcell__v">' + c.exp.toFixed(0) + '</b>' +
+            '<span class="dcell__c">暴击 <b>' + c.crit.toFixed(0) + '</b>、未暴击 <b>' + c.noncrit.toFixed(0) + '</b></span></div>';
+        }).join('');
       }
 
       /* 卡片小件：等效项（≥1 绿 / <1 红棕）与三维度条（防御 / 双暴 / 攻击） */
@@ -107,19 +102,17 @@
         };
         return '<div class="tip__tri">' + one('防御', 'em', w.def) + one('双暴', 'cr', w.crit) + one('攻击', 'at', w.atk) + '</div>';
       }
-      function dmgOf(s, x, y) {
-        var z = s.n - x - y;
-        if (z < -1e-9) return null;
-        var crit = S.critSplit(s.cr, s.cd, y);
-        return (S.E_COEF_ATK * atkOf(s, z) + S.E_COEF_DEF * defOf(s, x)) * (1 + s.bonus) *
-          (1 + Math.min(crit.cr, 100) / 100 * crit.cd / 100);
-      }
 
       var verdict = el('div', 'verdict');
       verdict.innerHTML =
-        '<div class="verdict__hero">最优分配下的伤害 = 基准面板 × <b id="bestMul">—</b></div>' +
-        '<div class="verdict__who" id="bestSplit">—</div>' +
-        '<div class="verdict__sub" id="cornerLine">—</div>';
+        '<div class="verdict__bar"><span class="verdict__st" id="vState">最优分配</span>' +
+        '<span class="verdict__mul" id="vMul">—</span><span>相对基准面板</span>' +
+        '<button class="verdict__reset" id="vReset" type="button" hidden>复位</button></div>' +
+        '<div class="verdict__dmg" id="vdmgRow">—</div>' +
+        '<div class="verdict__foot"><div class="verdict__vrow"><span class="verdict__vk">分配</span>' +
+        '<span class="verdict__vv" id="bestSplit">—</span></div>' +
+        '<div class="verdict__vrow"><span class="verdict__vk">面板</span>' +
+        '<span class="verdict__vv" id="cornerLine">—</span></div></div>';
 
       var card = el('div', 'card chartcard');
       var m = charts.mount(card, { height: 620 });
@@ -133,6 +126,8 @@
 
       var st = null;
       var hoverPx = null;
+      var pinned = null;    // 点击固定的分配点（数据坐标）；null = 结论框显示最优
+      var lastRaw = null;   // 最近一次提交的原始参数（点击固定后重绘用）
 
       function readState(s) {
         return {
@@ -150,22 +145,25 @@
       function updateVerdict(rs) {          // rs = 归一化 state
         var scan = S.scan(rs, GRID);
         var best = scan.best;
-        var bz = Math.max(0, rs.n - best.x - best.y);
-        document.getElementById('bestMul').textContent = best.v.toFixed(3);
+        if (pinned && pinned.x + pinned.y > rs.n + 1e-9) pinned = null;   // 预算改小后固定点越界：丢弃
+        var p = pinned || { x: best.x, y: best.y };
+        var pz = Math.max(0, rs.n - p.x - p.y);
+        var pv = partSplits(rs, p.x, p.y);
+        document.getElementById('vState').textContent = pinned ? '所选点' : '最优分配';
+        document.getElementById('vMul').textContent = '×' + (pv[0].exp / scan.base0).toFixed(3);
+        document.getElementById('vReset').hidden = !pinned;
+        document.getElementById('vdmgRow').innerHTML = cellsHTML(pv);
         document.getElementById('bestSplit').textContent =
-          '防御 ' + best.x.toFixed(1) + ' · 双暴 ' + best.y.toFixed(1) + ' · 攻击 ' + bz.toFixed(1) + ' 词条';
-        var t = S.critSplit(rs.cr, rs.cd, best.y);
-        var defBest = defOf(rs, best.x);
+          '防御 ' + p.x.toFixed(1) + ' · 双暴 ' + p.y.toFixed(1) + ' · 攻击 ' + pz.toFixed(1) + ' 词条';
+        var t = S.critSplit(rs.cr, rs.cd, p.y);
         document.getElementById('cornerLine').textContent =
-          '最优处：防御力 ' + defBest.toFixed(0) + '、双暴 ' + t.cr.toFixed(1) + ' / ' + t.cd.toFixed(1) +
-          '、攻击词条 ' + bz.toFixed(1) + '（+' + (rs.baseAtk * S.PER_ATK * bz).toFixed(0) + ' 攻击）' +
-          ' ｜ 全防御 ×' + (dmgOf(rs, rs.n, 0) / scan.base0).toFixed(3) +
-          '　全双暴 ×' + (dmgOf(rs, 0, rs.n) / scan.base0).toFixed(3) +
-          '　全攻击 ×' + (dmgOf(rs, 0, 0) / scan.base0).toFixed(3);
+          '攻击 ' + atkOf(rs, pz).toFixed(0) + ' · 防御 ' + defOf(rs, p.x).toFixed(0) +
+          ' · 双暴 ' + t.cr.toFixed(1) + ' / ' + t.cd.toFixed(1);
         return scan;
       }
 
       function update(s0) {
+        lastRaw = s0;
         var s = readState(s0);
         st = s;
         var scan = updateVerdict(s);
@@ -173,6 +171,10 @@
         var shapes = [];
         for (var c = 5; Math.ceil(c) < s.n; c += 5) {
           shapes.push({ type: 'line', x0: c, y0: 0, x1: 0, y1: c, line: { color: '#e8710a', width: 1.4, dash: 'dash' } });
+        }
+        if (pinned) {   // 所选点的十字虚线（与菱形标记同色）
+          shapes.push({ type: 'line', x0: pinned.x, y0: 0, x1: pinned.x, y1: s.n, line: { color: '#4a6fa5', width: 1.2, dash: 'dash' } });
+          shapes.push({ type: 'line', x0: 0, y0: pinned.y, x1: s.n, y1: pinned.y, line: { color: '#4a6fa5', width: 1.2, dash: 'dash' } });
         }
 
         var zFlat = scan.zs.flat().filter(function (v) { return v !== null; });
@@ -209,6 +211,13 @@
           marker: { symbol: 'circle', size: 7, color: '#e8710a', line: { color: '#fff', width: 1.5 } },
           name: '最优',
         });
+        if (pinned) {
+          traces.push({
+            type: 'scatter', mode: 'markers', x: [pinned.x], y: [pinned.y],
+            marker: { symbol: 'cross', size: 11, color: '#4a6fa5' },
+            name: '所选点',
+          });
+        }
 
         charts.draw(m.plot, traces, {
           xaxis: charts.axis({ title: { text: '防御词条数' }, range: [0, s.n] }),
@@ -258,14 +267,17 @@
         var y = st.n - hoverPx.y / g.h * st.n;
         var s = st;
         if (x < 0 || y < 0) { tip.hide(); return; }
-        var overLimit = x + y > s.n + 1e-9;
-        if (overLimit) {   // 超过词条上限：显示倍率（按比例折算）+ 红字
-          tip.show('<div class="tip__hero"><b>×' + multOf(s, x, y).toFixed(3) + '</b><span class="u">相对基准面板</span></div>' +
+        var base0 = S.damage(Object.assign({}, s, { n: 0 }), 0, 0);   // 基准面板（0 词条）
+        if (x + y > s.n + 1e-9) {   // 超过词条上限：显示折算后的 E 伤害与倍率 + 红字
+          var sum = x + y;
+          var spF = S.damageSplit(s, x * s.n / sum, y * s.n / sum, S.PARTS[0]);
+          tip.show('<div class="tip__hero"><b>E 每跳 ' + spF.exp.toFixed(0) + '</b><span class="u">「袖」斩切（E10）</span></div>' +
+            '<div class="tip__crit">暴击 ' + spF.crit.toFixed(0) + '、未暴击 ' + spF.noncrit.toFixed(0) + '</div>' +
+            '<div class="tip__hero tip__hero--sm"><b>×' + (spF.exp / base0).toFixed(3) + '</b><span class="u">相对基准面板</span></div>' +
             '<div class="tip__bad">超过 ' + s.n + ' 词条上限</div>', hoverPx.x, hoverPx.y, { segs: [] });
           return;
         }
-        var d = dmgOf(s, x, y);
-        var base0 = dmgOf(Object.assign({}, s, { n: 0 }), 0, 0);
+        var sp = S.damageSplit(s, x, y, S.PARTS[0]);
         var z = s.n - x - y;
         var t = S.critSplit(s.cr, s.cd, y);
         /* 梯度箭头线段（与叠加层同一算法）——卡片避开它放 */
@@ -293,7 +305,10 @@
         var alw = S.nextAlloc(s, x, y);
         var grw = S.gradWeights(s, x, y);
         var html =
-          '<div class="tip__hero"><b>×' + (d / base0).toFixed(3) + '</b><span class="u">相对基准面板</span></div>' +
+          '<div class="tip__hero"><b>E 每跳 ' + sp.exp.toFixed(0) + '</b><span class="u">「袖」斩切（E10）</span></div>' +
+          '<div class="tip__crit">暴击 ' + sp.crit.toFixed(0) + '、未暴击 ' + sp.noncrit.toFixed(0) + '</div>' +
+          '<div class="tip__hero tip__hero--sm"><b>×' + (sp.exp / base0).toFixed(3) + '</b><span class="u">相对基准面板</span></div>' +
+          '<div class="tip__div"></div>' +
           '<div class="tip__hd"><span>防御</span><span class="rl">' + x.toFixed(1) + ' 词条</span><span class="vl">' + defOf(s, x).toFixed(0) + '</span></div>' +
           '<div class="tip__hd"><span>双暴</span><span class="rl">' + y.toFixed(1) + ' 词条</span><span class="vl">' + t.cr.toFixed(1) + ' / ' + t.cd.toFixed(1) + '</span></div>' +
           '<div class="tip__hd"><span>攻击</span><span class="rl">' + z.toFixed(1) + ' 词条</span><span class="vl">' + atkOf(s, z).toFixed(0) + '</span></div>' +
@@ -307,6 +322,24 @@
         hoverPx = null;
         ovl.queue();
         tip.hide();
+      });
+      /* 点击图面 = 把结论框固定到该点（图上画出「所选点」标记）；域外 / 超词条上限的点击忽略 */
+      m.wrap.addEventListener('click', function (e) {
+        if (!st || !lastRaw) return;
+        var p = m.pxIn(e);
+        if (!p) return;
+        var g = m.geom();
+        var x = p.x / g.w * st.n;
+        var y = st.n - p.y / g.h * st.n;
+        if (x < 0 || y < 0 || x + y > st.n + 1e-9) return;
+        pinned = { x: x, y: y };
+        update(lastRaw);
+      });
+      /* 复位：结论框回到最优分配 */
+      document.getElementById('vReset').addEventListener('click', function () {
+        if (!pinned || !lastRaw) return;
+        pinned = null;
+        update(lastRaw);
       });
 
       return { plot: m.plot, update: update };

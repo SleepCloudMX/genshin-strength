@@ -252,8 +252,29 @@ a:hover { text-decoration: underline; }
   font-variant-numeric: tabular-nums;
 }
 .verdict__who { font-size: var(--fs-lg); font-weight: 600; }
-.verdict__sub { font-size: var(--fs-sm); color: var(--text-dim); margin-top: 2px; }
+.verdict__sub { font-size: var(--fs-sm); color: var(--text-dim); font-variant-numeric: tabular-nums; }
 .verdict__sub b { color: var(--text); }
+/* 底部两行：分配词条 / 面板值（标签与数值同字号同色，仅字重不同） */
+.verdict__foot { display: flex; flex-direction: column; gap: 1px; font-variant-numeric: tabular-nums; }
+.verdict__vk { color: var(--text); font-size: var(--fs-lg); font-weight: 600; margin-right: 8px; }
+.verdict__vv { font-size: var(--fs-lg); }
+.verdict__bar { display: flex; align-items: center; gap: 8px; font-size: var(--fs-sm); color: var(--text-dim); }
+.verdict__st { color: var(--text); font-weight: 600; font-size: var(--fs-lg); }
+.verdict__mul { color: var(--text); font-weight: 600; font-size: var(--fs-lg); font-variant-numeric: tabular-nums; }
+.verdict__reset {
+  margin-left: auto; font: inherit; font-size: var(--fs-xs); color: var(--text-dim);
+  background: none; border: 1px solid var(--border); border-radius: var(--r-sm);
+  padding: 1px 8px; cursor: pointer;
+}
+.verdict__reset:hover { color: var(--text); border-color: var(--text-dim); }
+.verdict__reset[hidden] { display: none; }
+/* 三部件伤害格：标签 / 期望（大号）/ 暴击·未暴击 */
+.verdict__dmg { display: flex; gap: 10px; margin: 4px 0 2px; }
+.dcell { flex: 1; border: 1px solid var(--border); border-radius: var(--r-sm); padding: 4px 12px 6px; }
+.dcell__k { color: var(--text-dim); font-size: var(--fs-xs); font-weight: 600; margin-right: 6px; }
+.dcell__v { font-size: var(--fs-2xl); font-weight: 650; font-variant-numeric: tabular-nums; }
+.dcell__c { display: block; font-size: var(--fs-xs); color: var(--text-dim); font-variant-numeric: tabular-nums; }
+.dcell__c b { color: var(--text); }
 .verdict .bad { color: var(--bad); }
 
 .v-grid {
@@ -302,6 +323,7 @@ a:hover { text-decoration: underline; }
 .tip__bar i { display: block; height: 100%; background: #a9cfcf; }
 .tip__barlbl { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-dim); }
 .tip__bad { color: var(--bad); font-weight: 600; margin: 2px 0 3px; }
+.tip__crit { color: var(--text-dim); font-size: 11px; margin: 1px 0 0; }
 .tip__note { margin-top: 7px; padding-top: 6px; border-top: 1px solid var(--surface-2); color: var(--text-dim); }
 .tip__sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 

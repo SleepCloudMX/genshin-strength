@@ -17,6 +17,14 @@
   S.E_COEF_ATK = 1.48;     // 「袖」斩切（10 级）攻击力系数
   S.E_COEF_DEF = 1.85;     // 防御力系数 = 1.48 × 1.25（各部件恒此比例，精确数据下严格成立）
 
+  /* 三个伤害部件（均 10 级）：label = 界面短标签，a / d = 攻击力 / 防御力系数；
+     eSkill = 是否吃武器「战技附加伤害」项（eFlatDef / eFlatEm）—— Q 不吃。 */
+  S.PARTS = [
+    { name: 'E「袖」斩切', label: 'E 每跳', a: S.E_COEF_ATK, d: S.E_COEF_DEF, eSkill: true },
+    { name: 'E 上挑',     label: 'E 上挑', a: 2.69, d: 3.36, eSkill: true },
+    { name: 'Q 伤害',     label: 'Q 伤害', a: 4.61, d: 5.77, eSkill: false },
+  ];
+
   S.PER_ATK = 0.05;        // 1 大攻击词条 = 5% 攻击
   S.PER_DEF = 0.062;       // 1 大防御词条 = 6.2% 防御
   S.PER_FLAT = 16.5;       // 1 小攻击词条
@@ -50,22 +58,34 @@
     return { cr: cr0 + S.PER_CR * a, cd: cd0 + S.PER_CD * (b - a) };
   };
 
-  /** 一套分配下的伤害指数（斩切口径，公共乘区已约掉）。
-      x = 防御词条、y = 双暴词条、攻击词条 = 预算剩余。
+  /** 一套分配下某部件的期望 / 暴击 / 未暴击伤害（公共乘区已约掉）。part 取 S.PARTS 之一，默认「袖」斩切。
+      x = 防御词条、y = 双暴词条、攻击词条 = 预算剩余；暴击区分别取 1 + 暴击率 × 暴伤 / 1 + 暴伤 / 1。
       武器附加字段（可选）：eFlatDef = 战技附加伤害系数 × 防御力（辰砂）、
-      eFlatEm = × 元素精通（裁叶）、dmgFlat = 额外伤害加成（小数）、
+      eFlatEm = × 元素精通（裁叶）—— 仅 eSkill 部件；dmgFlat = 额外伤害加成（小数）、
       dmgPerDef / dmgPerDefCap = 按面板防御折算的额外伤害加成（岩峰，含上限）。 */
-  S.damage = function (s, x, y) {
+  S.damageSplit = function (s, x, y, part) {
+    part = part || S.PARTS[0];
     var z = s.n - x - y;
     if (z < -1e-9) return null;
     var atk = S.panelAtk(s.baseAtk, s.atkPct, s.fatk, z);
     var def = S.panelDef(s.baseDef, s.defPct, s.fdef, x);
-    var base = S.E_COEF_ATK * atk + S.E_COEF_DEF * def +
-      (s.eFlatDef || 0) * def + (s.eFlatEm || 0) * (s.em || 0);
+    var base = part.a * atk + part.d * def +
+      (part.eSkill ? (s.eFlatDef || 0) * def + (s.eFlatEm || 0) * (s.em || 0) : 0);
     var bonus = s.bonus + (s.dmgFlat || 0) +
       (s.dmgPerDef ? Math.min(s.dmgPerDefCap || Infinity, s.dmgPerDef * def) : 0);
     var crit = S.critSplit(s.cr, s.cd, y);
-    return base * (1 + bonus) * (1 + Math.min(crit.cr, 100) / 100 * crit.cd / 100);
+    var b = base * (1 + bonus);
+    return {
+      exp: b * (1 + Math.min(crit.cr, 100) / 100 * crit.cd / 100),
+      crit: b * (1 + crit.cd / 100),
+      noncrit: b,
+    };
+  };
+
+  /** 一套分配下的伤害指数（期望口径）。 */
+  S.damage = function (s, x, y, part) {
+    var r = S.damageSplit(s, x, y, part);
+    return r === null ? null : r.exp;
   };
 
   /** 局部细化：从 (x0, y0) 出发做模式搜索（8 邻域，无改进则步长减半）。 */
