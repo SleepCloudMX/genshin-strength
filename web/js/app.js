@@ -62,6 +62,14 @@
       ],
     },
     {
+      group: '「千织」岩伤',
+      items: [
+        { id: 'chiori/alloc_curve', label: '词条分配', icon: 'curve' },
+        { id: 'chiori/dmg_map', label: '伤害热图', icon: 'grid' },
+        { id: 'chiori/weapon_compare', label: '武器对比', icon: 'sword' },
+      ],
+    },
+    {
       group: '基础专题',
       items: [
         { id: 'basics/resistance', label: '抗性区：减抗收益', icon: 'shield' },

@@ -608,6 +608,9 @@ input[type="range"] {
 .s8 { background: linear-gradient(90deg, #fde725, #35b779, #31688e, #440154); }
 .s9 { background: linear-gradient(90deg, #f0c987, #e8710a, #8c3b00); }
 .s10 { background: linear-gradient(90deg, #d62728, #ff7f0e, #8c564b, #2e8b57); }
+.s11 { background: linear-gradient(90deg, #d62728, #ff7f0e, #2e8b57, #8c564b); }
+.s12 { background: linear-gradient(90deg, #440154, #3e4989, #35b779, #fde725); }
+.s13 { background: linear-gradient(90deg, #8c564b, #c9a227, #e8d9a0); }
 
 /* 武器对比的行表 */
 .wlist { border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; background: var(--surface); box-shadow: var(--shadow-1); }
@@ -619,6 +622,7 @@ input[type="range"] {
 .wrow:first-child { border-top: 0; }
 .wrow.t5 { background: #f8f1e3; }   /* 五星：浅棕黄 */
 .wrow.t4 { background: #f3f0fa; }   /* 四星：浅紫 */
+.wrow.t3 { background: #f2f1ec; }   /* 三星：浅灰 */
 .wrow.base { box-shadow: inset 3px 0 0 var(--steel); }
 .wrow .wsub { color: var(--text-dim); font-size: var(--fs-xs); margin-top: 2px; }
 .wrow .wnote { color: var(--text-dim); font-size: var(--fs-xs); }
