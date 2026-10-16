@@ -1,6 +1,6 @@
 /* 参数面板控件层：一切输入都走这里。
    数字框 = 提交式（失焦 / 回车才生效，越界写回框里）；滑条 = 拖动只更新读数、松手才生效。
-   类型：number / range（可带数字框） / select / text / readout / note / custom。 */
+   类型：number / items（总数 + 可展开明细）/ range（可带数字框） / select / text / readout / note / custom。 */
 (function (global) {
   'use strict';
   var GS = global.GS = global.GS || {};
@@ -9,6 +9,7 @@
 
   var HINT_SLIDER = '松开滑动更新绘图';
   var HINT_INPUT = '回车或点别处生效';
+  var currentPopClose = null;   // 同一时刻只开一个明细悬浮框
 
   function clampTo(elIn, v) {
     var lo = parseFloat(elIn.min), hi = parseFloat(elIn.max);
@@ -96,6 +97,176 @@
         });
         bindings.push({ key: c.key, set: function (v) { inp.value = v; } });
         field.appendChild(inp);
+      } else if (c.type === 'items') {
+        /* 总数框 + 「明细」悬浮编辑器。明细（逐条：名称 + 数值）是唯一真源，总数恒为 Σ明细；
+           直接在总数框里改 → 差额自动记成一条「手动调整」明细（为零则移除）。 */
+        field.classList.add('field--items');
+        var items = (c.items || []).map(function (it) { return { n: it.n, v: it.v, manual: false }; });
+        var itInp = el('input', 'field__input');
+        itInp.type = 'number';
+        itInp.id = id;
+        if (c.step !== undefined) itInp.step = c.step;
+        if (c.min !== undefined) itInp.min = c.min;
+        if (c.max !== undefined) itInp.max = c.max;
+        var moreBtn = el('button', 'field__more', '明细');
+        moreBtn.type = 'button';
+        moreBtn.setAttribute('aria-haspopup', 'dialog');
+        moreBtn.setAttribute('aria-expanded', 'false');
+        var row = el('div', 'field__row');
+        row.appendChild(itInp);
+        row.appendChild(moreBtn);
+
+        var pop = null, rowsBox = null, sumEl = null, popOpen = false;
+
+        var round4 = function (v) { return +v.toFixed(4); };
+        var total = function () {
+          return items.reduce(function (a, it) { return a + it.v; }, 0);
+        };
+        var namedTotal = function () {
+          return items.reduce(function (a, it) { return a + (it.manual ? 0 : it.v); }, 0);
+        };
+        var manualRow = function () {
+          for (var i = 0; i < items.length; i++) if (items[i].manual) return items[i];
+          return null;
+        };
+        var updateSum = function () { if (sumEl) sumEl.textContent = '合计 ' + String(round4(total())); };
+        /** 明细 → 总数框 / state / 合计读数；rows = true 时重建悬浮框行（行集合变了）。 */
+        var sync = function (rows) {
+          var v = round4(total());
+          itInp.value = String(v);
+          state[c.key] = v;
+          if (popOpen) {
+            if (rows) renderRows();
+            else updateSum();
+          }
+          cb.commit(c.key);
+        };
+        var commitInput = function () {
+          var v = parseFloat(itInp.value);
+          if (!Number.isFinite(v)) { itInp.value = String(round4(total())); hideHint(); return; }
+          v = clampTo(itInp, v);
+          var man = manualRow();
+          var delta = round4(v - namedTotal());
+          if (Math.abs(delta) < 1e-9) {
+            if (man) { items.splice(items.indexOf(man), 1); sync(true); }
+            else { itInp.value = String(round4(total())); sync(false); }
+          } else {
+            if (man) { man.v = delta; } else { items.push({ n: '手动调整', v: delta, manual: true }); }
+            sync(true);
+          }
+          hideHint();
+        };
+        itInp.addEventListener('input', function () { setHint(HINT_INPUT); });
+        itInp.addEventListener('change', commitInput);
+        itInp.addEventListener('keydown', function (e) {
+          if (e.key !== 'Enter') return;
+          e.preventDefault();
+          commitInput();
+        });
+
+        var mkRow = function (it) {
+          var r = el('div', 'iprow');
+          var name = el('input', 'iprow__name');
+          name.type = 'text';
+          name.placeholder = '名称';
+          name.value = it.n;
+          var val = el('input', 'iprow__val');
+          val.type = 'number';
+          val.step = c.step !== undefined ? c.step : 'any';
+          val.value = String(round4(it.v));
+          var del = el('button', 'iprow__del', '×');
+          del.type = 'button';
+          del.title = '删除此项';
+          name.addEventListener('change', function () { it.n = name.value.trim(); });
+          name.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); name.blur(); }
+          });
+          var commitVal = function () {
+            var v = parseFloat(val.value);
+            if (!Number.isFinite(v)) { val.value = String(round4(it.v)); hideHint(); return; }
+            it.v = round4(v);
+            val.value = String(round4(it.v));
+            hideHint();
+            sync(false);
+          };
+          val.addEventListener('input', function () { setHint(HINT_INPUT); });
+          val.addEventListener('change', commitVal);
+          val.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); commitVal(); }
+          });
+          del.addEventListener('click', function () {
+            items.splice(items.indexOf(it), 1);
+            sync(true);
+          });
+          r.appendChild(name);
+          r.appendChild(val);
+          r.appendChild(del);
+          return r;
+        };
+
+        var renderRows = function () {
+          rowsBox.textContent = '';
+          items.forEach(function (it) { rowsBox.appendChild(mkRow(it)); });
+          updateSum();
+        };
+
+        var closePop = function () {
+          if (!popOpen) return;
+          var ae = global.document.activeElement;
+          if (ae && pop && pop.contains(ae) && ae.blur) ae.blur();   // 先落掉正在编辑的值（触发 change），再拆
+          popOpen = false;
+          global.document.removeEventListener('mousedown', onDocDown, true);
+          global.document.removeEventListener('keydown', onDocKey);
+          global.removeEventListener('hashchange', closePop);
+          if (pop && pop.parentNode) pop.parentNode.removeChild(pop);
+          pop = null; rowsBox = null; sumEl = null;
+          moreBtn.setAttribute('aria-expanded', 'false');
+          if (currentPopClose === closePop) currentPopClose = null;
+        };
+        var onDocDown = function (e) {
+          if (pop && !pop.contains(e.target) && e.target !== moreBtn) closePop();
+        };
+        var onDocKey = function (e) { if (e.key === 'Escape') closePop(); };
+
+        var openPop = function () {
+          if (popOpen) return;
+          if (currentPopClose) currentPopClose();   // 同一时刻只开一个明细框
+          popOpen = true;
+          pop = el('div', 'items-pop');
+          pop.appendChild(el('div', 'items-pop__hd', c.label + ' 明细'));
+          rowsBox = el('div', 'items-pop__rows');
+          pop.appendChild(rowsBox);
+          var ft = el('div', 'items-pop__ft');
+          var add = el('button', 'iprow__add', '+ 添加一项');
+          add.type = 'button';
+          add.addEventListener('click', function () {
+            items.push({ n: '', v: 0, manual: false });   // 0 值不改变总数，无需 commit
+            renderRows();
+            var lastRow = rowsBox.lastChild;
+            if (lastRow && lastRow.firstChild) lastRow.firstChild.focus();
+          });
+          sumEl = el('span', 'items-pop__sum');
+          ft.appendChild(add);
+          ft.appendChild(sumEl);
+          pop.appendChild(ft);
+          renderRows();
+          field.appendChild(pop);
+          var rect = pop.getBoundingClientRect();   // 贴着视口底就向上翻
+          if (rect.bottom > (global.innerHeight || 0) - 8 && rect.top > rect.height + 8) {
+            pop.classList.add('items-pop--up');
+          }
+          moreBtn.setAttribute('aria-expanded', 'true');
+          global.document.addEventListener('mousedown', onDocDown, true);
+          global.document.addEventListener('keydown', onDocKey);
+          global.addEventListener('hashchange', closePop);
+          currentPopClose = closePop;
+        };
+
+        moreBtn.addEventListener('click', function () { if (popOpen) closePop(); else openPop(); });
+
+        itInp.value = String(round4(total()));   // 明细为准：首帧就把 Σ 写进框（覆盖路由按 c.def 的初始化）
+        state[c.key] = round4(total());
+        field.appendChild(row);
       } else if (c.type === 'select') {
         var sel = el('select', 'field__input');
         sel.id = id;

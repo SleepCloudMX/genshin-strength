@@ -22,9 +22,9 @@
   var FOOT =
     '四条曲线 = 每个词条总数 n 下最优分配（与伤害热图页同一优化器）给出的面板值，n = 0 处即基准面板；' +
     '竖虚线 = 拐点：暴击率封顶（之后双暴词条全进暴伤）；精通 / 攻击词条进场（该档之前其词条数为 0、面板值持平于基准）。' +
-    '<br>面板攻击力 = 基础攻击力 ×（1 + 攻攻主词条 + 大攻击合计 + 攻击词条）+ 羽 + 小攻击；' +
+    '<br>面板攻击力 = 基础攻击力 ×（1 + 大攻击合计 + 攻击词条）+ 小攻击；' +
     '词条预算上限 53 的推导、默认参数（七七 · 木偶 · 阿罗夏 队）的来源分解见 ' +
-    '<a href="#/sandrone/star_superconduct">伤害热图</a>页页脚。';
+    '<a href="#/sandrone/star_superconduct">伤害热图</a>页。';
 
   M['sandrone/alloc_curve'] = {
     title: '「桑多涅」星超导词条分配',
@@ -35,8 +35,8 @@
     controls: [
       {
         key: '', type: 'note',
-        html: '<b>基准面板 = 上完 buff、不含副词条</b> —— 全写在参数里（角色自身、武器、队友、圣遗物）；' +
-          '攻攻主词条（46.6% × 2）与羽（311）由脚本自动加。',
+        html: '<b>基准面板 = 上完 buff、不含副词条</b> —— 全写在参数里（角色自身、武器、队友、圣遗物，含主词条与羽）；' +
+          '逐项明细见伤害热图页。',
       },
       {
         key: '', type: 'note',
@@ -44,8 +44,8 @@
           '（先补基准偏斜；暴击率封顶 100% 后全进暴伤），攻击词条按大攻击折算（小攻击见换算行）。',
       },
       { key: 'baseAtk', type: 'number', label: '基础攻击力', def: 828, step: 1, min: 0 },
-      { key: 'patk', type: 'number', label: '大攻击 %', def: 109.4, step: 0.1, min: -9999 },
-      { key: 'fatk', type: 'number', label: '小攻击', def: 0, step: 1, min: -9999 },
+      { key: 'patk', type: 'number', label: '大攻击 %', def: 202.6, step: 0.1, min: -9999 },
+      { key: 'fatk', type: 'number', label: '小攻击', def: 311, step: 1, min: -9999 },
       { key: 'em', type: 'number', label: '基准精通', def: 160, step: 10, min: 0 },
       { key: 'cr', type: 'number', label: '基准暴击率 %', def: 55.2, step: 0.1, min: 0 },
       { key: 'cd', type: 'number', label: '基准暴伤 %', def: 112.2, step: 0.1, min: 50 },

@@ -423,6 +423,65 @@ input[type="range"] {
 .field__pair input[type="range"] { flex: 1; }
 .field__pair .field__input { width: 74px; flex: none; }
 
+/* 明细控件（总数 + 「明细」悬浮编辑器；controls.js 的 items 类型） */
+.field--items { position: relative; }
+.field__row { display: flex; align-items: center; gap: var(--sp-2); }
+.field__row .field__input { flex: 1 1 auto; min-width: 0; padding: 0 8px; }   /* 半列宽：收紧内边距，放得下 5 位数 */
+.field__more {
+  flex: none; min-height: 34px; padding: 0 8px;
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  background: var(--surface); color: var(--text-dim);
+  font: inherit; font-size: var(--fs-xs); font-weight: 600; cursor: pointer;
+  transition: background var(--dur), border-color var(--dur), color var(--dur);
+}
+.field__more:hover { border-color: var(--accent); color: var(--accent-deep); }
+.field__more[aria-expanded="true"] { border-color: var(--accent); color: var(--accent-deep); background: var(--surface-2); }
+
+.items-pop {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 8;
+  width: 250px; padding: var(--sp-2);
+  display: flex; flex-direction: column; gap: var(--sp-2);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md);
+  box-shadow: var(--shadow-2);
+}
+.items-pop--up { top: auto; bottom: calc(100% + 6px); }
+.items-pop__hd { font-size: var(--fs-xs); font-weight: 600; color: var(--text-dim); }
+.items-pop__rows { display: flex; flex-direction: column; gap: var(--sp-2); }
+.iprow { display: flex; align-items: center; gap: var(--sp-2); }
+.iprow__name, .iprow__val {
+  min-width: 0; min-height: 28px; padding: 0 var(--sp-2);
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  background: var(--surface); color: var(--text); font-size: var(--fs-xs);
+}
+.iprow__name { flex: 1 1 auto; font-family: var(--font); }
+.iprow__val { flex: none; width: 62px; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.iprow__name:focus-visible, .iprow__val:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent);
+}
+.iprow__del {
+  flex: none; width: 20px; height: 20px; padding: 0; line-height: 1;
+  border: 1px solid var(--border); border-radius: 4px;
+  background: var(--surface); color: var(--text-dim);
+  font: inherit; font-size: 13px; cursor: pointer;
+}
+.iprow__del:hover { color: var(--bad); border-color: var(--bad); }
+.items-pop__ft {
+  display: flex; align-items: center; justify-content: space-between;
+  border-top: 1px dashed var(--border); padding-top: var(--sp-2);
+}
+.iprow__add {
+  min-height: 26px; padding: 0 var(--sp-2);
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  background: var(--surface); color: var(--text-dim);
+  font: inherit; font-size: var(--fs-xs); font-weight: 500; cursor: pointer;
+  transition: background var(--dur), border-color var(--dur), color var(--dur);
+}
+.iprow__add:hover { border-color: var(--accent); color: var(--accent-deep); }
+.items-pop__sum {
+  font-family: var(--mono); font-size: var(--fs-xs); font-weight: 600;
+  font-variant-numeric: tabular-nums; color: var(--accent-deep);
+}
+
 /* 伤害段编辑器（暴击波动页）：每个段一张小卡片，两列字段 */
 .segs__list { display: flex; flex-direction: column; gap: var(--sp-2); }
 .segcard {

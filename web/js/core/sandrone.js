@@ -2,10 +2,10 @@
    公式与口径见 docs/ai-output/0-mechanism/3-星超导伤害机制.md；
    纯函数、不碰 DOM —— Node 可直接加载做数值对照。
 
-   口径（2026-10-10）：伤害函数只吃「已合成的面板字段」——
+   口径（2026-10-16）：伤害函数只吃「已合成的面板字段」——
    s = { baseAtk, atkPct, fatk, em, cr, cd, bonus, n }。
-   武器、幻灭套、队友 buff 的贡献由各页自己合成（分配页 = 用户输入；
-   对比页 = 武器表 + SET_* 常量），core 不再自动加任何来源。 */
+   武器、圣遗物（含主词条与羽）、队友 buff 的贡献全部由各页合成
+   （各页 = 用户在参数面板里逐项填写，明细见「明细」悬浮框），core 不自动加任何来源。 */
 (function (global) {
   'use strict';
   var GS = global.GS = global.GS || {};
@@ -13,8 +13,6 @@
   var S = C.sandrone = {};
 
   S.CHAR_BASE = 318;        // 桑多涅 80 级突破基础攻击力（突破 +19.2% 暴击率；与分配页默认配队一致）
-  S.MAINS_ATK_PCT = 0.932;  // 攻攻主词条（46.6% × 2）
-  S.MAINS_FLAT = 311;       // 羽主词条
 
   S.PER_EM = C.EM_PER_ROLL;
   S.PER_CR = C.CR_PER_ROLL;
@@ -43,11 +41,10 @@
     return S.WEAPONS[0];
   };
 
-  /** 面板攻击力 = 基础攻击力 × (1 + 攻攻主词条 + 大攻击合计 + 攻击词条的大攻击) + 羽 + 小攻击合计。
-      baseAtk / atkPct / fatk 都是已合成的值（角色 + 武器 + 队友 + ……）。 */
+  /** 面板攻击力 = 基础攻击力 × (1 + 大攻击合计 + 攻击词条的大攻击) + 小攻击合计。
+      baseAtk / atkPct / fatk 都是已合成的值（角色 + 武器 + 队友 + 圣遗物主词条与羽 + ……）。 */
   S.panelAttack = function (baseAtk, atkPct, fatk, zRolls) {
-    return baseAtk * (1 + S.MAINS_ATK_PCT + (atkPct || 0) + S.PER_ATK * (zRolls || 0)) +
-      S.MAINS_FLAT + (fatk || 0);
+    return baseAtk * (1 + (atkPct || 0) + S.PER_ATK * (zRolls || 0)) + (fatk || 0);
   };
 
   /** 配平不可达（与瑞希同义）：1:2 拆分的低侧不可达 —— 双暴词条太少、暴伤停在基准、
