@@ -255,6 +255,8 @@
       note: '暴击 +4%；战技附加伤害 = 120% × 元素精通（面板默认精通 0 时为 0）' },
     { id: 'wolf', tier: 4, name: '狼牙 R5', base: 510, cr: 27.6, eDmg: 32, eCrit: 16,
       note: '战技伤害 +32%；战技命中叠层暴击 +16%（按满层；需前台命中）' },
+    { id: 'wolf1', tier: 4, name: '狼牙 R1', base: 510, cr: 27.6, eDmg: 16, eCrit: 8,
+      note: '战技伤害 +16%；战技命中叠层暴击 +8%（按满层；需前台命中）' },
     { id: 'cinnabar', tier: 4, name: '辰砂之纺锤 R5', base: 454, defPct: 0.69, eFlatDef: 0.80,
       note: '副属性防 +69%；战技附加伤害 = 80% × 防御力（斩切间隔 3.6s，全覆盖）' },
     { id: 'dawn', tier: 3, name: '黎明神剑 R5', base: 401, cd: 46.9, cr: 28,
