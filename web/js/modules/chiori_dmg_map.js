@@ -21,16 +21,14 @@
       C_RESF = '#a0764e',   // 敌人岩抗系数（同上）
       C_FINAL = '#23201a';  // 最终伤害
 
-  var ENEMY_FACT = S.DEF_FACTOR * S.RES_FACTOR;   // 敌人区假设合计（0.475 × 0.90）：页面伤害数字 = 裸伤 × 它
-
   var FOOT =
     '部件伤害（均 10 级）=（攻击系数 × 攻击力 + 防御系数 × 防御力）× (1 + 伤害加成) × 暴击区；' +
     '系数（攻击 / 防御）：「袖」斩切 1.48 / 1.85、E 上挑 2.69 / 3.36、Q 4.61 / 5.77 —— ' +
     '防御系数恒为攻击系数的 1.25 倍，只看斩切即可代表整体，见机制文档 <code>docs/ai-output/0-mechanism/4-千织伤害机制.md</code>。' +
     '三个部件的伤害主数字取期望（暴击区 = 1 + 暴击率 × 暴伤），小字给出暴击（1 + 暴伤）与未暴击（1）两个极端。' +
     '结论框默认取最优分配 —— 点击图面可固定所选点、复位回到最优；鼠标在图面上时另显示所指处的读数。' +
-    '格内数字与鼠标读数均为<b>计入敌人区的最终伤害</b>（按固定假设：<b>角色 90 级、敌人 110 级、全抗 10%、减防 / 无视防御 0</b>' +
-    '→ 防御系数 190 / (190 + 210) = 0.475、岩抗系数 0.90；防御系数按 90 级固定，与面板基础值的手填等级无关）。' +
+    '格内数字与鼠标读数均为<b>计入敌人区的最终伤害</b>（按右侧「敌人区」参数，默认 <b>角色 80 级、敌人 110 级、敌人抗性 10%、减防 / 无视防御 0</b>' +
+    '→ 防御系数 180 / (180 + 210) ≈ 0.4615、岩抗系数 0.90；等级只用于敌人区，与面板基础值的手填等级无关）。' +
     '悬浮格内数字给出到最终伤害的完整计算；图上颜色与各处倍率均为相对基准面板的倍数，不受敌人区影响。<br>' +
     '<b>词条预算上限 50</b> ≈ 千织满档副词条容量（逐件按主词条占用后的可用副词条满值折算，估算 ≈ 50.6，取 50）。<br>' +
     '<b>默认参数（千织 80 级突破 + 黎明神剑 R5 + 剧团防岩爆）</b>：来源逐项见各「明细」；' +
@@ -86,6 +84,16 @@
       { key: 'panelDef', type: 'readout', full: true, label: '基准面板防御力', compute: function (s) {
         return S.panelDef(s.baseDef, s.pdef / 100, s.fdef, 0).toFixed(0);
       } },
+      {
+        type: 'group', label: '敌人区',
+        items: [
+          { key: 'lvChar', type: 'number', label: '角色等级', def: S.LV_CHAR, step: 1, min: 1, max: 90 },
+          { key: 'lvEnemy', type: 'number', label: '敌人等级', def: S.LV_ENEMY, step: 1, min: 1, max: 200 },
+          { key: 'enemyRes', type: 'number', label: '敌人抗性 %', def: S.ENEMY_RES * 100, step: 1, min: -100, max: 200 },
+          { key: 'defRed', type: 'number', label: '减防 %', def: S.DEF_RED * 100, step: 1, min: 0, max: 100 },
+          { key: 'defIgnore', type: 'number', label: '无视防御 %', def: S.DEF_IGNORE * 100, step: 1, min: 0, max: 100 },
+        ],
+      },
     ],
 
     create: function (host, ctx) {
@@ -100,13 +108,13 @@
         return S.PARTS.map(function (part) { return S.damageSplit(s, x, y, part); });
       }
       /** 三部件读数格（结论框用）：标签 / 期望 / 暴击·未暴击（均含敌人区系数）；data-part + data-k 供公式面板选型。 */
-      function cellsHTML(cs) {
+      function cellsHTML(cs, fact) {
         return S.PARTS.map(function (part, i) {
           var c = cs[i];
           return '<div class="dcell" data-part="' + i + '"><span class="dcell__k">' + part.label + '</span>' +
-            '<b class="dcell__v" data-k="exp">' + Math.round(c.exp * ENEMY_FACT) + '</b>' +
-            '<span class="dcell__c"><span data-k="crit">暴击 <b>' + Math.round(c.crit * ENEMY_FACT) + '</b></span>、' +
-            '<span data-k="noncrit">未暴击 <b>' + Math.round(c.noncrit * ENEMY_FACT) + '</b></span></span></div>';
+            '<b class="dcell__v" data-k="exp">' + Math.round(c.exp * fact) + '</b>' +
+            '<span class="dcell__c"><span data-k="crit">暴击 <b>' + Math.round(c.crit * fact) + '</b></span>、' +
+            '<span data-k="noncrit">未暴击 <b>' + Math.round(c.noncrit * fact) + '</b></span></span></div>';
         }).join('');
       }
 
@@ -134,7 +142,7 @@
         '<span class="verdict__vv" id="bestSplit">—</span></div>' +
         '<div class="verdict__vrow"><span class="verdict__vk">面板</span>' +
         '<span class="verdict__vv" id="cornerLine">—</span></div></div>' +
-        '<div class="verdict__note">伤害计算假设角色 90 级、敌人 110 级<br>全抗 10%，减防 0%，无视防御 0%</div></div>';
+        '<div class="verdict__note" id="vNote">—</div></div>';
       var calcpop = el('div', 'calcpop');
       var calcpopT = el('div', 'calcpop__t');   // 左上角标题（哪个数字的计算）
       var calcpopM = el('div', 'calcpop__m');   // KaTeX 公式容器
@@ -160,7 +168,7 @@
       var calcActive = null;   // 公式面板当前指向 { part, kind }；null = 不显示
 
       function readState(s) {
-        return {
+        var rs = {
           baseAtk: s.baseAtk,
           atkPct: s.patk / 100,
           baseDef: s.baseDef,
@@ -169,7 +177,15 @@
           cr: s.cr, cd: s.cd,
           bonus: s.bonus / 100,
           n: s.n,
+          lvChar: s.lvChar, lvEnemy: s.lvEnemy,
+          res: s.enemyRes / 100,
+          defRed: s.defRed / 100, defIgnore: s.defIgnore / 100,
         };
+        /* 系数先取显示精度、后续统一用这两个值：面板印出的数相乘 = 印出的结果 */
+        rs.defF = q(S.defFactor(rs.lvChar, rs.lvEnemy, rs.defRed, rs.defIgnore), 3, 4);
+        rs.resF = q(S.resFactor(rs.res), 2, 4);
+        rs.fact = rs.defF * rs.resF;
+        return rs;
       }
 
       function updateVerdict(rs) {          // rs = 归一化 state
@@ -183,7 +199,11 @@
         document.getElementById('vState').textContent = pinned ? '所选点' : '最优分配';
         document.getElementById('vMul').textContent = '×' + (pv[0].exp / scan.base0).toFixed(3);
         document.getElementById('vReset').hidden = !pinned;
-        document.getElementById('vdmgRow').innerHTML = cellsHTML(pv);
+        document.getElementById('vdmgRow').innerHTML = cellsHTML(pv, rs.fact);
+        document.getElementById('vNote').innerHTML =
+          '伤害计算按角色 ' + fmtTrim(rs.lvChar, 0, 2) + ' 级、敌人 ' + fmtTrim(rs.lvEnemy, 0, 2) + ' 级<br>' +
+          '敌人抗性 ' + fmtTrim(rs.res * 100, 0, 2) + '%，减防 ' + fmtTrim(rs.defRed * 100, 0, 2) +
+          '%，无视防御 ' + fmtTrim(rs.defIgnore * 100, 0, 2) + '%';
         document.getElementById('bestSplit').textContent =
           '防御 ' + p.x.toFixed(1) + ' · 双暴 ' + p.y.toFixed(1) + ' · 攻击 ' + pz.toFixed(1) + ' 词条';
         var t = S.critSplit(rs.cr, rs.cd, p.y);
@@ -303,8 +323,8 @@
         if (x + y > s.n + 1e-9) {   // 超过词条上限：显示折算后的 E 伤害与倍率 + 红字
           var sum = x + y;
           var spF = S.damageSplit(s, x * s.n / sum, y * s.n / sum, S.PARTS[0]);
-          tip.show('<div class="tip__hero"><b>E 每跳 ' + Math.round(spF.exp * ENEMY_FACT) + '</b><span class="u">「袖」斩切（E10）</span></div>' +
-            '<div class="tip__crit">暴击 ' + Math.round(spF.crit * ENEMY_FACT) + '、未暴击 ' + Math.round(spF.noncrit * ENEMY_FACT) + '</div>' +
+          tip.show('<div class="tip__hero"><b>E 每跳 ' + Math.round(spF.exp * s.fact) + '</b><span class="u">「袖」斩切（E10）</span></div>' +
+            '<div class="tip__crit">暴击 ' + Math.round(spF.crit * s.fact) + '、未暴击 ' + Math.round(spF.noncrit * s.fact) + '</div>' +
             '<div class="tip__hero tip__hero--sm"><b>×' + (spF.exp / base0).toFixed(3) + '</b><span class="u">相对基准面板</span></div>' +
             '<div class="tip__bad">超过 ' + s.n + ' 词条上限</div>', hoverPx.x, hoverPx.y, { segs: [] });
           return;
@@ -337,8 +357,8 @@
         var alw = S.nextAlloc(s, x, y);
         var grw = S.gradWeights(s, x, y);
         var html =
-          '<div class="tip__hero"><b>E 每跳 ' + Math.round(sp.exp * ENEMY_FACT) + '</b><span class="u">「袖」斩切（E10）</span></div>' +
-          '<div class="tip__crit">暴击 ' + Math.round(sp.crit * ENEMY_FACT) + '、未暴击 ' + Math.round(sp.noncrit * ENEMY_FACT) + '</div>' +
+          '<div class="tip__hero"><b>E 每跳 ' + Math.round(sp.exp * s.fact) + '</b><span class="u">「袖」斩切（E10）</span></div>' +
+          '<div class="tip__crit">暴击 ' + Math.round(sp.crit * s.fact) + '、未暴击 ' + Math.round(sp.noncrit * s.fact) + '</div>' +
           '<div class="tip__hero tip__hero--sm"><b>×' + (sp.exp / base0).toFixed(3) + '</b><span class="u">相对基准面板</span></div>' +
           '<div class="tip__div"></div>' +
           '<div class="tip__hd"><span>防御</span><span class="rl">' + x.toFixed(1) + ' 词条</span><span class="vl">' + defOf(s, x).toFixed(0) + '</span></div>' +
@@ -390,6 +410,7 @@
         while (s.indexOf('.') >= 0 && s.length - s.indexOf('.') - 1 > minDp && s.charAt(s.length - 1) === '0') {
           s = s.slice(0, -1);
         }
+        if (s.charAt(s.length - 1) === '.') s = s.slice(0, -1);
         return s;
       }
       function q(v, minDp, maxDp) { return Number(fmtTrim(v, minDp, maxDp)); }
@@ -402,7 +423,7 @@
         var sp = S.damageSplit(s, x, y, part);
         var kindName = calcActive.kind === 'crit' ? '暴击' : calcActive.kind === 'noncrit' ? '未暴击' : '期望';
         var titleVal = Math.round(
-          (calcActive.kind === 'crit' ? sp.crit : calcActive.kind === 'noncrit' ? sp.noncrit : sp.exp) * ENEMY_FACT);
+          (calcActive.kind === 'crit' ? sp.crit : calcActive.kind === 'noncrit' ? sp.noncrit : sp.exp) * s.fact);
         calcpopT.textContent = part.label + ' · ' + kindName + ' ' + titleVal;
         var t = S.critSplit(s.cr, s.cd, y);
         var atkQ = q(atkOf(s, z), 0, 2), defQ = q(defOf(s, x), 0, 2);
@@ -421,29 +442,43 @@
             '\\textcolor{' + C_CD + '}{\\underset{' + fmtTrim(cdQ, 2, 5) + '}{\\text{暴击伤害}}})\\cdot';
           zoneQ = 1 + crQ * cdQ;
         }
-        var finalQ = basicQ * (1 + bonusQ) * zoneQ * S.DEF_FACTOR * S.RES_FACTOR;
+        var defFTex = fmtTrim(s.defF, 3, 4), resFTex = fmtTrim(s.resF, 2, 4);
+        var lvCTex = fmtTrim(s.lvChar, 0, 2), lvETex = fmtTrim(s.lvEnemy, 0, 2);
+        var drTex = fmtTrim(s.defRed, 0, 4), diTex = fmtTrim(s.defIgnore, 0, 4), rTex = fmtTrim(s.res, 0, 4);
+        var rMark = '\\textcolor{' + C_ENEMY + '}{\\underset{' + rTex + '}{\\text{抗性}}}';
+        var resCond, resExpr;
+        if (s.res < 0) {
+          resCond = '\\text{抗性} < 0';
+          resExpr = '1 - ' + rMark + ' / 2';
+        } else if (s.res < 0.75) {
+          resCond = '0 \\le \\text{抗性} < 0.75';
+          resExpr = '1 - ' + rMark;
+        } else {
+          resCond = '\\text{抗性} \\ge 0.75';
+          resExpr = '\\frac{1}{4 \\cdot ' + rMark + ' + 1}';
+        }
+        var finalQ = basicQ * (1 + bonusQ) * zoneQ * s.defF * s.resF;
         var tex = '\\begin{aligned}' +
           '\\textcolor{' + C_BASE + '}{\\text{基础伤害}} &= \\textcolor{' + C_COEF + '}{\\underset{' + part.a.toFixed(2) + '}{\\text{攻击力倍率}}}\\cdot' +
           '\\textcolor{' + C_ATK + '}{\\underset{' + fmtTrim(atkQ, 0, 2) + '}{\\text{攻击力}}}+' +
           '\\textcolor{' + C_COEF + '}{\\underset{' + part.d.toFixed(2) + '}{\\text{防御力倍率}}}\\cdot' +
           '\\textcolor{' + C_DEF + '}{\\underset{' + fmtTrim(defQ, 0, 2) + '}{\\text{防御力}}}= ' +
           '\\textcolor{' + C_BASE + '}{' + fmtTrim(basicQ, 2, 2) + '}\\\\[2pt]' +
-          '\\textcolor{' + C_DEFF + '}{\\text{敌人防御系数}} &= \\frac{\\textcolor{' + C_ENEMY + '}{\\underset{' + S.LV_CHAR + '}{\\text{角色等级}}} + 100}' +
-          '{(' + '\\textcolor{' + C_ENEMY + '}{\\underset{' + S.LV_CHAR + '}{\\text{角色等级}}} + 100) + (' +
-          '\\textcolor{' + C_ENEMY + '}{\\underset{' + S.LV_ENEMY + '}{\\text{敌人等级}}} + 100)' +
-          '(1 - \\textcolor{' + C_ENEMY + '}{\\underset{0}{\\text{减防}}})(1 - \\textcolor{' + C_ENEMY + '}{\\underset{0}{\\text{无视防御}}})}' +
-          ' = \\textcolor{' + C_DEFF + '}{' + S.DEF_FACTOR.toFixed(3) + '}\\\\' +
+          '\\textcolor{' + C_DEFF + '}{\\text{敌人防御系数}} &= \\frac{\\textcolor{' + C_ENEMY + '}{\\underset{' + lvCTex + '}{\\text{角色等级}}} + 100}' +
+          '{(' + '\\textcolor{' + C_ENEMY + '}{\\underset{' + lvCTex + '}{\\text{角色等级}}} + 100) + (' +
+          '\\textcolor{' + C_ENEMY + '}{\\underset{' + lvETex + '}{\\text{敌人等级}}} + 100)' +
+          '(1 - \\textcolor{' + C_ENEMY + '}{\\underset{' + drTex + '}{\\text{减防}}})(1 - \\textcolor{' + C_ENEMY + '}{\\underset{' + diTex + '}{\\text{无视防御}}})}' +
+          ' = \\textcolor{' + C_DEFF + '}{' + defFTex + '}\\\\' +
           '\\textcolor{' + C_RESF + '}{\\text{敌人岩抗系数}} &= \\begin{cases} ' +
           '1 - \\text{抗性} / 2, & \\text{抗性} < 0, \\\\ ' +
           '1 - \\text{抗性}, & 0 \\le \\text{抗性} < 0.75, \\\\ ' +
           '1 / (4 \\text{抗性} + 1), & \\text{抗性} \\ge 0.75. \\end{cases}' +
-          '\\quad \\xlongequal{0 \\le \\text{抗性} < 0.75} ' +
-          '1 - \\textcolor{' + C_ENEMY + '}{\\underset{' + S.ENEMY_RES.toFixed(1) + '}{\\text{抗性}}}' +
-          ' = \\textcolor{' + C_RESF + '}{' + S.RES_FACTOR.toFixed(2) + '}\\\\[2pt]' +
+          '\\quad \\xlongequal{' + resCond + '} ' + resExpr +
+          ' = \\textcolor{' + C_RESF + '}{' + resFTex + '}\\\\[2pt]' +
           '\\textcolor{' + C_FINAL + '}{\\text{最终伤害}} &= \\textcolor{' + C_BASE + '}{\\underset{' + fmtTrim(basicQ, 2, 2) + '}{\\text{基础伤害}}}\\cdot' +
           '(1+\\textcolor{' + C_BONUS + '}{\\underset{' + fmtTrim(bonusQ, 2, 3) + '}{\\text{伤害加成}}})\\cdot' + zoneTex +
-          '\\textcolor{' + C_DEFF + '}{\\underset{' + S.DEF_FACTOR.toFixed(3) + '}{\\text{敌人防御系数}}}\\cdot' +
-          '\\textcolor{' + C_RESF + '}{\\underset{' + S.RES_FACTOR.toFixed(2) + '}{\\text{敌人岩抗系数}}}= ' +
+          '\\textcolor{' + C_DEFF + '}{\\underset{' + defFTex + '}{\\text{敌人防御系数}}}\\cdot' +
+          '\\textcolor{' + C_RESF + '}{\\underset{' + resFTex + '}{\\text{敌人岩抗系数}}}= ' +
           '\\textcolor{' + C_FINAL + '}{' + finalQ.toFixed(2) + '}' +
           '\\end{aligned}';
         calcpop.style.display = 'block';

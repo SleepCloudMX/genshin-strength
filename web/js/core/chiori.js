@@ -25,14 +25,32 @@
     { name: 'Q 伤害',     label: 'Q 伤害', a: 4.61, d: 5.77, eSkill: false },
   ];
 
-  /* 敌人区固定假设（2026-10-16 用户定；页面公式面板与机制文档均注明）：角色 90 级、敌人 110 级、
-     全抗 10%、减防 / 无视防御 0。防御系数按角色 90 级固定，与面板手填基础值的等级无关 ——
-     刻意简化：不做等级参数与各等级基础属性表。 */
-  S.LV_CHAR = 90;
+  /* 敌人区参数（2026-10-22 用户定；页面「敌人区」组，默认折叠）：角色 80 级、敌人 110 级、
+     全抗 10%、减防 / 无视防御 0。页面伤害数字 = 裸伤 × 防御系数 × 抗性系数；
+     相对倍数不受影响。等级只用于敌人区，与面板手填基础值的等级无关。 */
+  S.LV_CHAR = 80;
   S.LV_ENEMY = 110;
   S.ENEMY_RES = 0.10;
-  S.DEF_FACTOR = (S.LV_CHAR + 100) / ((S.LV_CHAR + 100) + (S.LV_ENEMY + 100));   // 0.475
-  S.RES_FACTOR = 1 - S.ENEMY_RES;                                               // 0.90
+  S.DEF_RED = 0;
+  S.DEF_IGNORE = 0;
+
+  /** 敌人防御系数（等级；减防 / 无视防御取小数）。 */
+  S.defFactor = function (lvChar, lvEnemy, defRed, defIgnore) {
+    var a = lvChar + 100;
+    var b = (lvEnemy + 100) * (1 - (defRed || 0)) * (1 - (defIgnore || 0));
+    return a / (a + b);
+  };
+  /** 敌人抗性系数：抗性 < 0 → 1 − 抗性/2；0 ≤ 抗性 < 75% → 1 − 抗性；≥ 75% → 1/(4×抗性+1)。 */
+  S.resFactor = function (res) {
+    res = res || 0;
+    if (res < 0) return 1 - res / 2;
+    if (res < 0.75) return 1 - res;
+    return 1 / (4 * res + 1);
+  };
+  /** 敌人区合计 = 防御系数 × 抗性系数（抗性取小数）。 */
+  S.enemyFact = function (lvChar, lvEnemy, res, defRed, defIgnore) {
+    return S.defFactor(lvChar, lvEnemy, defRed, defIgnore) * S.resFactor(res);
+  };
 
   S.PER_ATK = 0.05;        // 1 大攻击词条 = 5% 攻击
   S.PER_DEF = 0.062;       // 1 大防御词条 = 6.2% 防御

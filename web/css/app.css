@@ -410,6 +410,27 @@ a:hover { text-decoration: underline; }
 }
 .field--full, .readout--full, .hint { grid-column: 1 / -1; }
 
+/* 折叠组（controls.js 的 group 类型）：默认收起、点标题展开；组内仍是两列 */
+.ctlgrp {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--border);
+  padding-top: var(--sp-2);
+}
+.ctlgrp__hd {
+  display: flex; align-items: center; gap: 6px;
+  font-size: var(--fs-sm); font-weight: 650; color: var(--text-dim);
+  cursor: pointer; list-style: none; user-select: none;
+}
+.ctlgrp__hd::-webkit-details-marker { display: none; }
+.ctlgrp__hd::before { content: '▸'; font-size: 10px; transition: transform var(--dur); }
+.ctlgrp[open] > .ctlgrp__hd::before { transform: rotate(90deg); }
+.ctlgrp__hd:hover { color: var(--text); }
+.ctlgrp__body {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: var(--sp-3); row-gap: var(--sp-3);
+  padding-top: var(--sp-3);
+}
+
 /* 说明块：统一收在面板底部（输入口径等，动手前扫一眼即可） */
 .inspector__notes {
   grid-column: 1 / -1;

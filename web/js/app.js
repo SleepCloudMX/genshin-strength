@@ -263,11 +263,14 @@
       page.appendChild(grid);
 
       app.state = {};
-      list.forEach(function (c) {
-        if (!c) return;
-        if (c.def !== undefined) app.state[c.key] = c.def;
-        if (c.defs) Object.assign(app.state, c.defs);
-      });
+      (function collect(items) {
+        items.forEach(function (c) {
+          if (!c) return;
+          if (c.type === 'group') { collect(c.items || []); return; }
+          if (c.def !== undefined) app.state[c.key] = c.def;
+          if (c.defs) Object.assign(app.state, c.defs);
+        });
+      })(list);
     } else {
       page.appendChild(main);
       app.state = {};
