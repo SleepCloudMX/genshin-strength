@@ -23,7 +23,7 @@
     tab: '桑多涅·伤害热图',
     intro: '把 n 个等效词条分给精通 / 双暴 / 攻击（攻击吃剩余）：颜色 = 相对基准面板的伤害倍数，叠加倍数等高线；' +
       '鼠标在图上时，箭头指向该点<b>上升最快</b>的方向（画面空间每像素增益最大），<b>长度反映梯度大小</b>；' +
-      '悬浮读该点的面板与倍数。各词条总数下的最优面板值见 ' +
+      '悬浮读该点的面板与倍数；点击图面固定所选点（十字虚线），复位回最优。各词条总数下的最优面板值见 ' +
       '<a href="#/sandrone/alloc_curve">词条分配</a>页，武器横评见 <a href="#/sandrone/weapon_compare">武器对比</a>页。',
     controls: [
       {
@@ -117,9 +117,17 @@
 
       var verdict = el('div', 'verdict');
       verdict.innerHTML =
-        '<div class="verdict__hero">最优分配下的伤害 = 基准面板 × <b id="bestMul">—</b></div>' +
-        '<div class="verdict__who" id="bestSplit">—</div>' +
-        '<div class="verdict__sub" id="cornerLine">—</div>';
+        '<div class="verdict__bar"><span class="verdict__st" id="vState">最优分配</span>' +
+        '<span class="verdict__mul" id="vMul">—</span><span>相对基准面板</span>' +
+        '<button class="verdict__reset" id="vReset" type="button" hidden>复位</button></div>' +
+        '<div class="verdict__foot" id="verdict-foot"><div class="verdict__vrows">' +
+        '<div class="verdict__vrow"><span class="verdict__vk">分配</span>' +
+        '<span class="verdict__vv" id="bestSplit">—</span></div>' +
+        '<div class="verdict__vrow"><span class="verdict__vk">面板</span>' +
+        '<span class="verdict__vv" id="cornerLine">—</span></div>' +
+        '<div class="verdict__vrow"><span class="verdict__vk">极端分配</span>' +
+        '<span class="verdict__vv" id="extLine">—</span></div>' +
+        '</div><div class="verdict__note" id="vNote"></div></div>';
 
       var card = el('div', 'card chartcard');
       var m = charts.mount(card, { height: 620 });
@@ -133,6 +141,7 @@
 
       var st = null;
       var hoverPx = null;
+      var pinned = null;   // 点击固定的分配点（数据坐标）；null = 结论框显示最优
 
       function readState(s) {
         return {
@@ -148,20 +157,28 @@
       function updateVerdict(rs) {          // rs = 归一化 state（readState 的输出）
         var scan = S.scan(rs, GRID);
         var best = scan.best;
-        var bigGain = rs.baseAtk * S.PER_ATK;
-        var bz = rs.n - best.x - best.y;
-        document.getElementById('bestMul').textContent = best.v.toFixed(3);
+        if (pinned && (pinned.x < -1e-9 || pinned.y < -1e-9 || pinned.x + pinned.y > rs.n + 1e-9)) {
+          pinned = null;   // 预算改小后固定点越界：丢弃
+        }
+        var p = pinned || { x: best.x, y: best.y };
+        var z = Math.max(0, rs.n - p.x - p.y);
+        var em = rs.em + S.PER_EM * p.x;
+        var t = S.critSplit(rs.cr, rs.cd, p.y);
+        var mult = pinned ? multOf(rs, p.x, p.y) : best.v;
+        document.getElementById('vState').textContent = pinned ? '所选点' : '最优分配';
+        document.getElementById('vMul').textContent = '×' + mult.toFixed(3);
+        document.getElementById('vReset').hidden = !pinned;
         document.getElementById('bestSplit').textContent =
-          '精通 ' + best.x.toFixed(1) + ' · 双暴 ' + best.y.toFixed(1) + ' · 攻击 ' + bz.toFixed(1) + ' 词条';
-        var t = S.critSplit(rs.cr, rs.cd, best.y);
-        var emBest = rs.em + S.PER_EM * best.x;
+          '精通 ' + p.x.toFixed(1) + ' · 双暴 ' + p.y.toFixed(1) + ' · 攻击 ' + z.toFixed(1) + ' 词条';
         document.getElementById('cornerLine').textContent =
-          '最优处：精通 ' + emBest.toFixed(0) + '（增伤项 ' + (GS.core.emTerm(emBest) * 100).toFixed(1) + '%）、' +
-          '双暴 ' + t.cr.toFixed(1) + ' / ' + t.cd.toFixed(1) + '、攻击词条 ' + bz.toFixed(1) +
-          '（+' + (bigGain * bz).toFixed(0) + ' 攻击）' +
-          ' ｜ 全攻击 ×' + (dmgOf(rs, 0, 0) / scan.base0).toFixed(3) +
+          '精通 ' + em.toFixed(0) + ' · 暴击 ' + t.cr.toFixed(1) + ' / ' + t.cd.toFixed(1) +
+          ' · 攻击 ' + atkOf(rs, z).toFixed(0);
+        document.getElementById('extLine').textContent =
+          '全攻击 ×' + (dmgOf(rs, 0, 0) / scan.base0).toFixed(3) +
           '　全精通 ×' + (dmgOf(rs, rs.n, 0) / scan.base0).toFixed(3) +
           '　全双暴 ×' + (dmgOf(rs, 0, rs.n) / scan.base0).toFixed(3);
+        document.getElementById('vNote').innerHTML = S.critBand(rs, p.y)
+          ? '<span class="bad">此时双暴 1:2 无法配平</span>' : '';
         return scan;
       }
 
@@ -228,6 +245,13 @@
         var s = st;
         if (!s) return [];
         var parts = [ctx.overlay.defs([{ id: 'ovl-arrow-g', color: '#4a6fa5' }])];
+        if (pinned) {
+          var px = pinned.x / s.n * g.w, py = (s.n - pinned.y) / s.n * g.h;
+          parts.push('<line x1="' + px + '" y1="0" x2="' + px + '" y2="' + g.h + '" stroke="#4a6fa5" stroke-width="1.2" stroke-dasharray="6,4"/>');
+          parts.push('<line x1="0" y1="' + py + '" x2="' + g.w + '" y2="' + py + '" stroke="#4a6fa5" stroke-width="1.2" stroke-dasharray="6,4"/>');
+          parts.push('<line x1="' + (px - 6) + '" y1="' + py + '" x2="' + (px + 6) + '" y2="' + py + '" stroke="#4a6fa5" stroke-width="2"/>');
+          parts.push('<line x1="' + px + '" y1="' + (py - 6) + '" x2="' + px + '" y2="' + (py + 6) + '" stroke="#4a6fa5" stroke-width="2"/>');
+        }
         for (var c = 5; Math.ceil(c) < s.n; c += 5) {
           var lx = c * 0.82 / s.n * g.w;
           var ly = (s.n - c * 0.18) / s.n * g.h;
@@ -310,6 +334,25 @@
         hoverPx = null;
         ovl.queue();
         tip.hide();
+      });
+      /* 点击图面 = 把结论框固定到该点（图上画出十字虚线）；域外 / 超词条上限的点击忽略 */
+      m.wrap.addEventListener('click', function (e) {
+        if (!st) return;
+        var p = m.pxIn(e);
+        if (!p) return;
+        var g = m.geom();
+        var x = p.x / g.w * st.n;
+        var y = st.n - p.y / g.h * st.n;
+        if (x < 0 || y < 0 || x + y > st.n + 1e-9) return;
+        pinned = { x: x, y: y };
+        updateVerdict(st);
+        ovl.queue();
+      });
+      document.getElementById('vReset').addEventListener('click', function () {
+        if (!pinned) return;
+        pinned = null;
+        updateVerdict(st);
+        ovl.queue();
       });
 
       return { plot: m.plot, update: update };

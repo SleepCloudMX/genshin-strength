@@ -36,7 +36,7 @@
   M['mizuki/em_crit_map'] = {
     title: '「梦见月瑞希」精通 & 双暴的伤害热图',
     tab: '瑞希·伤害热图',
-    intro: '橙实线 = 最优分配线，橙虚线 = 等词条线，交点 = 该词条数下的最优拆分。悬浮出卡片与双箭头，点击固定该点。',
+    intro: '橙实线 = 最优分配线，橙虚线 = 等词条线，交点 = 该词条数下的最优拆分。悬浮出卡片与双箭头，点击固定该点、复位清除。',
     controls: [
       {
         key: '', type: 'note',
@@ -80,14 +80,12 @@
       /* ── 固定点框（结论条，居中列、图上方） ── */
       var verdict = el('div', 'verdict');
       verdict.innerHTML =
-        '<div class="verdict__hero" id="pin-mult">—</div>' +
-        '<div class="verdict__sub" id="pin-ref"></div>' +
-        '<div class="verdict__who" id="pin-who">点图上任意位置，固定一个点。</div>' +
-        '<div class="v-grid" id="pin-grid" style="display:none">' +
-          '<span class="k">配平后</span><span id="pin-split"></span>' +
-          '<span class="k">词条</span><span id="pin-rolls"></span>' +
-          '<span class="k">下一词条</span><span id="pin-next"></span>' +
-        '</div>' +
+        '<div class="verdict__bar"><span class="verdict__st" id="pin-state">未选点</span>' +
+        '<span class="verdict__mul" id="pin-mult">—</span><span>相较 0 词条</span>' +
+        '<button class="verdict__reset" id="pin-reset" type="button" hidden>复位</button></div>' +
+        '<div class="verdict__sub" id="pin-who">点图上任意位置，固定一个点。</div>' +
+        '<div class="verdict__foot" id="pin-foot" style="display:none">' +
+        '<div class="verdict__vrows" id="pin-rows"></div></div>' +
         '<div class="verdict__sub" id="pin-note"></div>';
 
       var card = el('div', 'card chartcard');
@@ -338,9 +336,10 @@
           var X = (pin.x - base.x0) / (base.x1 - base.x0) * g.w;
           var Y = (base.y1 - pin.y) / (base.y1 - base.y0) * g.h;
           var cx = Math.min(Math.max(X, 0), g.w), cy = Math.min(Math.max(Y, 0), g.h);
-          parts.push('<line x1="' + cx + '" y1="0" x2="' + cx + '" y2="' + g.h + '" stroke="#111" stroke-width="1" stroke-dasharray="2,3"/>');
-          parts.push('<line x1="0" y1="' + cy + '" x2="' + g.w + '" y2="' + cy + '" stroke="#111" stroke-width="1" stroke-dasharray="2,3"/>');
-          parts.push('<circle cx="' + cx + '" cy="' + cy + '" r="4.5" fill="#111"/>');
+          parts.push('<line x1="' + cx + '" y1="0" x2="' + cx + '" y2="' + g.h + '" stroke="#4a6fa5" stroke-width="1.2" stroke-dasharray="6,4"/>');
+          parts.push('<line x1="0" y1="' + cy + '" x2="' + g.w + '" y2="' + cy + '" stroke="#4a6fa5" stroke-width="1.2" stroke-dasharray="6,4"/>');
+          parts.push('<line x1="' + (cx - 6) + '" y1="' + cy + '" x2="' + (cx + 6) + '" y2="' + cy + '" stroke="#4a6fa5" stroke-width="2"/>');
+          parts.push('<line x1="' + cx + '" y1="' + (cy - 6) + '" x2="' + cx + '" y2="' + (cy + 6) + '" stroke="#4a6fa5" stroke-width="2"/>');
           if (Mi.pointInfo(pin.x, pin.y, s).state !== 'bad') {
             var ti = arrows(cx, cy, pin.x, pin.y);
             var im = Mi.importance(pin.x, pin.y, s);
@@ -357,41 +356,50 @@
       });
 
       /* ── 固定点框 ── */
+      function vrow(k, v) {
+        return '<div class="verdict__vrow"><span class="verdict__vk">' + k + '</span>' +
+          '<span class="verdict__vv">' + v + '</span></div>';
+      }
       function updatePinBox(s) {
-        var mult = document.getElementById('pin-mult'), who = document.getElementById('pin-who');
-        var split = document.getElementById('pin-split'), rollsEl = document.getElementById('pin-rolls');
-        var ref = document.getElementById('pin-ref'), next = document.getElementById('pin-next');
-        var note = document.getElementById('pin-note'), grid = document.getElementById('pin-grid');
+        var state = document.getElementById('pin-state'), mult = document.getElementById('pin-mult');
+        var who = document.getElementById('pin-who'), foot = document.getElementById('pin-foot');
+        var rows = document.getElementById('pin-rows'), note = document.getElementById('pin-note');
+        var reset = document.getElementById('pin-reset');
+        reset.hidden = !pin;
         if (!pin) {
+          state.textContent = '未选点';
           mult.textContent = '—';
           who.textContent = '点图上任意位置，固定一个点。';
-          ref.textContent = ''; note.textContent = '';
-          grid.style.display = 'none';
+          foot.style.display = 'none';
+          rows.innerHTML = '';
+          note.textContent = '';
           return;
         }
+        state.textContent = '所选点';
         var info = Mi.pointInfo(pin.x, pin.y, s);
         if (info.state === 'bad') {
           mult.textContent = '无法配平';
           who.innerHTML = '<span class="bad">原因：' + info.reason + '</span>';
-          ref.innerHTML = '×' + info.mult.toFixed(4) + '（相较 0 词条）<br>' +
-            '×' + info.ref.toFixed(4) + '（' + Mi.refLabel(s) + '）';
+          foot.style.display = '';
+          rows.innerHTML = vrow('参照', '×' + info.ref.toFixed(4) + '（' + Mi.refLabel(s) + '）');
           note.textContent = '目标：精通 ' + info.x.toFixed(0) + '　双暴分 ' + fmt1(info.y);
-          grid.style.display = 'none';
           return;
         }
-        mult.innerHTML = '<b>×' + info.mult.toFixed(4) + '</b>（相较 0 词条）';
-        ref.textContent = '×' + info.ref.toFixed(4) + '（' + Mi.refLabel(s) + '）';
+        mult.textContent = '×' + info.mult.toFixed(4);
         who.textContent = '精通 ' + info.x.toFixed(0) + '　双暴分 ' + fmt1(info.y);
-        split.textContent = '暴击 ' + fmt1(info.rate) + '% / 暴伤 ' + fmt1(info.dmg) + '%';
-        rollsEl.textContent = '精通 ' + fmt1(info.emRolls) + ' · 双暴 ' + fmt1(info.critRolls) +
-          '（共 ' + fmt1(info.emRolls + info.critRolls) + '）';
+        foot.style.display = '';
         var gains = Mi.nextRollGains(info.x, info.y, s);
-        next.innerHTML = '<span class="s-em">精通 ＋' + pct2(gains.em) + '</span> · <span class="s-cr">双暴 ＋' + pct2(gains.crit) + '</span>';
+        rows.innerHTML =
+          vrow('参照', '×' + info.ref.toFixed(4) + '（' + Mi.refLabel(s) + '）') +
+          vrow('配平后', '暴击 ' + fmt1(info.rate) + '% / 暴伤 ' + fmt1(info.dmg) + '%') +
+          vrow('词条', '精通 ' + fmt1(info.emRolls) + ' · 双暴 ' + fmt1(info.critRolls) +
+            '（共 ' + fmt1(info.emRolls + info.critRolls) + '）') +
+          vrow('下一词条', '<span class="s-em">精通 ＋' + pct2(gains.em) + '</span> · ' +
+            '<span class="s-cr">双暴 ＋' + pct2(gains.crit) + '</span>');
         var side = Mi.pinnedSide(s);
         note.textContent = info.state === 'band'
           ? '注：此双暴分下 1:2 配平不可达，' + side + '压在基准，超额全在' + (side === '暴伤' ? '暴击率' : '暴伤') + '。'
           : '';
-        grid.style.display = '';
       }
 
       function update(s0) {
@@ -445,6 +453,12 @@
           x: base.x0 + p.x / g.w * (base.x1 - base.x0),
           y: base.y1 - p.y / g.h * (base.y1 - base.y0),
         };
+        updatePinBox(st);
+        ovl.queue();
+      });
+      document.getElementById('pin-reset').addEventListener('click', function () {
+        if (!pin) return;
+        pin = null;
         updatePinBox(st);
         ovl.queue();
       });
