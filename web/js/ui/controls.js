@@ -1,6 +1,7 @@
 /* 参数面板控件层：一切输入都走这里。
    数字框 = 提交式（失焦 / 回车才生效，越界写回框里）；滑条 = 拖动只更新读数、松手才生效。
-   类型：number / items（总数 + 可展开明细）/ range（可带数字框） / select / text / readout / note / custom。 */
+   类型：number / items（总数 + 可展开明细）/ range（可带数字框） / select / text / readout / note / custom /
+         group（可折叠组，items 为子控件，默认收起）。 */
 (function (global) {
   'use strict';
   var GS = global.GS = global.GS || {};
