@@ -24,3 +24,5 @@
 能按提交逐个恢复，而不是整包回滚。
 
 不同功能分别提交；提交信息用英文、Conventional Commits、终端一行。
+
+**不考虑 GitHub Pages 部署与远程推送**：不要主动 push，也不要建议推送 / 部署；本地 commit 即可。
