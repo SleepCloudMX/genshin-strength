@@ -19,7 +19,7 @@
     instances.push({ plot: plot });
   }
 
-  /** 轴默认值：细网格、无零线、暗灰刻度。 */
+  /** 轴默认值：细网格、无零线、暗灰刻度；固定范围（换算都按原范围，缩放会让叠加层错位）。 */
   function axis(over) {
     var o = over || {};
     return Object.assign({
@@ -28,6 +28,7 @@
       gridcolor: GRID,
       gridwidth: 1,
       ticks: '',
+      fixedrange: true,
       tickfont: { family: MONO, size: 11, color: DIM },
       title: { font: { family: FONT, size: 12.5, color: DIM } },
     }, o);
@@ -41,6 +42,7 @@
       margin: { t: 26, r: 24, b: 50, l: 62 },
       hovermode: false,
       showlegend: false,
+      dragmode: false,   // 不用缩放 / 平移：轴范围固定，自绘叠加层与读数都按原范围换算
       legend: { orientation: 'h', x: 0, y: 1.06, font: { size: 12, color: DIM } },
     }, over);
   }
@@ -51,7 +53,7 @@
       return 'hoverinfo' in t ? t : Object.assign({ hoverinfo: 'none' }, t);
     });
     return global.Plotly.react(plot, traces, baseLayout(layout),
-      { responsive: true, displayModeBar: false });
+      { responsive: true, displayModeBar: false, scrollZoom: false, doubleClick: false });
   }
 
   /** 在 host 里挂一张图：返回包装节点、绘图节点与几何换算。 */
