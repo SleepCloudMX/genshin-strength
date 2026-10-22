@@ -1,5 +1,6 @@
 /* 参数面板控件层：一切输入都走这里。
-   数字框 = 提交式（失焦 / 回车才生效，越界写回框里）；滑条 = 拖动只更新读数、松手才生效。
+   数字框 = 提交式（失焦 / 回车才生效，越界写回框里）；滑条 = 拖动只更新读数、松手才生效；
+   重绘快的页可给滑条加 live: ms —— 拖动中停顿 ms 后自动提交，松手不重复重绘。
    类型：number / items（总数 + 可展开明细）/ range（可带数字框） / select / text / readout / note / custom /
          group（可折叠组，items 为子控件，默认收起）。 */
 (function (global) {
@@ -9,6 +10,7 @@
   var el = UI.panels.el;
 
   var HINT_SLIDER = '松开滑动更新绘图';
+  var HINT_LIVE = '停顿片刻更新绘图';   // 带 c.live 的轻量滑条：停顿 ms 后自动重绘
   var HINT_INPUT = '回车或点别处生效';
   var currentPopClose = null;   // 同一时刻只开一个明细悬浮框
 
@@ -321,12 +323,21 @@
           rng.value = Math.min(Math.max(v, parseFloat(rng.min)), parseFloat(rng.max));
           if (numBox) numBox.value = v;
         };
-        var commitRange = function (v) {
+        var liveMs = Number(c.live) || 0;   // >0：拖动中停顿这么久就提交（只给重绘快的页开）
+        var liveTimer = null;
+        var lastCommitted = Number(state[c.key]);
+        var cancelLive = function () {
+          if (liveTimer) { global.clearTimeout(liveTimer); liveTimer = null; }
+        };
+        var commitRange = function (v, keepHint) {
+          cancelLive();
           if (!Number.isFinite(v)) { syncRange(state[c.key]); return; }
           v = clampTo(numBox || rng, v);   // 数字框只设下界时可填更大的值（如减抗 > 100）
           state[c.key] = v;
           syncRange(v);
-          hideHint();
+          if (!keepHint) hideHint();
+          if (v === lastCommitted) return;   // 停顿提交后再松手，不重复重绘
+          lastCommitted = v;
           cb.commit(c.key);
         };
         rng.addEventListener('input', function () {
@@ -335,9 +346,17 @@
           if (numBox) numBox.value = v;
           state[c.key] = v;                 // 拖动中先落进 state：预览读数用的是它
           if (cb.preview) cb.preview(c.key);
+          if (liveMs > 0) {
+            cancelLive();
+            liveTimer = global.setTimeout(function () {
+              liveTimer = null;
+              if (!global.document.body.contains(rng)) return;   // 已切页
+              commitRange(parseFloat(rng.value), true);
+            }, liveMs);
+          }
         });
         rng.addEventListener('change', function () { commitRange(parseFloat(rng.value)); });
-        rng.addEventListener('pointerdown', function () { setHint(HINT_SLIDER); });
+        rng.addEventListener('pointerdown', function () { setHint(liveMs > 0 ? HINT_LIVE : HINT_SLIDER); });
         global.addEventListener('pointerup', hideHint);
         global.addEventListener('pointercancel', hideHint);
         if (numBox) {
@@ -349,7 +368,7 @@
             commitRange(parseFloat(numBox.value));
           });
         }
-        bindings.push({ key: c.key, set: function (v) { syncRange(v); } });
+        bindings.push({ key: c.key, set: function (v) { cancelLive(); lastCommitted = Number(v); syncRange(v); } });
       }
 
       field.insertBefore(label, field.firstChild);

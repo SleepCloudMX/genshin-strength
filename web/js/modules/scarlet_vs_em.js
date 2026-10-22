@@ -47,7 +47,7 @@
       { key: 'cd', type: 'items', label: '基准暴伤 %', step: 0.1, min: 50, items: [
         { n: '总数', v: 120 }] },
       { key: 'score', type: 'readout', label: '双暴分', compute: function (s) { return (2 * s.cr + s.cd).toFixed(1); } },
-      { key: 'd', type: 'range', label: '星扩散直伤占比', def: 90, min: 0, max: 100, step: 1, unit: '%' },
+      { key: 'd', type: 'range', label: '星扩散直伤占比', def: 90, min: 0, max: 100, step: 1, unit: '%', live: 100 },
       {
         key: 'eset', type: 'select', label: '精通套', def: 'gild2',
         options: [
