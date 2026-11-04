@@ -171,27 +171,25 @@
         html: '<b>公共面板</b> = 上完 buff、不含套装 / 主词条；每个数值可点「明细」查看来源。' +
           '套装 / 主词条的贡献在计算时自动加上（见页脚）。',
       },
-      { type: 'heading', label: '配置 A' },
-      { key: 'setA', type: 'select', half: true, label: '套装', def: 'emblem',
+      { key: 'setA', type: 'select', half: true, label: '套装 A', def: 'emblem',
         options: [
           { value: 'emblem', label: '幻灭' },
           { value: 'gilded', label: '饰金' },
           { value: 'em22', label: '精通 2+2' },
         ] },
-      { key: 'mainA', type: 'select', half: true, label: '主词条', def: 'emEmCr',
+      { key: 'mainA', type: 'select', half: true, label: '主词条 A', def: 'emEmCr',
         options: [
           { value: 'emEmEm', label: '精精精' },
           { value: 'emEmCr', label: '精精暴击' },
           { value: 'emEmCd', label: '精精暴伤' },
         ] },
-      { type: 'heading', label: '配置 B' },
-      { key: 'setB', type: 'select', half: true, label: '套装', def: 'em22',
+      { key: 'setB', type: 'select', half: true, label: '套装 B', def: 'em22',
         options: [
           { value: 'emblem', label: '幻灭' },
           { value: 'gilded', label: '饰金' },
           { value: 'em22', label: '精通 2+2' },
         ] },
-      { key: 'mainB', type: 'select', half: true, label: '主词条', def: 'emEmCr',
+      { key: 'mainB', type: 'select', half: true, label: '主词条 B', def: 'emEmCr',
         options: [
           { value: 'emEmEm', label: '精精精' },
           { value: 'emEmCr', label: '精精暴击' },

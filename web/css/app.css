@@ -409,12 +409,6 @@ a:hover { text-decoration: underline; }
   align-items: start;
 }
 .field--full, .readout--full, .hint { grid-column: 1 / -1; }
-.ctlhead {
-  grid-column: 1 / -1;
-  font-size: var(--fs-sm); font-weight: 650; color: var(--text);
-  margin-top: var(--sp-1);
-}
-.ctlhead:first-child { margin-top: 0; }
 
 /* 折叠组（controls.js 的 group 类型）：默认收起、点标题展开；组内仍是两列 */
 .ctlgrp {

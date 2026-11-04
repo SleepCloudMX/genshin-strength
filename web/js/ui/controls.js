@@ -2,7 +2,7 @@
    数字框 = 提交式（失焦 / 回车才生效，越界写回框里）；滑条 = 拖动只更新读数、松手才生效；
    重绘快的页可给滑条加 live: ms —— 拖动中停顿 ms 后自动提交，松手不重复重绘。
    类型：number / items（总数 + 可展开明细）/ range（可带数字框） / select（可 half 放半行）/ text / readout /
-         note / custom / heading（分组标题）/ group（可折叠组，items 为子控件，默认收起）。 */
+         note / custom / group（可折叠组，items 为子控件，默认收起）。 */
 (function (global) {
   'use strict';
   var GS = global.GS = global.GS || {};
@@ -38,10 +38,6 @@
       if (!c) return;
 
       if (c.type === 'note') { notes.push(el('p', 'note', c.html)); return; }
-      if (c.type === 'heading') {
-        container.appendChild(el('div', 'ctlhead', c.label));
-        return;
-      }
       if (c.type === 'group') {
         var grp = el('details', 'ctlgrp');
         if (c.open) grp.open = true;
