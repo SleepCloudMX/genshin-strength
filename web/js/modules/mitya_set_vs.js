@@ -13,8 +13,8 @@
     [0.000, '#053061'], [0.167, '#3783bb'], [0.333, '#a7d0e4'], [0.500, '#f7f6f6'],
     [0.667, '#f7b799'], [0.833, '#c94741'], [1.000, '#67001f'],
   ];
-  var SETS = { emblem: '幻灭 4 件套', em22: '2+2 精通', gilded: '饰金之梦 4 件套' };
-  var MAINS = { emEmEm: '精精精', emEmCr: '精精暴（暴击头）', emEmCd: '精精暴（暴伤头）' };
+  var SETS = { emblem: '幻灭 4 件套', em22: '精通 2+2', gilded: '饰金之梦 4 件套' };
+  var MAINS = { emEmEm: '精精精', emEmCr: '精精暴击', emEmCd: '精精暴伤' };
 
   function fmtTrim(v, minDp, maxDp) {
     var s = v.toFixed(maxDp);
@@ -143,10 +143,10 @@
     '某个固定点的比值只说明该分配下的强弱，不能代替最优比较。<br>' +
     '<b>绘图范围固定 0–47 词条</b>（副词条容量估算）；细虚线 = 5 / 10 / … / 45 词条，橙线 = 当前预算 n（默认 30）。' +
     '预算只决定最优标记与「各自最优」读数，不是绘图上限。<br>' +
-    '<b>套装贡献</b>：幻灭 4 = +16% 暴击率、+40% 星超导增伤；2+2 精通 = +160 精通；' +
+    '<b>套装贡献</b>：幻灭 4 = +16% 暴击率、+40% 星超导增伤；精通 2+2 = +160 精通；' +
     '饰金之梦 4 件套 = +180 精通（双雷队：2 件套 +80，两个异色角色各 +50；同类元素的攻击加成对米提亚无用，不计）。' +
-    '<b>主词条</b>：精精精 = +561 精通；精精暴（暴击头）= +374 精通、+31.1% 暴击率；' +
-    '精精暴（暴伤头）= +374 精通、+62.2% 暴伤。公共面板（角色、武器、命座、队友）与热图页默认一致，' +
+    '<b>主词条</b>：精精精 = +561 精通；精精暴击（暴击头）= +374 精通、+31.1% 暴击率；' +
+    '精精暴伤（暴伤头）= +374 精通、+62.2% 暴伤。公共面板（角色、武器、命座、队友）与热图页默认一致，' +
     '只是把上述贡献拆出来自动相加。<br>' +
     '抗性系数、擢升在两边相同，已在比值中约掉；<b>K 与 F 不约掉</b>（K 缩放核心项，F 加在核心项后并再乘暴击），' +
     '所以比值会受 K、F 影响。' +
@@ -171,29 +171,31 @@
         html: '<b>公共面板</b> = 上完 buff、不含套装 / 主词条；每个数值可点「明细」查看来源。' +
           '套装 / 主词条的贡献在计算时自动加上（见页脚）。',
       },
-      { key: 'setA', type: 'select', label: '配置 A · 套装', def: 'emblem',
+      { type: 'heading', label: '配置 A' },
+      { key: 'setA', type: 'select', half: true, label: '套装', def: 'emblem',
         options: [
-          { value: 'emblem', label: '幻灭 4 件套' },
-          { value: 'em22', label: '2+2 精通（+160 精通）' },
-          { value: 'gilded', label: '饰金之梦 4 件套（+180 精通）' },
+          { value: 'emblem', label: '幻灭' },
+          { value: 'gilded', label: '饰金' },
+          { value: 'em22', label: '精通 2+2' },
         ] },
-      { key: 'mainA', type: 'select', label: '配置 A · 主词条', def: 'emEmCr',
+      { key: 'mainA', type: 'select', half: true, label: '主词条', def: 'emEmCr',
         options: [
           { value: 'emEmEm', label: '精精精' },
-          { value: 'emEmCr', label: '精精暴（暴击头）' },
-          { value: 'emEmCd', label: '精精暴（暴伤头）' },
+          { value: 'emEmCr', label: '精精暴击' },
+          { value: 'emEmCd', label: '精精暴伤' },
         ] },
-      { key: 'setB', type: 'select', label: '配置 B · 套装', def: 'em22',
+      { type: 'heading', label: '配置 B' },
+      { key: 'setB', type: 'select', half: true, label: '套装', def: 'em22',
         options: [
-          { value: 'emblem', label: '幻灭 4 件套' },
-          { value: 'em22', label: '2+2 精通（+160 精通）' },
-          { value: 'gilded', label: '饰金之梦 4 件套（+180 精通）' },
+          { value: 'emblem', label: '幻灭' },
+          { value: 'gilded', label: '饰金' },
+          { value: 'em22', label: '精通 2+2' },
         ] },
-      { key: 'mainB', type: 'select', label: '配置 B · 主词条', def: 'emEmCr',
+      { key: 'mainB', type: 'select', half: true, label: '主词条', def: 'emEmCr',
         options: [
           { value: 'emEmEm', label: '精精精' },
-          { value: 'emEmCr', label: '精精暴（暴击头）' },
-          { value: 'emEmCd', label: '精精暴（暴伤头）' },
+          { value: 'emEmCr', label: '精精暴击' },
+          { value: 'emEmCd', label: '精精暴伤' },
         ] },
       { key: 'em', type: 'items', label: '公共精通', step: 1, min: 0, items: [
         { n: '米提亚自身', v: 100 },
