@@ -140,7 +140,8 @@
     '<b>配置 A 与配置 B 均可自由选择</b>（套装 × 主词条）。两者使用同一套副词条分配（横轴精通词条、纵轴双暴词条）：' +
     '颜色 = <b>B / A</b>，> 1 = B 在该分配更强；黑线 = 两套等效。<br>' +
     '<b>结论按两套各自的最优伤害比较</b> —— 各自在预算 n 内取最优分配；橙点 = A 最优，蓝菱 = B 最优。' +
-    '某个固定点的比值只说明该分配下的强弱，不能代替最优比较。<br>' +
+    '某个固定点的比值只说明该分配下的强弱，不能代替最优比较。' +
+    '<b>更强 X% = 1 − 较弱最优 / 较强最优</b>（如 287,891 / 294,216 → 2.15%）。<br>' +
     '<b>绘图范围固定 0–47 词条</b>（副词条容量估算）；细虚线 = 5 / 10 / … / 45 词条，橙线 = 当前预算 n（默认 30）。' +
     '预算只决定最优标记与「各自最优」读数，不是绘图上限。<br>' +
     '<b>套装贡献</b>：幻灭 4 = +16% 暴击率、+40% 星超导增伤；精通 2+2 = +160 精通；' +
@@ -428,9 +429,9 @@
         var dA = S.damage(st.A, x, y);
         var dB = S.damage(st.B, x, y);
         var margin = Math.abs(r - 1) * 100;
-        var winCfg = r > 1 ? configLabel(lastRaw.setB, lastRaw.mainB) : configLabel(lastRaw.setA, lastRaw.mainA);
+        var winSet = r > 1 ? SETS[lastRaw.setB] : SETS[lastRaw.setA];
         var who = margin.toFixed(2) === '0.00' ? '两套等效'
-          : winCfg + ' 更强 ' + margin.toFixed(2) + '%';
+          : winSet + ' 更强 ' + margin.toFixed(2) + '%';
         tip.show(ctx.tip.card({
           title: '精通 ' + x.toFixed(1) + ' · 双暴 ' + y.toFixed(1) + ' 词条',
           hero: { v: '×' + r.toFixed(4), cap: 'B / A' },
@@ -439,7 +440,8 @@
             ['B', Math.round(dB)],
             ['该点', who],
           ],
-          note: SETS[lastRaw.setA] + ' vs ' + SETS[lastRaw.setB] + (over ? ' · 超出预算（仅展示）' : ''),
+          note: configLabel(lastRaw.setA, lastRaw.mainA) + ' vs ' + configLabel(lastRaw.setB, lastRaw.mainB) +
+            (over ? ' · 超出预算（仅展示）' : ''),
         }), p.x, p.y);
       });
       m.wrap.addEventListener('mouseleave', tip.hide);
