@@ -20,8 +20,8 @@
   S.CD_PER_ROLL = C.CD_PER_ROLL;
   S.B_PER_EM = 0.00028;       // A6：每点精通 +0.028% 星超导基础伤害
   S.B_CAP = 0.14;             // 500 精通吃满
-  S.N_DEF = 30;               // 默认词条预算
-  S.N_MAX = 50;
+  S.N_DEF = 30;               // 默认词条预算（只决定最优分配）
+  S.N_MAX = 47;               // 副词条容量上限估算 —— 绘图范围固定 0 ~ 47
   S.K_MAX = 12;
 
   /** 星超导系数：0 层 = 1.0；1–12 层 = 1.4 + 0.05 × 层数。 */
@@ -39,10 +39,12 @@
     return { cr: cr0 + S.CR_PER_ROLL * a, cd: cd0 + S.CD_PER_ROLL * (y - a), a: a };
   };
 
-  /** 单点详情：x = 精通词条、y = 双暴词条；域外（x + y > n）返回 null。
+  /** 单点详情：x = 精通词条、y = 双暴词条；域外（x + y > nMax）返回 null。
+      n = 词条预算（只用于最优分配 / 下一词条）；nMax = 绘图容量上限（默认 47）。
       所有中间量都在返回值里，页面读数与公式面板共用同一套口径。 */
   S.detail = function (s, x, y) {
-    if (x < -1e-9 || y < -1e-9 || x + y > s.n + 1e-9) return null;
+    var cap = s.nMax || s.n;
+    if (x < -1e-9 || y < -1e-9 || x + y > cap + 1e-9) return null;
     var em = s.em + S.EM_PER_ROLL * x;
     var bOwn = Math.min(S.B_PER_EM * em, S.B_CAP);
     var b = 1 + bOwn + (s.bFlat || 0);
@@ -57,7 +59,7 @@
     var res = s.res === undefined ? 1 : s.res;
     var asc = s.asc === undefined ? 1 : s.asc;
     return {
-      x: x, y: y, z: s.n - x - y,
+      x: x, y: y, z: cap - x - y,
       em: em, bOwn: bOwn, b: b, e: e, bracket: bracket,
       k: k, f: f, core: core, base: base,
       res: res, asc: asc,
@@ -119,24 +121,22 @@
     return out;
   };
 
-  /** 全网格扫描：相对基准面板的倍数（域外 null）与最优分配。 */
+  /** 全网格扫描：绘图范围 0 ~ nMax，相对基准面板的倍数（域外 null）；
+      最优分配按词条预算 n 单独算（与绘图范围解耦）。 */
   S.scan = function (s, G) {
     G = G || 121;
-    var step = s.n / (G - 1);
+    var cap = s.nMax || s.n;
+    var step = cap / (G - 1);
     var xs = Array.from({ length: G }, function (_, i) { return i * step; });
     var base0 = S.damage(Object.assign({}, s, { n: 0 }), 0, 0);
-    var best = { x: 0, y: 0, v: -1, d: -1 };
     var zs = xs.map(function (y) {
       return xs.map(function (x) {
         var d = S.damage(s, x, y);
-        if (d === null) return null;
-        var v = d / base0;
-        if (v > best.v) best = { x: x, y: y, v: v, d: d };
-        return v;
+        return d === null ? null : d / base0;
       });
     });
-    var rb = refine(s, best.x, best.y, best.d, step);
-    return { xs: xs, zs: zs, best: { x: rb.x, y: rb.y, v: rb.d / base0, d: rb.d }, base0: base0 };
+    var bf = S.bestFor(s);
+    return { xs: xs, zs: zs, best: { x: bf.x, y: bf.y, v: bf.d / base0, d: bf.d }, base0: base0 };
   };
 
   function multAt(s, x, y) {
@@ -179,11 +179,13 @@
     return { lo: lo, hi: hi, loAt: loAt, hiAt: hiAt };
   };
 
-  /** 伤害对数的梯度（中心差分 h = 0.05 词条；贴边界退化为单侧差分）。 */
+  /** 伤害对数的梯度（中心差分 h = 0.05 词条；贴物理边界退化为单侧差分）。
+      定义域用 nMax（绘图容量），不是词条预算 n。 */
   S.grad = function (x, y, s) {
     var h = 0.05;
+    var cap = s.nMax || s.n;
     function f(xx, yy) {
-      if (xx < 0 || yy < 0 || xx + yy > s.n) return null;
+      if (xx < 0 || yy < 0 || xx + yy > cap) return null;
       var d = S.damage(s, xx, yy);
       return d === null ? null : Math.log(d);
     }

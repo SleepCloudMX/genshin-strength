@@ -1,4 +1,4 @@
-/* 米提亚 · 套装对比：比值热力图（对比 / 基准），基准 = 幻灭 4 + 精精精。
+/* 米提亚 · 套装对比：比值热力图（对比 / 基准），基准 = 幻灭 4 + 精精暴（暴击头）。
    同一套副词条分配 (x, y) 下比较两套配置；黑线 = 两套等效。 */
 (function (global) {
   'use strict';
@@ -13,9 +13,9 @@
     [0.000, '#053061'], [0.167, '#3783bb'], [0.333, '#a7d0e4'], [0.500, '#f7f6f6'],
     [0.667, '#f7b799'], [0.833, '#c94741'], [1.000, '#67001f'],
   ];
-  var SETS = { emblem: '幻灭 4 件套', em22: '2+2 精通' };
+  var SETS = { emblem: '幻灭 4 件套', em22: '2+2 精通', gilded: '饰金之梦 4 件套' };
   var MAINS = { emEmEm: '精精精', emEmCr: '精精暴（暴击头）', emEmCd: '精精暴（暴伤头）' };
-  var BASE_SET = 'emblem', BASE_MAIN = 'emEmEm';
+  var BASE_SET = 'emblem', BASE_MAIN = 'emEmCr';
 
   function fmtTrim(v, minDp, maxDp) {
     var s = v.toFixed(maxDp);
@@ -27,7 +27,7 @@
   }
   function q(v, minDp, maxDp) { return Number(fmtTrim(v, minDp, maxDp)); }
 
-  /** 公共面板（不含套装 / 主词条贡献）：与热图默认面板一致，只是把幻灭 / 精精精拆出去。 */
+  /** 公共面板（不含套装 / 主词条贡献）：与热图默认面板一致，只是把幻灭 / 主词条拆出去。 */
   function commonState(s) {
     var net = (s.enemyRes - s.resShred) / 100;
     return {
@@ -41,6 +41,7 @@
       res: q(C.kappa(net), 2, 4),
       asc: 1 + s.asc / 100,
       n: s.n,
+      nMax: S.N_MAX,
     };
   }
 
@@ -52,6 +53,8 @@
       s.bonus += 0.40;
     } else if (set === 'em22') {
       s.em += 160;
+    } else if (set === 'gilded') {
+      s.em += 180;
     }
     if (main === 'emEmEm') {
       s.em += 561;
@@ -100,11 +103,11 @@
     return { bx: bx, by: by };
   }
 
-  /** 全网格：比值、极值、各自最优、两套等效线。 */
+  /** 全网格：比值、极值、各自最优、两套等效线。绘图范围 0 ~ nMax；最优按预算 n。 */
   function scanRatio(base, comp, G) {
     G = G || GRID;
-    var n = base.n;
-    var step = n / (G - 1);
+    var cap = base.nMax || base.n;
+    var step = cap / (G - 1);
     var xs = Array.from({ length: G }, function (_, i) { return i * step; });
     var lo = Infinity, hi = -Infinity, loAt = null, hiAt = null;
     var zs = xs.map(function (y) {
@@ -134,27 +137,31 @@
   }
 
   var FOOT =
-    '<b>基准 = 幻灭 4 件套 + 精精精</b>；<b>对比</b> = 下拉选择的套装 × 主词条。两者使用同一套副词条分配 ' +
+    '<b>基准 = 幻灭 4 件套 + 精精暴（暴击头）</b>；<b>对比</b> = 下拉选择的套装 × 主词条。两者使用同一套副词条分配 ' +
     '（横轴精通词条、纵轴双暴词条），所以比值回答「<b>同样的词条数下谁更强</b>」；> 1 = 对比更强，' +
-    '黑线 = 两套等效，橙点 / 蓝菱 = 各自配置下的最优分配。<br>' +
-    '<b>套装贡献</b>：幻灭 4 = +16% 暴击率、+40% 星超导增伤；2+2 精通 = +160 精通。' +
+    '黑线 = 两套等效，橙点 / 蓝菱 = 各自配置下的最优分配（<b>按词条预算 n 计算</b>）。<br>' +
+    '<b>绘图范围固定 0–47 词条</b>（副词条容量估算）；细虚线 = 5 / 10 / … / 45 词条，橙线 = 当前预算 n（默认 30）。' +
+    '预算只决定最优标记与「各自最优」读数，不是绘图上限。<br>' +
+    '<b>套装贡献</b>：幻灭 4 = +16% 暴击率、+40% 星超导增伤；2+2 精通 = +160 精通；' +
+    '饰金之梦 4 件套 = +180 精通（双雷队：2 件套 +80，两个异色角色各 +50；同类元素的攻击加成对米提亚无用，不计）。' +
     '<b>主词条</b>：精精精 = +561 精通；精精暴（暴击头）= +374 精通、+31.1% 暴击率；' +
     '精精暴（暴伤头）= +374 精通、+62.2% 暴伤。公共面板（角色、武器、命座、队友）与热图页默认一致，' +
     '只是把上述贡献拆出来自动相加。<br>' +
-    'K、抗性系数、擢升在两边相同，已在比值中约掉；<b>额外提升 F 不约掉</b>（加在基础项之后），所以比值会受 F 影响。' +
+    '抗性系数、擢升在两边相同，已在比值中约掉；<b>K 与 F 不约掉</b>（K 缩放核心项，F 加在核心项后并再乘暴击），' +
+    '所以比值会受 K、F 影响。' +
     '色带 1.0 在正中（分段压缩）；精确比值以结论框与悬浮卡为准。';
 
   M['mitya/set_vs'] = {
     title: '「米提亚」套装对比',
     tab: '米提亚·套装对比',
     noPlotly: false,
-    intro: '比较「幻灭 4 + 精精精」与另一套「套装 × 主词条」在<b>同一套副词条分配</b>下的伤害比值：' +
-      '颜色 = 对比 / 基准，黑线 = 两套等效；橙点 / 蓝菱 = 各自最优分配。' +
-      '悬浮读该点的比值与两套伤害，点击图面把所选点移到该处。',
+    intro: '比较「幻灭 4 + 精精暴（暴击头）」与另一套「套装 × 主词条」在<b>同一套副词条分配</b>下的伤害比值：' +
+      '绘图范围固定 0–47 词条（细虚线 = 5 / 10 / … / 45，橙线 = 当前预算 n）；颜色 = 对比 / 基准，黑线 = 两套等效；' +
+      '橙点 / 蓝菱 = 各自最优分配（按预算 n 计算，默认 30）。悬浮读该点的比值与两套伤害，点击图面把所选点移到该处。',
     controls: [
       {
         key: '', type: 'note',
-        html: '<b>基准 = 幻灭 4 件套 + 精精精</b>（与伤害热图默认一致）。' +
+        html: '<b>基准 = 幻灭 4 件套 + 精精暴（暴击头）</b>（与伤害热图默认一致）。' +
           '对比配置由下方两个下拉选择；两套共用同一套副词条分配。',
       },
       {
@@ -165,9 +172,10 @@
       { key: 'set', type: 'select', label: '对比套装', def: 'em22',
         options: [
           { value: 'emblem', label: '幻灭 4 件套' },
-          { value: 'em22', label: '2+2 精通' },
+          { value: 'em22', label: '2+2 精通（+160 精通）' },
+          { value: 'gilded', label: '饰金之梦 4 件套（+180 精通）' },
         ] },
-      { key: 'main', type: 'select', label: '主词条', def: 'emEmEm',
+      { key: 'main', type: 'select', label: '主词条', def: 'emEmCr',
         options: [
           { value: 'emEmEm', label: '精精精' },
           { value: 'emEmCr', label: '精精暴（暴击头）' },
@@ -240,6 +248,7 @@
       var card = el('div', 'card chartcard');
       var m = charts.mount(card, { height: 620 });
       var tip = ctx.tip.mount(m.wrap, m.geom);
+      var ovl = ctx.overlay.mount(m.wrap, m.geom);
       card.appendChild(GS.ui.panels.actionsRow(function () { return m.plot; }));
 
       host.appendChild(verdict);
@@ -252,7 +261,8 @@
 
       function updateVerdict(states, scan) {
         var n = states.base.n;
-        if (pinned && (pinned.x < -1e-9 || pinned.y < -1e-9 || pinned.x + pinned.y > n + 1e-9)) pinned = null;
+        var cap = states.base.nMax;
+        if (pinned && (pinned.x < -1e-9 || pinned.y < -1e-9 || pinned.x + pinned.y > cap + 1e-9)) pinned = null;
         var p = pinned || { x: scan.bestBase.x, y: scan.bestBase.y };
         var r = ratioAt(states.base, states.comp, p.x, p.y);
         var db = S.damage(states.base, p.x, p.y);
@@ -269,11 +279,12 @@
         document.getElementById('vReset').hidden = !pinned;
         document.getElementById('vWho').textContent = who;
         document.getElementById('vWho').style.color = color;
+        var over = p.x + p.y > n + 1e-9;
         document.getElementById('vPoint').textContent =
           (pinned ? '所选点：' : '基准最优：') + '精通 ' + p.x.toFixed(1) + ' · 双暴 ' + p.y.toFixed(1) + ' 词条' +
-          (pinned ? '（点击「复位」回基准最优）' : '（点击图面移动）');
+          (pinned ? (over ? '（超出预算，仅展示；复位回基准最优）' : '（点击「复位」回基准最优）') : '（点击图面移动）');
         document.getElementById('vBase').textContent =
-          '幻灭 4 + 精精精 · ' + Math.round(db) + '（精通 ' + (states.base.em + 20 * p.x).toFixed(0) +
+          configLabel(BASE_SET, BASE_MAIN) + ' · ' + Math.round(db) + '（精通 ' + (states.base.em + 20 * p.x).toFixed(0) +
           ' · 暴击 ' + S.critSplit(states.base.cr, states.base.cd, p.y).cr.toFixed(1) + ' / ' +
           S.critSplit(states.base.cr, states.base.cd, p.y).cd.toFixed(1) + '）';
         document.getElementById('vComp').textContent =
@@ -289,7 +300,7 @@
           '基准 ' + scan.bestBase.x.toFixed(1) + ' / ' + scan.bestBase.y.toFixed(1) + ' → ' + baseR +
           '；对比 ' + scan.bestComp.x.toFixed(1) + ' / ' + scan.bestComp.y.toFixed(1) + ' → ' +
           compR + bestDiffTxt;
-        var range = '全图 ×' + scan.lo.toFixed(3) + ' ~ ×' + scan.hi.toFixed(3);
+        var range = '预算 ' + n + ' · 绘图 0–' + cap + ' · 全图 ×' + scan.lo.toFixed(3) + ' ~ ×' + scan.hi.toFixed(3);
         if (scan.lo > 1 + 1e-9) range += '（全图对比更强）';
         else if (scan.hi < 1 - 1e-9) range += '（全图基准更强）';
         else range += '（黑线 = 两套等效）';
@@ -304,6 +315,7 @@
         updateVerdict(states, scan);
 
         var n = states.base.n;
+        var cap = states.base.nMax;
         var cmap = makeColorMap(scan.lo, scan.hi);
         var zT = scan.zs.map(function (row) {
           return row.map(function (v) { return v === null ? null : cmap.toT(v); });
@@ -353,36 +365,49 @@
           });
         }
 
-        var shapes = [
-          { type: 'line', x0: 0, y0: n, x1: n, y1: 0, line: { color: '#b9b1b7', width: 1, dash: 'dot' } },
-        ];
-        if (pinned) {
-          shapes.push({ type: 'line', x0: p.x, x1: p.x, y0: 0, y1: n, line: { color: '#111', width: 1.1, dash: 'dot' } });
-          shapes.push({ type: 'line', x0: 0, x1: n, y0: p.y, y1: p.y, line: { color: '#111', width: 1.1, dash: 'dot' } });
+        var shapes = [];
+        for (var c = 5; c < cap; c += 5) {
+          shapes.push({ type: 'line', x0: 0, y0: c, x1: c, y1: 0, line: { color: '#b9b1b7', width: 1, dash: 'dot' } });
         }
-        var anns = [{
-          x: n * 0.58, y: n * 0.58, text: '词条预算', showarrow: false,
-          font: { size: 11, color: '#999' },
-        }];
+        shapes.push({ type: 'line', x0: 0, y0: n, x1: n, y1: 0, line: { color: '#e8710a', width: 1.8 } });
+        if (pinned) {
+          shapes.push({ type: 'line', x0: p.x, x1: p.x, y0: 0, y1: cap, line: { color: '#111', width: 1.1, dash: 'dot' } });
+          shapes.push({ type: 'line', x0: 0, x1: cap, y0: p.y, y1: p.y, line: { color: '#111', width: 1.1, dash: 'dot' } });
+        }
         charts.draw(m.plot, traces, {
-          xaxis: charts.axis({ title: { text: '精通词条数' }, range: [0, n] }),
-          yaxis: charts.axis({ title: { text: '双暴词条数' }, range: [0, n] }),
-          shapes: shapes, annotations: anns,
+          xaxis: charts.axis({ title: { text: '精通词条数' }, range: [0, cap], dtick: 5 }),
+          yaxis: charts.axis({ title: { text: '双暴词条数' }, range: [0, cap], dtick: 5 }),
+          shapes: shapes,
           showlegend: true,
           legend: { orientation: 'h', x: 0, y: 1.06, font: { size: 12, color: charts.DIM } },
           margin: { t: 24, r: 24, b: 52, l: 60 }, height: 620,
-        }).then(function () { /* 无叠加层 */ });
+        }).then(function () { ovl.queue(); });
       }
+
+      ovl.draw(function (g) {
+        var s = st;
+        if (!s) return [];
+        var cap = s.base.nMax;
+        var parts = [];
+        for (var c = 5; c < cap; c += 5) {
+          if (Math.abs(c - s.base.n) < 1e-9) continue;
+          ctx.overlay.text(parts, c * 0.78 / cap * g.w, (cap - c * 0.22) / cap * g.h, String(c), '#888', 'middle');
+        }
+        ctx.overlay.text(parts, s.base.n * 0.78 / cap * g.w, (cap - s.base.n * 0.22) / cap * g.h,
+          '预算 ' + s.base.n, '#e8710a', 'middle');
+        return parts;
+      });
 
       m.wrap.addEventListener('mousemove', function (e) {
         if (!st) { tip.hide(); return; }
         var p = m.pxIn(e);
         if (!p) { tip.hide(); return; }
         var g = m.geom();
-        var n = st.base.n;
-        var x = p.x / g.w * n;
-        var y = n - p.y / g.h * n;
-        if (x < 0 || y < 0 || x + y > n + 1e-9) { tip.hide(); return; }
+        var cap = st.base.nMax;
+        var x = p.x / g.w * cap;
+        var y = cap - p.y / g.h * cap;
+        if (x < 0 || y < 0 || x + y > cap + 1e-9) { tip.hide(); return; }
+        var over = x + y > st.base.n + 1e-9;
         var r = ratioAt(st.base, st.comp, x, y);
         var db = S.damage(st.base, x, y);
         var dc = S.damage(st.comp, x, y);
@@ -397,7 +422,7 @@
             ['对比', Math.round(dc)],
             ['该点', who],
           ],
-          note: configLabel(lastRaw.set, lastRaw.main),
+          note: configLabel(lastRaw.set, lastRaw.main) + (over ? ' · 超出预算（仅展示）' : ''),
         }), p.x, p.y);
       });
       m.wrap.addEventListener('mouseleave', tip.hide);
@@ -407,10 +432,10 @@
         var p = m.pxIn(e);
         if (!p) return;
         var g = m.geom();
-        var n = st.base.n;
-        var x = p.x / g.w * n;
-        var y = n - p.y / g.h * n;
-        if (x < 0 || y < 0 || x + y > n + 1e-9) return;
+        var cap = st.base.nMax;
+        var x = p.x / g.w * cap;
+        var y = cap - p.y / g.h * cap;
+        if (x < 0 || y < 0 || x + y > cap + 1e-9) return;
         pinned = { x: x, y: y };
         update(lastRaw);
       });

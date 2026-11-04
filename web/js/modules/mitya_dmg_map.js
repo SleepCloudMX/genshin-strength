@@ -45,6 +45,7 @@
       res: q(C.kappa(net), 2, 4),
       asc: 1 + s.asc / 100,
       n: s.n,
+      nMax: S.N_MAX,
     };
   }
 
@@ -56,19 +57,23 @@
     '<code>R</code> = 雷抗分段系数，<code>C = 1 + 暴击率 × 暴伤</code>。' +
     '星超导无防御区；不吃雷伤杯 / 极星辉域的元素增伤。详见 ' +
     '<code>docs/ai-output/0-mechanism/5-米提亚伤害机制.md</code>。<br>' +
-    '<b>默认面板（幻灭 4 + 精精精 + 2 命过载 + 主流队友）</b>：精通 1385 / 暴击 41% / 暴伤 183.5% / ' +
+    '<b>默认面板（幻灭 4 + 精精暴（暴击头）+ 2 命过载 + 主流队友）</b>：精通 1198 / 暴击 72.1% / 暴伤 183.5% / ' +
     '星超导增伤 168% / B 1.28 / K 1.70（6 层）/ F 2264 / 抗性系数 1.25；各项来源见参数「明细」。' +
     '基准单段伤害按 0 词条计，图上颜色与倍率均为相对该基准的倍数。<br>' +
     '<b>双暴分配</b>：只加不减；暴伤过高时先把暴击率补到 1:2 或 100%，<b>不标「配平不可达」</b>，' +
     '按实际可达的最优计算（例：基准 5% / 88.4% 只有 1 个双暴词条 → 8.3% / 88.4%）。' +
-    '词条预算默认 30，页面可调；K 是场景乘子，只缩放绝对伤害，不改变分配结论。';
+    '<b>绘图范围固定 0–47 词条</b>（花 / 羽 / 沙 / 杯 / 头的副词条容量估算 ≈ 47）；' +
+    '细虚线 = 5 / 10 / … / 45 词条，橙线 = 当前预算 n（默认 30）。预算只用于最优分配 / 读数，<b>不是绘图上限</b>。' +
+    'K 主要缩放绝对伤害，但 F 不随 K 缩放、且会再乘暴击，K 变化会让最优分配轻微移动' +
+    '（K = 1.7 → 1.0：8.9 / 21.1 → 8.1 / 21.9）。';
 
   M['mitya/dmg_map'] = {
     title: '「米提亚」伤害热图',
     tab: '米提亚·伤害热图',
     math: true,
-    intro: '把 n 个等效词条分给精通 / 双暴：颜色 = 相对基准面板的伤害倍数，叠加倍数等高线；' +
-      '鼠标在图上时，箭头指向该点<b>上升最快</b>的方向，悬浮读该点的面板、倍数与词条等效；' +
+    intro: '绘图范围固定 0–47 词条（细虚线 = 5 / 10 / … / 45，橙线 = 当前预算 n）：' +
+      '颜色 = 相对基准面板的伤害倍数，叠加倍数等高线；最优分配按预算 n 计算（默认 30），预算只决定橙线与最优标记，不限制绘图。' +
+      '鼠标在图上时，箭头指向该点<b>上升最快</b>的方向，悬浮读该点的面板、倍数与词条等效（超出预算的点只展示读数）；' +
       '点击图面固定所选点（十字虚线），复位回最优。单段口径 = 10 级「递变聚爆」的星超导部分（403.2% 元素精通）。',
     controls: [
       {
@@ -87,14 +92,14 @@
         { n: '2 命（过载）', v: 234 },
         { n: '精通沙', v: 187 },
         { n: '精通杯', v: 187 },
-        { n: '精通头', v: 187 },
         { n: '砂糖', v: 210 },
         { n: '瓦列里 2 命', v: 100 },
         { n: '教官 4 件套', v: 120 }] },
       { key: 'cr', type: 'items', label: '基准暴击率 %', step: 0.1, min: 0, items: [
         { n: '米提亚自身', v: 5 },
         { n: '超限易爆试剂', v: 20 },
-        { n: '幻灭 4 件套', v: 16 }] },
+        { n: '幻灭 4 件套', v: 16 },
+        { n: '暴击头', v: 31.1 }] },
       { key: 'cd', type: 'items', label: '基准暴伤 %', step: 0.1, min: 50, items: [
         { n: '角色基础', v: 50 },
         { n: '突破属性', v: 38.4 },
@@ -183,7 +188,7 @@
       function updateVerdict(rs) {
         var scan = S.scan(rs, GRID);
         var best = scan.best;
-        if (pinned && (pinned.x < -1e-9 || pinned.y < -1e-9 || pinned.x + pinned.y > rs.n + 1e-9)) {
+        if (pinned && (pinned.x < -1e-9 || pinned.y < -1e-9 || pinned.x + pinned.y > rs.nMax + 1e-9)) {
           pinned = null;
         }
         var p = pinned || { x: best.x, y: best.y };
@@ -202,8 +207,10 @@
           '精通 ' + p.x.toFixed(1) + ' · 双暴 ' + p.y.toFixed(1) + ' 词条';
         document.getElementById('cornerLine').textContent =
           '精通 ' + det.em.toFixed(0) + ' · 暴击 ' + det.cr.toFixed(1) + ' / ' + det.cd.toFixed(1);
+        var over = p.x + p.y > rs.n + 1e-9;
         document.getElementById('vNote').innerHTML =
-          'K = ' + det.k.toFixed(2) + '（' + rs.kLayers + ' 层） · 抗性系数 ' + fmtTrim(det.res, 2, 4) +
+          '预算 ' + rs.n + ' · 绘图 0–' + rs.nMax + (over ? '（所选点超出预算，仅展示）' : '') +
+          ' · K = ' + det.k.toFixed(2) + '（' + rs.kLayers + ' 层） · 抗性系数 ' + fmtTrim(det.res, 2, 4) +
           ' · 额外提升 ' + fmtTrim(det.f, 0, 1);
         return scan;
       }
@@ -215,12 +222,16 @@
         st = rs;
         var scan = updateVerdict(rs);
 
+        var cap = rs.nMax;
         var shapes = [];
         if (pinned) {
-          shapes.push({ type: 'line', x0: pinned.x, y0: 0, x1: pinned.x, y1: rs.n, line: { color: '#4a6fa5', width: 1.2, dash: 'dash' } });
-          shapes.push({ type: 'line', x0: 0, y0: pinned.y, x1: rs.n, y1: pinned.y, line: { color: '#4a6fa5', width: 1.2, dash: 'dash' } });
+          shapes.push({ type: 'line', x0: pinned.x, y0: 0, x1: pinned.x, y1: cap, line: { color: '#4a6fa5', width: 1.2, dash: 'dash' } });
+          shapes.push({ type: 'line', x0: 0, y0: pinned.y, x1: cap, y1: pinned.y, line: { color: '#4a6fa5', width: 1.2, dash: 'dash' } });
         }
-        shapes.push({ type: 'line', x0: 0, y0: rs.n, x1: rs.n, y1: 0, line: { color: '#b9b1b7', width: 1, dash: 'dot' } });
+        for (var c = 5; c < cap; c += 5) {
+          shapes.push({ type: 'line', x0: 0, y0: c, x1: c, y1: 0, line: { color: '#b9b1b7', width: 1, dash: 'dot' } });
+        }
+        shapes.push({ type: 'line', x0: 0, y0: rs.n, x1: rs.n, y1: 0, line: { color: '#e8710a', width: 1.8 } });
 
         var zFlat = scan.zs.flat().filter(function (v) { return v !== null; });
         var zLo = Math.min.apply(null, zFlat), zHi = Math.max.apply(null, zFlat);
@@ -252,26 +263,22 @@
           });
         }
 
-        var anns = [{
-          x: rs.n * 0.58, y: rs.n * 0.58, text: '词条预算', showarrow: false,
-          font: { size: 11, color: '#999' },
-        }];
         charts.draw(m.plot, traces, {
-          xaxis: charts.axis({ title: { text: '精通词条数' }, range: [0, rs.n] }),
-          yaxis: charts.axis({ title: { text: '双暴词条数' }, range: [0, rs.n] }),
+          xaxis: charts.axis({ title: { text: '精通词条数' }, range: [0, cap], dtick: 5 }),
+          yaxis: charts.axis({ title: { text: '双暴词条数' }, range: [0, cap], dtick: 5 }),
           shapes: shapes,
-          annotations: anns,
           showlegend: true,
           legend: { orientation: 'h', x: 0, y: 1.06, font: { size: 12, color: charts.DIM } },
           margin: { t: 24, r: 24, b: 52, l: 60 }, height: 620,
         }).then(function () { ovl.queue(); });
       }
 
-      /** 可行的上升方向：在预算线上时投影到 (1,−1) / (−1,1)；在边界且方向不可行时置零。 */
+      /** 可行的上升方向：在物理边界（nMax）上时投影到 (1,−1) / (−1,1)；否则直接用梯度。 */
       function feasibleGrad(s, x, y) {
         var g = S.grad(x, y, s);
         var gx = g.gx, gy = g.gy;
-        if (x + y >= s.n - 1e-9) {
+        var cap = s.nMax || s.n;
+        if (x + y >= cap - 1e-9) {
           var d = gx - gy;
           if (Math.abs(d) < 1e-12) return { gx: 0, gy: 0 };
           var dirX = d > 0 ? 1 : -1;
@@ -285,20 +292,28 @@
       ovl.draw(function (g) {
         var s = st;
         if (!s) return [];
+        var cap = s.nMax || s.n;
         var parts = [ctx.overlay.defs([{ id: 'ovl-arrow-g', color: '#4a6fa5' }])];
         if (pinned) {
-          var px = pinned.x / s.n * g.w, py = (s.n - pinned.y) / s.n * g.h;
+          var px = pinned.x / cap * g.w, py = (cap - pinned.y) / cap * g.h;
           parts.push('<line x1="' + px + '" y1="0" x2="' + px + '" y2="' + g.h + '" stroke="#4a6fa5" stroke-width="1.2" stroke-dasharray="6,4"/>');
           parts.push('<line x1="0" y1="' + py + '" x2="' + g.w + '" y2="' + py + '" stroke="#4a6fa5" stroke-width="1.2" stroke-dasharray="6,4"/>');
           parts.push('<line x1="' + (px - 6) + '" y1="' + py + '" x2="' + (px + 6) + '" y2="' + py + '" stroke="#4a6fa5" stroke-width="2"/>');
           parts.push('<line x1="' + px + '" y1="' + (py - 6) + '" x2="' + px + '" y2="' + (py + 6) + '" stroke="#4a6fa5" stroke-width="2"/>');
         }
+        for (var c = 5; c < cap; c += 5) {
+          if (Math.abs(c - s.n) < 1e-9) continue;
+          var lx = c * 0.78 / cap * g.w, ly = (cap - c * 0.22) / cap * g.h;
+          ctx.overlay.text(parts, lx, ly, String(c), '#888', 'middle');
+        }
+        ctx.overlay.text(parts, s.n * 0.78 / cap * g.w, (cap - s.n * 0.22) / cap * g.h,
+          '预算 ' + s.n, '#e8710a', 'middle');
         if (hoverPx) {
-          var x = hoverPx.x / g.w * s.n;
-          var y = s.n - hoverPx.y / g.h * s.n;
-          if (x >= 0 && y >= 0 && x + y <= s.n + 1e-9) {
+          var x = hoverPx.x / g.w * cap;
+          var y = cap - hoverPx.y / g.h * cap;
+          if (x >= 0 && y >= 0 && x + y <= cap + 1e-9) {
             var grad = feasibleGrad(s, x, y);
-            var ax = grad.gx * s.n / g.w, ay = grad.gy * s.n / g.h;
+            var ax = grad.gx * cap / g.w, ay = grad.gy * cap / g.h;
             var mag = Math.hypot(ax, ay);
             if (mag > 1e-9) {
               ctx.overlay.arrow(parts, hoverPx.x, hoverPx.y, ax, ay, g, {
@@ -316,18 +331,21 @@
         ovl.queue();
         if (!hoverPx || !st) { tip.hide(); return; }
         var g = m.geom();
-        var x = hoverPx.x / g.w * st.n;
-        var y = st.n - hoverPx.y / g.h * st.n;
+        var cap = st.nMax;
+        var x = hoverPx.x / g.w * cap;
+        var y = cap - hoverPx.y / g.h * cap;
         var s = st;
-        if (x < 0 || y < 0) { tip.hide(); return; }
+        if (x < 0 || y < 0 || x + y > cap + 1e-9) { tip.hide(); return; }
 
         var base0 = S.damage(Object.assign({}, s, { n: 0 }), 0, 0);
-        if (x + y > s.n + 1e-9) {   // 超过词条预算：按比例折算到边界，倍率照常算
-          var sum = x + y;
-          var x2 = x * s.n / sum, y2 = y * s.n / sum;
-          var det2 = S.detail(s, x2, y2);
-          tip.show('<div class="tip__hero"><b>×' + (det2.exp / base0).toFixed(3) + '</b><span class="u">相对基准面板</span></div>' +
-            '<div class="tip__bad">超过 ' + s.n + ' 词条上限</div>', hoverPx.x, hoverPx.y, { segs: [] });
+        if (x + y > s.n + 1e-9) {   // 超出预算但仍在绘图范围内：只展示该点，不做等效 / 梯度
+          var detB = S.detail(s, x, y);
+          tip.show(
+            '<div class="tip__hero"><b>' + Math.round(detB.exp) + '</b><span class="u">递变聚爆（星超导单段）</span></div>' +
+            '<div class="tip__crit">暴击 ' + Math.round(detB.crit) + '、未暴击 ' + Math.round(detB.noncrit) + '</div>' +
+            '<div class="tip__hero tip__hero--sm"><b>×' + (detB.exp / base0).toFixed(3) + '</b><span class="u">相对基准面板</span></div>' +
+            '<div class="tip__cap">超出预算 ' + s.n + ' 词条（仅展示；最优分配按预算算）</div>',
+            hoverPx.x, hoverPx.y, { segs: [] });
           return;
         }
 
@@ -340,7 +358,7 @@
         /* 梯度箭头线段（与叠加层同一算法）——卡片避开它放 */
         var segs = [];
         var gr = feasibleGrad(s, x, y);
-        var ax = gr.gx * s.n / g.w, ay = gr.gy * s.n / g.h;
+        var ax = gr.gx * cap / g.w, ay = gr.gy * cap / g.h;
         var mag = Math.hypot(ax, ay);
         if (mag > 1e-9) {
           var tp = ctx.overlay.arrowTip(hoverPx.x, hoverPx.y, ax, ay, g,
@@ -380,9 +398,10 @@
         var p = m.pxIn(e);
         if (!p) return;
         var g = m.geom();
-        var x = p.x / g.w * st.n;
-        var y = st.n - p.y / g.h * st.n;
-        if (x < 0 || y < 0 || x + y > st.n + 1e-9) return;
+        var cap = st.nMax;
+        var x = p.x / g.w * cap;
+        var y = cap - p.y / g.h * cap;
+        if (x < 0 || y < 0 || x + y > cap + 1e-9) return;
         pinned = { x: x, y: y };
         update(lastRaw);
       });
