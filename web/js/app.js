@@ -72,6 +72,7 @@
     {
       group: '「米提亚」星超导',
       items: [
+        { id: 'mitya/set_vs', label: '套装对比', icon: 'bars' },
         { id: 'mitya/dmg_map', label: '伤害热图', icon: 'grid' },
       ],
     },
