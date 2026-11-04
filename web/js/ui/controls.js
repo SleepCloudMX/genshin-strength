@@ -1,8 +1,8 @@
 /* 参数面板控件层：一切输入都走这里。
    数字框 = 提交式（失焦 / 回车才生效，越界写回框里）；滑条 = 拖动只更新读数、松手才生效；
    重绘快的页可给滑条加 live: ms —— 拖动中停顿 ms 后自动提交，松手不重复重绘。
-   类型：number / items（总数 + 可展开明细）/ range（可带数字框） / select / text / readout / note / custom /
-         group（可折叠组，items 为子控件，默认收起）。 */
+   类型：number / items（总数 + 可展开明细）/ range（可带数字框） / select（可 half 放半行）/ text / readout /
+         note / custom / heading（分组标题）/ group（可折叠组，items 为子控件，默认收起）。 */
 (function (global) {
   'use strict';
   var GS = global.GS = global.GS || {};
@@ -38,6 +38,10 @@
       if (!c) return;
 
       if (c.type === 'note') { notes.push(el('p', 'note', c.html)); return; }
+      if (c.type === 'heading') {
+        container.appendChild(el('div', 'ctlhead', c.label));
+        return;
+      }
       if (c.type === 'group') {
         var grp = el('details', 'ctlgrp');
         if (c.open) grp.open = true;
@@ -73,8 +77,8 @@
       }
 
       var id = 'ctl-' + c.key;
-      /* 下拉 / 滑条 / 自定义占整行；数字与短文本默认半行（c.full 可强制整行） */
-      var wide = c.full || c.type === 'select' || c.type === 'range';
+      /* 滑条 / 自定义默认整行；下拉可用 half 放半行；数字与短文本默认半行（c.full 可强制整行） */
+      var wide = c.full || c.type === 'range' || (c.type === 'select' && !c.half);
       var field = el('div', 'field' + (wide ? ' field--full' : ''));
       var label = el('label', 'field__label', c.label);
       label.setAttribute('for', id);
