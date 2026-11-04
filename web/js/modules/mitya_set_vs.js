@@ -1,5 +1,5 @@
-/* 米提亚 · 套装对比：比值热力图（对比 / 基准），基准 = 幻灭 4 + 精精暴（暴击头）。
-   同一套副词条分配 (x, y) 下比较两套配置；黑线 = 两套等效。 */
+/* 米提亚 · 套装对比：比值热力图（配置 B / 配置 A），两套配置均可自由选择。
+   同一套副词条分配 (x, y) 下比较两套配置；黑线 = 两套等效；结论按各自最优伤害。 */
 (function (global) {
   'use strict';
   var GS = global.GS = global.GS || {};
@@ -15,7 +15,6 @@
   ];
   var SETS = { emblem: '幻灭 4 件套', em22: '2+2 精通', gilded: '饰金之梦 4 件套' };
   var MAINS = { emEmEm: '精精精', emEmCr: '精精暴（暴击头）', emEmCd: '精精暴（暴伤头）' };
-  var BASE_SET = 'emblem', BASE_MAIN = 'emEmCr';
 
   function fmtTrim(v, minDp, maxDp) {
     var s = v.toFixed(maxDp);
@@ -72,17 +71,18 @@
     var cs = commonState(s);
     return {
       common: cs,
-      base: withSetMain(cs, BASE_SET, BASE_MAIN),
-      comp: withSetMain(cs, s.set, s.main),
+      A: withSetMain(cs, s.setA, s.mainA),
+      B: withSetMain(cs, s.setB, s.mainB),
     };
   }
 
   function configLabel(set, main) { return SETS[set] + ' · ' + MAINS[main]; }
 
-  function ratioAt(base, comp, x, y) {
-    var db = S.damage(base, x, y);
-    var dc = S.damage(comp, x, y);
-    return db && dc ? dc / db : null;
+  /** 比值 = 配置 B / 配置 A。 */
+  function ratioAt(a, b, x, y) {
+    var da = S.damage(a, x, y);
+    var db = S.damage(b, x, y);
+    return da && db ? db / da : null;
   }
 
   function dividerPoints(zs, xs) {
@@ -103,16 +103,16 @@
     return { bx: bx, by: by };
   }
 
-  /** 全网格：比值、极值、各自最优、两套等效线。绘图范围 0 ~ nMax；最优按预算 n。 */
-  function scanRatio(base, comp, G) {
+  /** 全网格：B/A 比值、极值、各自最优、两套等效线。绘图范围 0 ~ nMax；最优按预算 n。 */
+  function scanRatio(a, b, G) {
     G = G || GRID;
-    var cap = base.nMax || base.n;
+    var cap = a.nMax || a.n;
     var step = cap / (G - 1);
     var xs = Array.from({ length: G }, function (_, i) { return i * step; });
     var lo = Infinity, hi = -Infinity, loAt = null, hiAt = null;
     var zs = xs.map(function (y) {
       return xs.map(function (x) {
-        var r = ratioAt(base, comp, x, y);
+        var r = ratioAt(a, b, x, y);
         if (r === null) return null;
         if (r < lo) { lo = r; loAt = [x, y]; }
         if (r > hi) { hi = r; hiAt = [x, y]; }
@@ -121,7 +121,7 @@
     });
     return {
       xs: xs, zs: zs, lo: lo, hi: hi, loAt: loAt, hiAt: hiAt,
-      bestBase: S.bestFor(base), bestComp: S.bestFor(comp),
+      bestA: S.bestFor(a), bestB: S.bestFor(b),
       divider: dividerPoints(zs, xs),
     };
   }
@@ -137,9 +137,10 @@
   }
 
   var FOOT =
-    '<b>基准 = 幻灭 4 件套 + 精精暴（暴击头）</b>；<b>对比</b> = 下拉选择的套装 × 主词条。两者使用同一套副词条分配 ' +
-    '（横轴精通词条、纵轴双暴词条），所以比值回答「<b>同样的词条数下谁更强</b>」；> 1 = 对比更强，' +
-    '黑线 = 两套等效，橙点 / 蓝菱 = 各自配置下的最优分配（<b>按词条预算 n 计算</b>）。<br>' +
+    '<b>配置 A 与配置 B 均可自由选择</b>（套装 × 主词条）。两者使用同一套副词条分配（横轴精通词条、纵轴双暴词条）：' +
+    '颜色 = <b>B / A</b>，> 1 = B 在该分配更强；黑线 = 两套等效。<br>' +
+    '<b>结论按两套各自的最优伤害比较</b> —— 各自在预算 n 内取最优分配；橙点 = A 最优，蓝菱 = B 最优。' +
+    '某个固定点的比值只说明该分配下的强弱，不能代替最优比较。<br>' +
     '<b>绘图范围固定 0–47 词条</b>（副词条容量估算）；细虚线 = 5 / 10 / … / 45 词条，橙线 = 当前预算 n（默认 30）。' +
     '预算只决定最优标记与「各自最优」读数，不是绘图上限。<br>' +
     '<b>套装贡献</b>：幻灭 4 = +16% 暴击率、+40% 星超导增伤；2+2 精通 = +160 精通；' +
@@ -155,27 +156,40 @@
     title: '「米提亚」套装对比',
     tab: '米提亚·套装对比',
     noPlotly: false,
-    intro: '比较「幻灭 4 + 精精暴（暴击头）」与另一套「套装 × 主词条」在<b>同一套副词条分配</b>下的伤害比值：' +
-      '绘图范围固定 0–47 词条（细虚线 = 5 / 10 / … / 45，橙线 = 当前预算 n）；颜色 = 对比 / 基准，黑线 = 两套等效；' +
-      '橙点 / 蓝菱 = 各自最优分配（按预算 n 计算，默认 30）。悬浮读该点的比值与两套伤害，点击图面把所选点移到该处。',
+    intro: '自由选择配置 A 与配置 B（各自「套装 × 主词条」），在<b>同一套副词条分配</b>下比较：' +
+      '绘图范围固定 0–47 词条（细虚线 = 5 / 10 / … / 45，橙线 = 当前预算 n）；颜色 = <b>B / A</b>，黑线 = 两套等效；' +
+      '橙点 = A 最优，蓝菱 = B 最优；<b>结论按两套各自的最优伤害比较</b>（按预算 n，默认 30）。' +
+      '悬浮读该点的比值与两套伤害，点击图面把所选点移到该处。',
     controls: [
       {
         key: '', type: 'note',
-        html: '<b>基准 = 幻灭 4 件套 + 精精暴（暴击头）</b>（与伤害热图默认一致）。' +
-          '对比配置由下方两个下拉选择；两套共用同一套副词条分配。',
+        html: '<b>配置 A 与配置 B 均可自由选择</b>（套装 × 主词条）；两套共用同一套副词条分配。' +
+          '<b>结论按各自最优伤害比较</b>；所选点的比值只说明该分配下的强弱。',
       },
       {
         key: '', type: 'note',
         html: '<b>公共面板</b> = 上完 buff、不含套装 / 主词条；每个数值可点「明细」查看来源。' +
           '套装 / 主词条的贡献在计算时自动加上（见页脚）。',
       },
-      { key: 'set', type: 'select', label: '对比套装', def: 'em22',
+      { key: 'setA', type: 'select', label: '配置 A · 套装', def: 'emblem',
         options: [
           { value: 'emblem', label: '幻灭 4 件套' },
           { value: 'em22', label: '2+2 精通（+160 精通）' },
           { value: 'gilded', label: '饰金之梦 4 件套（+180 精通）' },
         ] },
-      { key: 'main', type: 'select', label: '主词条', def: 'emEmCr',
+      { key: 'mainA', type: 'select', label: '配置 A · 主词条', def: 'emEmCr',
+        options: [
+          { value: 'emEmEm', label: '精精精' },
+          { value: 'emEmCr', label: '精精暴（暴击头）' },
+          { value: 'emEmCd', label: '精精暴（暴伤头）' },
+        ] },
+      { key: 'setB', type: 'select', label: '配置 B · 套装', def: 'em22',
+        options: [
+          { value: 'emblem', label: '幻灭 4 件套' },
+          { value: 'em22', label: '2+2 精通（+160 精通）' },
+          { value: 'gilded', label: '饰金之梦 4 件套（+180 精通）' },
+        ] },
+      { key: 'mainB', type: 'select', label: '配置 B · 主词条', def: 'emEmCr',
         options: [
           { value: 'emEmEm', label: '精精精' },
           { value: 'emEmCr', label: '精精暴（暴击头）' },
@@ -214,15 +228,15 @@
         ],
       },
       { key: 'n', type: 'range', label: '词条预算', def: S.N_DEF, min: 2, max: S.N_MAX, step: 1 },
-      { key: 'basePanel', type: 'readout', full: true, label: '基准面板', compute: function (s) {
-        var b = statesOf(s).base;
+      { key: 'panelA', type: 'readout', full: true, label: '配置 A 面板', compute: function (s) {
+        var a = statesOf(s).A;
+        return '精通 ' + a.em.toFixed(0) + ' · 暴击 ' + a.cr.toFixed(1) + ' / ' + a.cd.toFixed(1) +
+          ' · 增伤 ' + Math.round(a.bonus * 100) + '%';
+      } },
+      { key: 'panelB', type: 'readout', full: true, label: '配置 B 面板', compute: function (s) {
+        var b = statesOf(s).B;
         return '精通 ' + b.em.toFixed(0) + ' · 暴击 ' + b.cr.toFixed(1) + ' / ' + b.cd.toFixed(1) +
           ' · 增伤 ' + Math.round(b.bonus * 100) + '%';
-      } },
-      { key: 'compPanel', type: 'readout', full: true, label: '对比面板', compute: function (s) {
-        var c = statesOf(s).comp;
-        return '精通 ' + c.em.toFixed(0) + ' · 暴击 ' + c.cr.toFixed(1) + ' / ' + c.cd.toFixed(1) +
-          ' · 增伤 ' + Math.round(c.bonus * 100) + '%';
       } },
     ],
 
@@ -231,16 +245,16 @@
 
       var verdict = el('div', 'verdict');
       verdict.innerHTML =
-        '<div class="verdict__bar"><span class="verdict__st">对比 / 基准</span>' +
+        '<div class="verdict__bar"><span class="verdict__st">所选点 B/A</span>' +
         '<span class="verdict__mul" id="vRatio">—</span>' +
         '<button class="verdict__reset" id="vReset" type="button" hidden>复位</button></div>' +
         '<div class="verdict__who" id="vWho">—</div>' +
         '<div class="verdict__sub" id="vPoint">—</div>' +
         '<div class="verdict__foot"><div class="verdict__vrows">' +
-        '<div class="verdict__vrow"><span class="verdict__vk">基准</span>' +
-        '<span class="verdict__vv" id="vBase">—</span></div>' +
-        '<div class="verdict__vrow"><span class="verdict__vk">对比</span>' +
-        '<span class="verdict__vv" id="vComp">—</span></div>' +
+        '<div class="verdict__vrow"><span class="verdict__vk">A</span>' +
+        '<span class="verdict__vv" id="vA">—</span></div>' +
+        '<div class="verdict__vrow"><span class="verdict__vk">B</span>' +
+        '<span class="verdict__vv" id="vB">—</span></div>' +
         '<div class="verdict__vrow"><span class="verdict__vk">各自最优</span>' +
         '<span class="verdict__vv" id="vOpt">—</span></div></div>' +
         '<div class="verdict__note" id="vNote">—</div></div>';
@@ -260,49 +274,51 @@
       var lastRaw = null;
 
       function updateVerdict(states, scan) {
-        var n = states.base.n;
-        var cap = states.base.nMax;
+        var A = states.A, B = states.B;
+        var n = A.n, cap = A.nMax;
+        var nameA = configLabel(lastRaw.setA, lastRaw.mainA);
+        var nameB = configLabel(lastRaw.setB, lastRaw.mainB);
         if (pinned && (pinned.x < -1e-9 || pinned.y < -1e-9 || pinned.x + pinned.y > cap + 1e-9)) pinned = null;
-        var p = pinned || { x: scan.bestBase.x, y: scan.bestBase.y };
-        var r = ratioAt(states.base, states.comp, p.x, p.y);
-        var db = S.damage(states.base, p.x, p.y);
-        var dc = S.damage(states.comp, p.x, p.y);
-        var margin = Math.abs(r - 1) * 100;
-        var who;
-        if (margin.toFixed(2) === '0.00') {
-          who = '两套等效';
+        var p = pinned || { x: scan.bestA.x, y: scan.bestA.y };
+        var r = ratioAt(A, B, p.x, p.y);
+        var dA = S.damage(A, p.x, p.y);
+        var dB = S.damage(B, p.x, p.y);
+
+        /* 主结论：两套各自最优伤害（不是某个固定点的比值） */
+        var bestA = Math.round(scan.bestA.d), bestB = Math.round(scan.bestB.d);
+        var winnerIsB = bestB > bestA;
+        var winnerD = Math.max(bestA, bestB), loserD = Math.min(bestA, bestB);
+        var gap = winnerD > 0 ? (loserD / winnerD - 1) * 100 : 0;
+        var bestWho, bestColor;
+        if (bestA === bestB || Math.abs(gap) < 0.005) {
+          bestWho = '两套最优伤害持平';
+          bestColor = '';
         } else {
-          who = (r > 1 ? '对比更强' : '基准更强') + ' ' + margin.toFixed(2) + '%';
+          bestWho = (winnerIsB ? nameB : nameA) + ' 更强 ' + Math.abs(gap).toFixed(2) + '%（按各自最优）';
+          bestColor = winnerIsB ? '#2a6099' : '#c05621';
         }
-        var color = margin.toFixed(2) === '0.00' ? '' : (r > 1 ? '#a03030' : '#2a6099');
         document.getElementById('vRatio').textContent = r.toFixed(4);
         document.getElementById('vReset').hidden = !pinned;
-        document.getElementById('vWho').textContent = who;
-        document.getElementById('vWho').style.color = color;
+        document.getElementById('vWho').textContent = bestWho;
+        document.getElementById('vWho').style.color = bestColor;
         var over = p.x + p.y > n + 1e-9;
         document.getElementById('vPoint').textContent =
-          (pinned ? '所选点：' : '基准最优：') + '精通 ' + p.x.toFixed(1) + ' · 双暴 ' + p.y.toFixed(1) + ' 词条' +
-          (pinned ? (over ? '（超出预算，仅展示；复位回基准最优）' : '（点击「复位」回基准最优）') : '（点击图面移动）');
-        document.getElementById('vBase').textContent =
-          configLabel(BASE_SET, BASE_MAIN) + ' · ' + Math.round(db) + '（精通 ' + (states.base.em + 20 * p.x).toFixed(0) +
-          ' · 暴击 ' + S.critSplit(states.base.cr, states.base.cd, p.y).cr.toFixed(1) + ' / ' +
-          S.critSplit(states.base.cr, states.base.cd, p.y).cd.toFixed(1) + '）';
-        document.getElementById('vComp').textContent =
-          configLabel(lastRaw.set, lastRaw.main) + ' · ' + Math.round(dc) +
-          '（精通 ' + (states.comp.em + 20 * p.x).toFixed(0) +
-          ' · 暴击 ' + S.critSplit(states.comp.cr, states.comp.cd, p.y).cr.toFixed(1) + ' / ' +
-          S.critSplit(states.comp.cr, states.comp.cd, p.y).cd.toFixed(1) + '）';
-        var baseR = Math.round(scan.bestBase.d), compR = Math.round(scan.bestComp.d);
-        var bestDiff = (compR / baseR - 1) * 100;
-        var bestDiffTxt = Math.abs(bestDiff) < 0.005 ? '（持平）'
-          : '（' + (bestDiff > 0 ? '+' : '') + bestDiff.toFixed(2) + '%）';
+          (pinned ? '所选点：' : 'A 最优：') + '精通 ' + p.x.toFixed(1) + ' · 双暴 ' + p.y.toFixed(1) + ' 词条' +
+          (pinned ? (over ? '（超出预算，仅展示；复位回 A 最优）' : '（点击「复位」回 A 最优）') : '（点击图面移动）');
+        var tA = S.critSplit(A.cr, A.cd, p.y);
+        var tB = S.critSplit(B.cr, B.cd, p.y);
+        document.getElementById('vA').textContent =
+          nameA + ' · ' + Math.round(dA) + '（精通 ' + (A.em + 20 * p.x).toFixed(0) +
+          ' · 暴击 ' + tA.cr.toFixed(1) + ' / ' + tA.cd.toFixed(1) + '）';
+        document.getElementById('vB').textContent =
+          nameB + ' · ' + Math.round(dB) + '（精通 ' + (B.em + 20 * p.x).toFixed(0) +
+          ' · 暴击 ' + tB.cr.toFixed(1) + ' / ' + tB.cd.toFixed(1) + '）';
         document.getElementById('vOpt').textContent =
-          '基准 ' + scan.bestBase.x.toFixed(1) + ' / ' + scan.bestBase.y.toFixed(1) + ' → ' + baseR +
-          '；对比 ' + scan.bestComp.x.toFixed(1) + ' / ' + scan.bestComp.y.toFixed(1) + ' → ' +
-          compR + bestDiffTxt;
-        var range = '预算 ' + n + ' · 绘图 0–' + cap + ' · 全图 ×' + scan.lo.toFixed(3) + ' ~ ×' + scan.hi.toFixed(3);
-        if (scan.lo > 1 + 1e-9) range += '（全图对比更强）';
-        else if (scan.hi < 1 - 1e-9) range += '（全图基准更强）';
+          'A ' + scan.bestA.x.toFixed(1) + ' / ' + scan.bestA.y.toFixed(1) + ' → ' + bestA +
+          '；B ' + scan.bestB.x.toFixed(1) + ' / ' + scan.bestB.y.toFixed(1) + ' → ' + bestB;
+        var range = '预算 ' + n + ' · 绘图 0–' + cap + ' · 全图 B/A ×' + scan.lo.toFixed(3) + ' ~ ×' + scan.hi.toFixed(3);
+        if (scan.lo > 1 + 1e-9) range += '（全图 B/A ≥ 1）';
+        else if (scan.hi < 1 - 1e-9) range += '（全图 B/A ≤ 1）';
         else range += '（黑线 = 两套等效）';
         document.getElementById('vNote').textContent = range;
       }
@@ -311,11 +327,11 @@
         lastRaw = s0;
         var states = statesOf(s0);
         st = states;
-        var scan = scanRatio(states.base, states.comp, GRID);
+        var scan = scanRatio(states.A, states.B, GRID);
         updateVerdict(states, scan);
 
-        var n = states.base.n;
-        var cap = states.base.nMax;
+        var n = states.A.n;
+        var cap = states.A.nMax;
         var cmap = makeColorMap(scan.lo, scan.hi);
         var zT = scan.zs.map(function (row) {
           return row.map(function (v) { return v === null ? null : cmap.toT(v); });
@@ -336,7 +352,7 @@
           type: 'heatmap', x: scan.xs, y: scan.xs, z: zT,
           colorscale: COLORSCALE, zmin: 0, zmax: 1, showlegend: false,
           colorbar: {
-            title: { text: '对比 / 基准' }, thickness: 16, len: 0.8,
+            title: { text: 'B / A' }, thickness: 16, len: 0.8,
             tickvals: tickVals.map(cmap.toT), ticktext: tickVals.map(round2),
           },
         }];
@@ -347,16 +363,16 @@
           });
         }
         traces.push({
-          type: 'scatter', mode: 'markers', x: [scan.bestBase.x], y: [scan.bestBase.y], cliponaxis: false,
+          type: 'scatter', mode: 'markers', x: [scan.bestA.x], y: [scan.bestA.y], cliponaxis: false,
           marker: { symbol: 'circle', size: 7, color: '#e8710a', line: { color: '#fff', width: 1.5 } },
-          name: '基准最优',
+          name: 'A 最优',
         });
         traces.push({
-          type: 'scatter', mode: 'markers', x: [scan.bestComp.x], y: [scan.bestComp.y], cliponaxis: false,
+          type: 'scatter', mode: 'markers', x: [scan.bestB.x], y: [scan.bestB.y], cliponaxis: false,
           marker: { symbol: 'diamond', size: 8, color: '#4a6fa5', line: { color: '#fff', width: 1.5 } },
-          name: '对比最优',
+          name: 'B 最优',
         });
-        var p = pinned || { x: scan.bestBase.x, y: scan.bestBase.y };
+        var p = pinned || { x: scan.bestA.x, y: scan.bestA.y };
         if (pinned) {
           traces.push({
             type: 'scatter', mode: 'markers', x: [p.x], y: [p.y], cliponaxis: false,
@@ -387,14 +403,14 @@
       ovl.draw(function (g) {
         var s = st;
         if (!s) return [];
-        var cap = s.base.nMax;
+        var cap = s.A.nMax;
         var parts = [];
         for (var c = 5; c < cap; c += 5) {
-          if (Math.abs(c - s.base.n) < 1e-9) continue;
+          if (Math.abs(c - s.A.n) < 1e-9) continue;
           ctx.overlay.text(parts, c * 0.78 / cap * g.w, (cap - c * 0.22) / cap * g.h, String(c), '#888', 'middle');
         }
-        ctx.overlay.text(parts, s.base.n * 0.78 / cap * g.w, (cap - s.base.n * 0.22) / cap * g.h,
-          '预算 ' + s.base.n, '#e8710a', 'middle');
+        ctx.overlay.text(parts, s.A.n * 0.78 / cap * g.w, (cap - s.A.n * 0.22) / cap * g.h,
+          '预算 ' + s.A.n, '#e8710a', 'middle');
         return parts;
       });
 
@@ -403,26 +419,27 @@
         var p = m.pxIn(e);
         if (!p) { tip.hide(); return; }
         var g = m.geom();
-        var cap = st.base.nMax;
+        var cap = st.A.nMax;
         var x = p.x / g.w * cap;
         var y = cap - p.y / g.h * cap;
         if (x < 0 || y < 0 || x + y > cap + 1e-9) { tip.hide(); return; }
-        var over = x + y > st.base.n + 1e-9;
-        var r = ratioAt(st.base, st.comp, x, y);
-        var db = S.damage(st.base, x, y);
-        var dc = S.damage(st.comp, x, y);
+        var over = x + y > st.A.n + 1e-9;
+        var r = ratioAt(st.A, st.B, x, y);
+        var dA = S.damage(st.A, x, y);
+        var dB = S.damage(st.B, x, y);
         var margin = Math.abs(r - 1) * 100;
+        var winCfg = r > 1 ? configLabel(lastRaw.setB, lastRaw.mainB) : configLabel(lastRaw.setA, lastRaw.mainA);
         var who = margin.toFixed(2) === '0.00' ? '两套等效'
-          : (r > 1 ? '对比更强 ' : '基准更强 ') + margin.toFixed(2) + '%';
+          : winCfg + ' 更强 ' + margin.toFixed(2) + '%';
         tip.show(ctx.tip.card({
           title: '精通 ' + x.toFixed(1) + ' · 双暴 ' + y.toFixed(1) + ' 词条',
-          hero: { v: '×' + r.toFixed(4), cap: '对比 / 基准' },
+          hero: { v: '×' + r.toFixed(4), cap: 'B / A' },
           rows: [
-            ['基准', Math.round(db)],
-            ['对比', Math.round(dc)],
+            ['A', Math.round(dA)],
+            ['B', Math.round(dB)],
             ['该点', who],
           ],
-          note: configLabel(lastRaw.set, lastRaw.main) + (over ? ' · 超出预算（仅展示）' : ''),
+          note: SETS[lastRaw.setA] + ' vs ' + SETS[lastRaw.setB] + (over ? ' · 超出预算（仅展示）' : ''),
         }), p.x, p.y);
       });
       m.wrap.addEventListener('mouseleave', tip.hide);
@@ -432,7 +449,7 @@
         var p = m.pxIn(e);
         if (!p) return;
         var g = m.geom();
-        var cap = st.base.nMax;
+        var cap = st.A.nMax;
         var x = p.x / g.w * cap;
         var y = cap - p.y / g.h * cap;
         if (x < 0 || y < 0 || x + y > cap + 1e-9) return;
