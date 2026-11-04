@@ -70,6 +70,12 @@
       ],
     },
     {
+      group: '「米提亚」星超导',
+      items: [
+        { id: 'mitya/dmg_map', label: '伤害热图', icon: 'grid' },
+      ],
+    },
+    {
       group: '基础专题',
       items: [
         { id: 'basics/resistance', label: '抗性区：减抗收益', icon: 'shield' },
