@@ -74,6 +74,7 @@
       items: [
         { id: 'mitya/set_vs', label: '套装对比', icon: 'bars' },
         { id: 'mitya/dmg_map', label: '伤害热图', icon: 'grid' },
+        { id: 'mitya/weapon_compare', label: '武器对比', icon: 'sword' },
       ],
     },
     {

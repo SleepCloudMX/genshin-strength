@@ -685,6 +685,8 @@ input[type="range"] {
 .wrow .wsub { color: var(--text-dim); font-size: var(--fs-xs); margin-top: 2px; }
 .wrow .wnote { color: var(--text-dim); font-size: var(--fs-xs); }
 .wrow .wsplit { color: var(--text-dim); font-size: var(--fs-xs); }
+.wrow .whead { color: var(--text-dim); font-size: var(--fs-xs); margin-top: 2px; }
+.wrow .whead b { color: var(--text); font-weight: 600; }
 .wbar { display: flex; align-items: center; gap: 8px; }
 .wbar .fill { height: 8px; border-radius: 4px; background: var(--accent); }
 .wbar b { font-variant-numeric: tabular-nums; font-size: var(--fs-sm); min-width: 44px; }
