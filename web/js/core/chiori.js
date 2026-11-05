@@ -81,7 +81,8 @@
   /** b 个双暴词条在暴击率 / 暴伤之间最优拆分后的配比（期望口径；暴击率上限 100%）。 */
   S.critSplit = function (cr0, cd0, b) {
     var aStar = b / 2 + (cd0 / S.PER_CD - cr0 / S.PER_CR) / 2;
-    var a = Math.min(Math.max(aStar, 0), b, (100 - cr0) / S.PER_CR);
+    /* 基准暴击率已 ≥ 100% 时，溢出部分不折算成暴伤：暴击词条全进暴伤。 */
+    var a = Math.min(Math.max(aStar, 0), b, (100 - Math.min(cr0, 100)) / S.PER_CR);
     return { cr: cr0 + S.PER_CR * a, cd: cd0 + S.PER_CD * (b - a) };
   };
 

@@ -12,7 +12,8 @@
   /** b 个双暴词条在暴击率 / 暴伤之间最优拆分后的配比（期望口径；暴击率上限 100%）。b 的单位是词条。 */
   M.allocAt = function (b, cr0, cd0) {
     var aStar = b / 2 + (cd0 / C.CD_PER_ROLL - cr0 / C.CR_PER_ROLL) / 2;
-    var a = Math.min(Math.max(aStar, 0), b, (100 - cr0) / C.CR_PER_ROLL);
+    /* 基准暴击率已 ≥ 100% 时，溢出部分不折算成暴伤：暴击词条全进暴伤。 */
+    var a = Math.min(Math.max(aStar, 0), b, (100 - Math.min(cr0, 100)) / C.CR_PER_ROLL);
     return { a: a, cr: cr0 + C.CR_PER_ROLL * a, cd: cd0 + C.CD_PER_ROLL * (b - a) };
   };
 

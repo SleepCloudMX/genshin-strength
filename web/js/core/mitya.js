@@ -35,7 +35,8 @@
       1 : 2 不可达不是异常，按实际可达的最优算（页面不画配平警示线）。 */
   S.critSplit = function (cr0, cd0, y) {
     var aStar = y / 2 + (cd0 / S.CD_PER_ROLL - cr0 / S.CR_PER_ROLL) / 2;
-    var a = Math.min(Math.max(aStar, 0), y, (100 - cr0) / S.CR_PER_ROLL);
+    /* 基准暴击率已 ≥ 100% 时，溢出部分不折算成暴伤：暴击词条全进暴伤。 */
+    var a = Math.min(Math.max(aStar, 0), y, (100 - Math.min(cr0, 100)) / S.CR_PER_ROLL);
     return { cr: cr0 + S.CR_PER_ROLL * a, cd: cd0 + S.CD_PER_ROLL * (y - a), a: a };
   };
 
