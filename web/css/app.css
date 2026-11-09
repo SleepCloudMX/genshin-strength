@@ -202,6 +202,8 @@ a:hover { text-decoration: underline; }
 
 .chartwrap { position: relative; }
 .chart { width: 100%; }
+/* 悬停自绘光标：隐藏原生光标（叠加层里按鼠标热点画精确圆点） */
+.chartwrap.hidecursor, .chartwrap.hidecursor * { cursor: none !important; }
 
 /* 图表下方的说明（读图约定等） */
 .chartnote {

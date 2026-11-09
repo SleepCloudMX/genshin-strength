@@ -327,12 +327,16 @@
               });
             }
           }
+          /* 自绘光标：画在鼠标热点的精确像素上（原生光标已隐藏） */
+          parts.push('<circle cx="' + hoverPx.x.toFixed(1) + '" cy="' + hoverPx.y.toFixed(1) +
+            '" r="4.5" fill="#4a6fa5" stroke="#fff" stroke-width="1.5"/>');
         }
         return parts;
       });
 
       m.wrap.addEventListener('mousemove', function (e) {
         hoverPx = m.pxIn(e);
+        m.wrap.classList.toggle('hidecursor', !!hoverPx);
         ovl.queue();
         if (!hoverPx || !st) { tip.hide(); return; }
         var g = m.geom();
@@ -393,6 +397,7 @@
       });
       m.wrap.addEventListener('mouseleave', function () {
         hoverPx = null;
+        m.wrap.classList.remove('hidecursor');
         ovl.queue();
         tip.hide();
       });
