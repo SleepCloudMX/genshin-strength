@@ -198,7 +198,7 @@
         ] },
       { key: 'em', type: 'items', label: '公共精通', step: 1, min: 0, items: [
         { n: '米提亚自身', v: 100 },
-        { n: '凝雪沉心 R1', v: 60 },
+        { n: '秘星典谕 R1', v: 120 },
         { n: '2 命（过载）', v: 234 },
         { n: '砂糖', v: 210 },
         { n: '瓦列里 2 命', v: 100 },
@@ -209,10 +209,9 @@
       { key: 'cd', type: 'items', label: '公共暴伤 %', step: 0.1, min: 50, items: [
         { n: '角色基础', v: 50 },
         { n: '突破属性', v: 38.4 },
-        { n: '凝雪沉心 R1', v: 55.1 },
+        { n: '秘星典谕 R1', v: 148.2 },
         { n: '1 命', v: 40 }] },
       { key: 'bonus', type: 'items', label: '公共星超导增伤 %', step: 1, min: 0, items: [
-        { n: '凝雪沉心 R1', v: 18 },
         { n: '奥黛塔华彩', v: 60 },
         { n: '炉火 4 件套', v: 50 }] },
       { key: 'bFlat', type: 'items', label: '队友基础提升 %', step: 1, min: 0, items: [
