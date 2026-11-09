@@ -63,7 +63,8 @@
     '<b>双暴分配</b>：只加不减；暴伤过高时先把暴击率补到 1:2 或 100%，<b>不标「配平不可达」</b>，' +
     '按实际可达的最优计算（例：基准 5% / 88.4% 只有 1 个双暴词条 → 8.3% / 88.4%）。' +
     '<b>绘图范围固定 0–47 词条</b>（花 / 羽 / 沙 / 杯 / 头的副词条容量估算 ≈ 47）；' +
-    '细虚线 = 5 / 10 / … / 45 词条，橙线 = 当前预算 n（默认 30）。预算只用于最优分配 / 读数，<b>不是绘图上限</b>。' +
+    '细虚线 = 5 / 10 / … / 45 词条，橙线 = 当前预算 n（默认 30）。预算只用于最优分配与悬浮卡数值，<b>不是绘图上限</b>；' +
+    '预算内外的点读数方式相同。超过 47 词条的悬浮只列同比例折算到 47 词条的数值。' +
     'K 主要缩放绝对伤害，但 F 不随 K 缩放、且会再乘暴击，K 变化会让最优分配轻微移动' +
     '（K = 1.7 → 1.0：8.9 / 21.1 → 8.1 / 21.9）。';
 
@@ -72,8 +73,8 @@
     tab: '米提亚·伤害热图',
     math: true,
     intro: '绘图范围固定 0–47 词条（细虚线 = 5 / 10 / … / 45，橙线 = 当前预算 n）：' +
-      '颜色 = 相对基准面板的伤害倍数，叠加倍数等高线；最优分配按预算 n 计算（默认 30），预算只决定橙线与最优标记，不限制绘图。' +
-      '鼠标在图上时，箭头指向该点<b>上升最快</b>的方向，悬浮读该点的面板、倍数与词条等效（超出预算的点只展示读数）；' +
+      '颜色 = 相对基准面板的伤害倍数，叠加倍数等高线；最优分配按预算 n 计算（默认 30），预算只决定橙线与最优标记，不限制绘图与读数。' +
+      '鼠标在图上时，箭头指向该点<b>上升最快</b>的方向，悬浮读该点的面板、倍数与词条等效；' +
       '点击图面固定所选点（十字虚线），复位回最优。单段口径 = 10 级「递变聚爆」的星超导部分（403.2% 元素精通）。',
     controls: [
       {
@@ -207,9 +208,8 @@
           '精通 ' + p.x.toFixed(1) + ' · 双暴 ' + p.y.toFixed(1) + ' 词条';
         document.getElementById('cornerLine').textContent =
           '精通 ' + det.em.toFixed(0) + ' · 暴击 ' + det.cr.toFixed(1) + ' / ' + det.cd.toFixed(1);
-        var over = p.x + p.y > rs.n + 1e-9;
         document.getElementById('vNote').innerHTML =
-          '预算 ' + rs.n + ' · 绘图 0–' + rs.nMax + (over ? '（所选点超出预算，仅展示）' : '') +
+          '预算 ' + rs.n + ' · 绘图 0–' + rs.nMax +
           ' · K = ' + det.k.toFixed(2) + '（' + rs.kLayers + ' 层） · 抗性系数 ' + fmtTrim(det.res, 2, 4) +
           ' · 额外提升 ' + fmtTrim(det.f, 0, 1);
         return scan;
@@ -335,16 +335,17 @@
         var x = hoverPx.x / g.w * cap;
         var y = cap - hoverPx.y / g.h * cap;
         var s = st;
-        if (x < 0 || y < 0 || x + y > cap + 1e-9) { tip.hide(); return; }
+        if (x < 0 || y < 0) { tip.hide(); return; }
 
         var base0 = S.damage(Object.assign({}, s, { n: 0 }), 0, 0);
-        if (x + y > s.n + 1e-9) {   // 超出预算但仍在绘图范围内：只展示该点，不做等效 / 梯度
-          var detB = S.detail(s, x, y);
+        if (x + y > cap + 1e-9) {   // 超过容量上限：不展示具体点，只列同比例折算到上限的数值
+          var sum = x + y;
+          var detF = S.detail(s, x * cap / sum, y * cap / sum);
           tip.show(
-            '<div class="tip__hero"><b>' + Math.round(detB.exp) + '</b><span class="u">递变聚爆（星超导单段）</span></div>' +
-            '<div class="tip__crit">暴击 ' + Math.round(detB.crit) + '、未暴击 ' + Math.round(detB.noncrit) + '</div>' +
-            '<div class="tip__hero tip__hero--sm"><b>×' + (detB.exp / base0).toFixed(3) + '</b><span class="u">相对基准面板</span></div>' +
-            '<div class="tip__cap">超出预算 ' + s.n + ' 词条（仅展示；最优分配按预算算）</div>',
+            '<div class="tip__hero"><b>' + Math.round(detF.exp) + '</b><span class="u">递变聚爆（星超导单段）</span></div>' +
+            '<div class="tip__crit">暴击 ' + Math.round(detF.crit) + '、未暴击 ' + Math.round(detF.noncrit) + '</div>' +
+            '<div class="tip__hero tip__hero--sm"><b>×' + (detF.exp / base0).toFixed(3) + '</b><span class="u">相对基准面板</span></div>' +
+            '<div class="tip__bad">超过 ' + cap + ' 词条上限</div>',
             hoverPx.x, hoverPx.y, { segs: [] });
           return;
         }

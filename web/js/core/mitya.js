@@ -146,15 +146,17 @@
   }
 
   /** 词条等效：1 个精通词条 = d 个双暴词条（保留符号）。
-      按每点相对增益之比，中心差分 h = 0.05 词条；贴边界退化单侧。 */
+      按每点相对增益之比，中心差分 h = 0.05 词条；贴边界退化单侧。
+      邻域用绘图容量 nMax（不是词条预算 n）：等效是点的局部性质，不随预算变化。 */
   S.equiv = function (s, x, y) {
     var h = 0.05;
+    var cap = s.nMax || s.n;
     var m0 = multAt(s, x, y);
     if (m0 === null) return { em: NaN };
     var xm = x - h >= 0 ? multAt(s, x - h, y) : null;
-    var xp = x + y + h <= s.n ? multAt(s, x + h, y) : null;
+    var xp = x + y + h <= cap ? multAt(s, x + h, y) : null;
     var ym = y - h >= 0 ? multAt(s, x, y - h) : null;
-    var yp = x + y + h <= s.n ? multAt(s, x, y + h) : null;
+    var yp = x + y + h <= cap ? multAt(s, x, y + h) : null;
     var gEm = xm !== null && xp !== null ? (xp - xm) / (2 * h) / m0 :
       xp !== null ? (xp - m0) / h / m0 : xm !== null ? (m0 - xm) / h / m0 : NaN;
     var gCr = ym !== null && yp !== null ? (yp - ym) / (2 * h) / m0 :
@@ -163,13 +165,14 @@
     return { em: gEm / gCr };
   };
 
-  /** 全图（x, y ≥ 0、x + y ≤ n）扫描 d 的范围与位置。 */
+  /** 全图（x, y ≥ 0、x + y ≤ nMax；与热图绘图范围一致）扫描 d 的范围与位置。 */
   S.equivRange = function (s, G) {
     G = G || 121;
+    var cap = s.nMax || s.n;
     var lo = Infinity, hi = -Infinity, loAt = null, hiAt = null;
     for (var i = 0; i <= G; i++) {
       for (var j = 0; i + j <= G; j++) {
-        var x = s.n * i / G, y = s.n * j / G;
+        var x = cap * i / G, y = cap * j / G;
         var e = S.equiv(s, x, y).em;
         if (isFinite(e)) {
           if (e < lo) { lo = e; loAt = [x, y]; }
