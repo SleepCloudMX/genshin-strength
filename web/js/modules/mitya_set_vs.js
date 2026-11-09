@@ -85,24 +85,6 @@
     return da && db ? db / da : null;
   }
 
-  function dividerPoints(zs, xs) {
-    var bx = [], by = [];
-    for (var j = 0; j < zs.length; j++) {
-      var prev = null;
-      for (var i = 0; i < zs[j].length; i++) {
-        var r = zs[j][i];
-        if (r === null) break;
-        if (prev !== null && (prev - 1) * (r - 1) < 0) {
-          var t = (1 - prev) / (r - prev);
-          bx.push(xs[i - 1] + t * (xs[i] - xs[i - 1]));
-          by.push(xs[j]);
-        }
-        prev = r;
-      }
-    }
-    return { bx: bx, by: by };
-  }
-
   /** 全网格：B/A 比值、极值、各自最优、两套等效线。绘图范围 0 ~ nMax；最优按预算 n。 */
   function scanRatio(a, b, G) {
     G = G || GRID;
@@ -122,7 +104,6 @@
     return {
       xs: xs, zs: zs, lo: lo, hi: hi, loAt: loAt, hiAt: hiAt,
       bestA: S.bestFor(a), bestB: S.bestFor(b),
-      divider: dividerPoints(zs, xs),
     };
   }
 
@@ -357,12 +338,14 @@
             tickvals: tickVals.map(cmap.toT), ticktext: tickVals.map(round2),
           },
         }];
-        if (scan.divider.bx.length > 1) {
-          traces.push({
-            type: 'scatter', mode: 'lines', x: scan.divider.bx, y: scan.divider.by,
-            name: '两套等效', line: { color: '#000', width: 2.2 }, hoverinfo: 'skip',
-          });
-        }
+        /* 两套等效 = B/A = 1 的等值线：用 contour 直接取等级 1，
+           两端自然落在可行域边界（不再按行采样、避免端点缺口）。 */
+        traces.push({
+          type: 'contour', x: scan.xs, y: scan.xs, z: scan.zs,
+          contours: { coloring: 'none', showlabels: false, start: 1, end: 1.000001, size: 1 },
+          line: { color: '#000', width: 2.2, smoothing: 1 },
+          name: '两套等效', hoverinfo: 'skip', showscale: false,
+        });
         traces.push({
           type: 'scatter', mode: 'markers', x: [scan.bestA.x], y: [scan.bestA.y], cliponaxis: false,
           marker: { symbol: 'circle', size: 7, color: '#e8710a', line: { color: '#fff', width: 1.5 } },
