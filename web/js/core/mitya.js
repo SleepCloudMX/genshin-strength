@@ -237,9 +237,11 @@
     return { em: a, crit: 1 - a };
   };
 
-  /** 精通 / 双暴「同等重要」曲线：∂lnD/∂x（每精通词条）= ∂lnD/∂y（每双暴词条）。
-      在 0–47 三角形内按 y 逐行求 x（无解的行跳过）；它也是各词条预算下最优分配的轨迹。 */
-  S.equalImportLine = function (s, G) {
+  /** 最优分配线：两类词条的瞬时对数边际相等（各加 δ 词条、δ → 0）：
+      ∂lnD/∂x = ∂lnD/∂y，x / y 为精通 / 双暴词条数。线上两类词条同等重要；
+      预算进入内点后，各预算的最优点都落在线上（更小的预算下最优是全双暴）。
+      在 0–47 三角形内按 y 逐行求 x（无解的行跳过）。 */
+  S.bestAllocLine = function (s, G) {
     G = G || 121;
     var cap = s.nMax || s.n;
     var la = function (u) { return lnAOf(s, u); };
