@@ -237,29 +237,43 @@
     return { em: a, crit: 1 - a };
   };
 
-  /** 最优分配线：两类词条的瞬时对数边际相等（各加 δ 词条、δ → 0）：
-      ∂lnD/∂x = ∂lnD/∂y，x / y 为精通 / 双暴词条数。线上两类词条同等重要；
-      预算进入内点后，各预算的最优点都落在线上（更小的预算下最优是全双暴）。
-      在 0–47 三角形内按 y 逐行求 x（无解的行跳过）。 */
+  /** 给定总词条数 t 的最优精通词条数 x（双暴 = t − x）：粗扫 + 三分细化。 */
+  function solveAlloc(s, t) {
+    var la = function (u) { return lnAOf(s, u); };
+    var lc = function (u) { return lnCOf(s, u); };
+    function obj(x) { return la(x) + lc(t - x); }
+    var X = 48, d = t / X, bx = 0, bv = -Infinity;
+    for (var j = 0; j <= X; j++) {
+      var x0 = t * j / X, v = obj(x0);
+      if (v > bv) { bv = v; bx = x0; }
+    }
+    var a = Math.max(0, bx - d), b = Math.min(t, bx + d);
+    for (var k = 0; k < 40; k++) {
+      var m1 = a + (b - a) / 3, m2 = b - (b - a) / 3;
+      if (obj(m1) < obj(m2)) a = m1; else b = m2;
+    }
+    return (a + b) / 2;
+  }
+
+  /** 最优分配线：每个总词条数 t 下最优分配点的轨迹（0 ≤ t ≤ nMax）。
+      伤害可分离为 A(精通) × C(双暴)，对每个 t 最大化 A(x) + C(t − x)。
+      低预算时 x = 0（全双暴、压在左轴）；暴击率封顶后可能出现 y 固定的水平段；
+      进入内点后即两类边际相等的轨迹。 */
   S.bestAllocLine = function (s, G) {
     G = G || 121;
     var cap = s.nMax || s.n;
-    var la = function (u) { return lnAOf(s, u); };
-    var lc = function (u) { return lnCOf(s, u); };
     var xs = [], ys = [];
-    for (var j = 0; j <= G; j++) {
-      var y = cap * j / G;
-      var gy = dlog(lc, y);
-      var xmax = cap - y;
-      var f = function (x) { return dlog(la, x) - gy; };
-      if (f(0) < 0 || f(xmax) > 0) continue;   // 该行没有交点
-      var a = 0, b = xmax;
-      for (var k = 0; k < 50; k++) {
-        var m = (a + b) / 2;
-        if (f(m) > 0) a = m; else b = m;
-      }
-      xs.push((a + b) / 2); ys.push(y);
+    for (var i = 0; i <= G; i++) {
+      var t = cap * i / G;
+      var x = solveAlloc(s, t);
+      xs.push(x); ys.push(t - x);
     }
     return { xs: xs, ys: ys };
+  };
+
+  /** 给定总词条数 t 的最优点（热图上的固定词条标记用）。 */
+  S.optAt = function (s, t) {
+    var x = solveAlloc(s, t);
+    return { x: x, y: t - x };
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

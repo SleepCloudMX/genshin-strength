@@ -64,9 +64,8 @@
     '按实际可达的最优计算（例：基准 5% / 88.4% 只有 1 个双暴词条 → 8.3% / 88.4%）。' +
     '<b>绘图范围固定 0–47 词条</b>（花 / 羽 / 沙 / 杯 / 头的副词条容量估算 ≈ 47）；' +
     '细虚线 = 5 / 10 / … / 45 词条，橙色虚线 = 当前预算 n（默认 30），' +
-    '橙色实线 = 最优分配线（两类词条的瞬时对数边际相等：<code>∂lnD/∂x = ∂lnD/∂y</code>，即各加 δ 词条、δ → 0；' +
-    '数值上用中心差分 h = 0.05 词条。越往左上精通越值、越往右下双暴越值；预算进入内点后，各预算的最优点都落在线上' +
-    '（预算更小时最优是全双暴，压在左轴上）。' +
+    '橙色实线 = 最优分配线（每个总词条数下最优分配点的轨迹：低预算时沿左轴全双暴，暴击率封顶后可能有一段水平段，' +
+    '内点段即两类词条的瞬时对数边际相等 <code>∂lnD/∂x = ∂lnD/∂y</code>，δ → 0）。越往左上精通越值、越往右下双暴越值。' +
     '预算只用于最优分配与橙色虚线，<b>不是绘图上限</b>；' +
     '预算内外的点读数方式相同。超过 47 词条的悬浮只列同比例折算到 47 词条的数值。' +
     'K 主要缩放绝对伤害，但 F 不随 K 缩放、且会再乘暴击，K 变化会让最优分配轻微移动' +
@@ -252,14 +251,15 @@
           });
         }
         var line = S.bestAllocLine(rs, 121);
+        var lineX = line.xs.map(function (x) { return Math.max(x, cap * 0.002); });   // 贴左轴时向图内挪 ~1px，避免被轴线压住
         traces.push({
-          type: 'scatter', mode: 'lines', x: line.xs, y: line.ys, name: '最优分配线',
+          type: 'scatter', mode: 'lines', x: lineX, y: line.ys, name: '最优分配线',
           line: { color: '#e8710a', width: 1.6 }, legendrank: 1,
         });
         /* 10 / 20 / 30 / 40 词条各自的最优点（与当前预算无关）：标记 + 行内伤害标在叠加层 */
         optMarks = [10, 20, 30, 40].map(function (t) {
-          var b = S.bestFor(Object.assign({}, rs, { n: t }));
-          return { n: t, x: b.x, y: b.y, dmg: S.damage(rs, b.x, b.y) };
+          var p = S.optAt(rs, t);
+          return { n: t, x: p.x, y: p.y, dmg: S.damage(rs, p.x, p.y) };
         });
         traces.push({
           type: 'scatter', mode: 'markers',
