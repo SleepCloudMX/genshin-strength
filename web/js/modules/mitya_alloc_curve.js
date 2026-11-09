@@ -17,7 +17,7 @@
     '单段 = 10 级「递变聚爆」消耗 1 枚递变信标的星超导雷伤（403.2% 元素精通），与伤害热图页同一口径。' +
     '1 词条 = ' + C.ROLL.em + ' 精通 = ' + C.ROLL.cr + '% 暴击 = ' + C.ROLL.cd + '% 暴伤。<br>' +
     '<b>图 A</b>：固定总词条数 n，把 b 条给双暴、其余给精通，画伤害相对「词条全给精通」的倍数；菱形 = 该曲线最优（与 <a href="#/mitya/dmg_map">伤害热图</a>同一求解器）。' +
-    '<b>图 B</b>：上格 = 最优的双暴词条数随 n 的变化（灰虚线 = 全部给双暴）；下格 = 最优拆分对应的精通 / 暴击率 / 暴伤面板值。<br>' +
+    '<b>图 B</b>：上格 = 最优的双暴词条数随 n 的变化（灰虚线 = 全部给双暴），粉色带 = 伤害 ≥ 阈值（默认 99%）最大值的双暴条数区间；下格 = 最优拆分对应的精通 / 暴击率 / 暴伤面板值。<br>' +
     '抗性、擢升是常数乘子，不改变最优分配，本页不设敌人区；暴击区取期望 <code>1 + 暴击率 × 暴伤</code>，' +
     '双暴只加不减（暴击率封顶后全进暴伤）。K 与 F 不约掉（F 加在核心项后、不随 K 缩放），所以最优拆分随 K 轻微移动。';
 
@@ -82,6 +82,7 @@
       { key: 'f', type: 'items', label: '额外提升', step: 0.1, min: 0, items: [
         { n: '瓦列里攻斥（单层）', v: 2263.6 }] },
       { key: 'ns', type: 'text', full: true, label: '曲线取哪些 n', def: '10, 20, 30, 40' },
+      { key: 'level', type: 'number', label: '平台阈值 %', def: 99, step: 0.5, min: 0, max: 100 },
       { key: 'kReadout', type: 'readout', full: true, label: '星超导系数 K', compute: function (s) {
         return S.kOf(s.kLayers).toFixed(2) + '（' + s.kLayers + ' 层）';
       } },
@@ -137,6 +138,7 @@
           bFlat: s.bFlat / 100, bonus: s.bonus / 100,
           k: S.kOf(s.kLayers), kLayers: s.kLayers, f: s.f,
           res: 1, asc: 1, nMax: S.N_MAX,
+          level: Math.min(Math.max(s.level / 100, 0), 1),
           ns: parseNs(s.ns),
         };
       }
@@ -144,6 +146,29 @@
       /** 给定 n 与双暴条数 b 的伤害（其余给精通），相对「词条全给精通」。 */
       function relDamage(s, n, b) {
         return S.damage(s, n - b, b) / S.damage(s, n, 0);
+      }
+
+      /** 给定 n 的平台：伤害 ≥ level × 该 n 最大值的双暴条数区间 [lo, hi]。
+          伤害对 b 单峰，左右各自二分。 */
+      function plateau(s, n, level) {
+        var o = S.optAt(s, n);
+        var fmax = S.damage(s, o.x, o.y);
+        var thr = level * fmax;
+        function f(b) { return S.damage(s, n - b, b); }
+        var lo, hi, a, b2, m;
+        if (f(0) >= thr) lo = 0;
+        else {
+          a = 0; b2 = o.y;
+          for (var i = 0; i < 40; i++) { m = (a + b2) / 2; if (f(m) >= thr) b2 = m; else a = m; }
+          lo = (a + b2) / 2;
+        }
+        if (f(n) >= thr) hi = n;
+        else {
+          a = o.y; b2 = n;
+          for (var j = 0; j < 40; j++) { m = (a + b2) / 2; if (f(m) >= thr) a = m; else b2 = m; }
+          hi = (a + b2) / 2;
+        }
+        return { lo: lo, hi: hi, max: fmax };
       }
 
       function buildA(s) {
@@ -163,6 +188,22 @@
           });
           var o = S.optAt(s, n);
           var v = relDamage(s, n, o.y);
+          var pl = plateau(s, n, s.level);
+          traces.push({
+            type: 'scatter', mode: 'lines', x: [pl.lo, pl.hi],
+            y: [relDamage(s, n, pl.lo), relDamage(s, n, pl.hi)],
+            line: { color: color, width: 1.4, dash: 'dash' }, showlegend: false, hoverinfo: 'skip',
+          });
+          [pl.lo, pl.hi].forEach(function (b) {
+            traces.push({
+              type: 'scatter', mode: 'markers', x: [b], y: [relDamage(s, n, b)], showlegend: false, hoverinfo: 'skip',
+              marker: { color: color, size: 8, line: { color: '#fff', width: 1.2 } },
+            });
+            annos.push({
+              x: b, y: relDamage(s, n, b), xshift: 0, yshift: -15, xanchor: 'center', yanchor: 'top',
+              text: b.toFixed(1) + ' 词', showarrow: false, font: { size: 11, color: color },
+            });
+          });
           traces.push({
             type: 'scatter', mode: 'markers', x: [o.y], y: [v], showlegend: false, hoverinfo: 'skip',
             marker: { color: color, size: 9, symbol: 'diamond', line: { color: '#fff', width: 1.2 } },
@@ -188,16 +229,22 @@
 
       function buildB(s) {
         var steps = 141, hi0 = S.N_MAX;
-        var ns = [], bs = [], ems = [], crs = [], cds = [];
+        var ns = [], bs = [], los = [], his = [], ems = [], crs = [], cds = [];
         for (var i = 0; i <= steps; i++) {
           var n = hi0 * i / steps;
           var o = S.optAt(s, n);
           var t = S.critSplit(s.cr, s.cd, o.y);
-          ns.push(n); bs.push(o.y);
+          var pl = plateau(s, n, s.level);
+          ns.push(n); bs.push(o.y); los.push(pl.lo); his.push(pl.hi);
           ems.push(s.em + S.EM_PER_ROLL * o.x);
           crs.push(t.cr); cds.push(t.cd);
         }
         var traces = [
+          { type: 'scatter', mode: 'lines', x: ns, y: his, showlegend: false,
+            line: { color: 'rgba(220,20,60,0)' }, hoverinfo: 'skip' },
+          { type: 'scatter', mode: 'lines', x: ns, y: los, name: (s.level * 100).toFixed(0) + '% 平台',
+            fill: 'tonexty', fillcolor: 'rgba(220,20,60,0.16)',
+            line: { color: 'rgba(220,20,60,0)' }, hoverinfo: 'skip' },
           { type: 'scatter', mode: 'lines', x: ns, y: ns, name: '全部词条给双暴',
             line: { color: '#999', width: 1.4, dash: 'dash' }, hoverinfo: 'skip' },
           { type: 'scatter', mode: 'lines', x: ns, y: bs, name: '最优双暴词条数（图 A 的 ×）',
@@ -301,6 +348,7 @@
         tipBs.hide();
 
         /* 上半格（最优双暴词条数） */
+        var pl = plateau(st, n, st.level);
         tipB.show(ctx.tip.card({
           title: '共 ' + n.toFixed(1) + ' 词条',
           rows: [
@@ -308,6 +356,7 @@
             ['暴击 / 暴伤词条', t.a.toFixed(1) + ' / ' + (o.y - t.a).toFixed(1)],
             ['暴击率 / 暴伤', t.cr.toFixed(1) + '% / ' + t.cd.toFixed(1) + '%'],
             ['精通', em.toFixed(0)],
+            [(st.level * 100).toFixed(0) + '% 平台', pl.lo.toFixed(1) + ' ~ ' + pl.hi.toFixed(1) + ' 条双暴'],
           ],
         }), px, py);
       });
