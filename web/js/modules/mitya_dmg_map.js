@@ -190,6 +190,7 @@
       var lastRaw = null;
       var curP = null;
       var calcActive = null;
+      var optMarks = [];   // 10 / 20 / 30 / 40 词条各自的最优点与伤害（与当前预算无关）
 
       function updateVerdict(rs) {
         var scan = S.scan(rs, GRID);
@@ -256,6 +257,17 @@
           type: 'scatter', mode: 'lines', x: line.xs, y: line.ys, name: '最优分配线',
           line: { color: '#e8710a', width: 1.6 }, legendrank: 1,
         });
+        /* 10 / 20 / 30 / 40 词条各自的最优点（与当前预算无关）：标记 + 行内伤害标在叠加层 */
+        optMarks = [10, 20, 30, 40].map(function (t) {
+          var b = S.bestFor(Object.assign({}, rs, { n: t }));
+          return { n: t, x: b.x, y: b.y, dmg: S.damage(rs, b.x, b.y) };
+        });
+        traces.push({
+          type: 'scatter', mode: 'markers',
+          x: optMarks.map(function (p) { return p.x; }), y: optMarks.map(function (p) { return p.y; }),
+          cliponaxis: false, showlegend: false,
+          marker: { symbol: 'circle', size: 6, color: '#e8710a', line: { color: '#fff', width: 1.2 } },
+        });
         traces.push({
           type: 'scatter', mode: 'markers', x: [scan.best.x], y: [scan.best.y], cliponaxis: false,
           marker: { symbol: 'circle', size: 7, color: '#e8710a', line: { color: '#fff', width: 1.5 } },
@@ -314,6 +326,11 @@
         }
         ctx.overlay.text(parts, s.n * 0.78 / cap * g.w, (cap - s.n * 0.22) / cap * g.h,
           '预算 ' + s.n, '#e8710a', 'middle');
+        for (var mi = 0; mi < optMarks.length; mi++) {
+          var mk = optMarks[mi];
+          ctx.overlay.text(parts, mk.x / cap * g.w + 7, (cap - mk.y) / cap * g.h + 4,
+            mk.n + ' 词条 · ' + Math.round(mk.dmg), '#e8710a');
+        }
         if (hoverPx) {
           var x = hoverPx.x / g.w * cap;
           var y = cap - hoverPx.y / g.h * cap;
