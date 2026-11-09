@@ -160,8 +160,7 @@
         '<div class="verdict__vrow"><span class="verdict__vk">分配</span>' +
         '<span class="verdict__vv" id="bestSplit">—</span></div>' +
         '<div class="verdict__vrow"><span class="verdict__vk">面板</span>' +
-        '<span class="verdict__vv" id="cornerLine">—</span></div></div>' +
-        '<div class="verdict__note" id="vNote">—</div></div>';
+        '<span class="verdict__vv" id="cornerLine">—</span></div></div></div>';
       var calcpop = el('div', 'calcpop');
       var calcpopT = el('div', 'calcpop__t');
       var calcpopM = el('div', 'calcpop__m');
@@ -208,10 +207,6 @@
           '精通 ' + p.x.toFixed(1) + ' · 双暴 ' + p.y.toFixed(1) + ' 词条';
         document.getElementById('cornerLine').textContent =
           '精通 ' + det.em.toFixed(0) + ' · 暴击 ' + det.cr.toFixed(1) + ' / ' + det.cd.toFixed(1);
-        document.getElementById('vNote').innerHTML =
-          '预算 ' + rs.n + ' · 绘图 0–' + rs.nMax +
-          ' · K = ' + det.k.toFixed(2) + '（' + rs.kLayers + ' 层） · 抗性系数 ' + fmtTrim(det.res, 2, 4) +
-          ' · 额外提升 ' + fmtTrim(det.f, 0, 1);
         return scan;
       }
 
