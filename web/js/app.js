@@ -73,6 +73,7 @@
       group: '「米提亚」星超导',
       items: [
         { id: 'mitya/set_vs', label: '套装对比', icon: 'bars' },
+        { id: 'mitya/alloc_curve', label: '词条分配', icon: 'curve' },
         { id: 'mitya/dmg_map', label: '伤害热图', icon: 'grid' },
         { id: 'mitya/weapon_compare', label: '武器对比', icon: 'sword' },
       ],
