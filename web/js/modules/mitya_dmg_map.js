@@ -329,7 +329,7 @@
         for (var mi = 0; mi < optMarks.length; mi++) {
           var mk = optMarks[mi];
           ctx.overlay.text(parts, mk.x / cap * g.w + 7, (cap - mk.y) / cap * g.h + 4,
-            mk.n + ' 词条 · ' + Math.round(mk.dmg), '#e8710a');
+            Math.round(mk.dmg) + ' (' + mk.n + '词)', '#e8710a');
         }
         if (hoverPx) {
           var x = hoverPx.x / g.w * cap;
