@@ -63,7 +63,9 @@
     '<b>双暴分配</b>：只加不减；暴伤过高时先把暴击率补到 1:2 或 100%，<b>不标「配平不可达」</b>，' +
     '按实际可达的最优计算（例：基准 5% / 88.4% 只有 1 个双暴词条 → 8.3% / 88.4%）。' +
     '<b>绘图范围固定 0–47 词条</b>（花 / 羽 / 沙 / 杯 / 头的副词条容量估算 ≈ 47）；' +
-    '细虚线 = 5 / 10 / … / 45 词条，橙线 = 当前预算 n（默认 30）。预算只用于最优分配与悬浮卡数值，<b>不是绘图上限</b>；' +
+    '细虚线 = 5 / 10 / … / 45 词条，橙色虚线 = 当前预算 n（默认 30），' +
+    '橙色实线 = 精通与双暴同等重要的曲线（两类各加 1 词条的对数边际相等；越往左上精通越值、越往右下双暴越值，' +
+    '它也是各词条预算下最优分配点的轨迹）。预算只用于最优分配与橙线，<b>不是绘图上限</b>；' +
     '预算内外的点读数方式相同。超过 47 词条的悬浮只列同比例折算到 47 词条的数值。' +
     'K 主要缩放绝对伤害，但 F 不随 K 缩放、且会再乘暴击，K 变化会让最优分配轻微移动' +
     '（K = 1.7 → 1.0：8.9 / 21.1 → 8.1 / 21.9）。';
@@ -72,7 +74,7 @@
     title: '「米提亚」伤害热图',
     tab: '米提亚·伤害热图',
     math: true,
-    intro: '绘图范围固定 0–47 词条（细虚线 = 5 / 10 / … / 45，橙线 = 当前预算 n）：' +
+    intro: '绘图范围固定 0–47 词条（细虚线 = 5 / 10 / … / 45，橙色虚线 = 当前预算 n，橙色实线 = 精通与双暴同等重要的曲线）：' +
       '颜色 = 相对基准面板的伤害倍数，叠加倍数等高线；最优分配按预算 n 计算（默认 30），预算只决定橙线与最优标记，不限制绘图与读数。' +
       '鼠标在图上时，箭头指向该点<b>上升最快</b>的方向，悬浮读该点的面板、倍数与词条等效；' +
       '点击图面固定所选点（十字虚线），复位回最优。单段口径 = 10 级「递变聚爆」的星超导部分（403.2% 元素精通）。',
@@ -227,7 +229,7 @@
         for (var c = 5; c < cap; c += 5) {
           shapes.push({ type: 'line', x0: 0, y0: c, x1: c, y1: 0, line: { color: '#b9b1b7', width: 1, dash: 'dot' } });
         }
-        shapes.push({ type: 'line', x0: 0, y0: rs.n, x1: rs.n, y1: 0, line: { color: '#e8710a', width: 1.8 } });
+        shapes.push({ type: 'line', x0: 0, y0: rs.n, x1: rs.n, y1: 0, line: { color: '#e8710a', width: 1.8, dash: 'dash' } });
 
         var zFlat = scan.zs.flat().filter(function (v) { return v !== null; });
         var zLo = Math.min.apply(null, zFlat), zHi = Math.max.apply(null, zFlat);
@@ -246,6 +248,11 @@
             name: '等高线', showscale: false, showlegend: true, legendrank: 2,
           });
         }
+        var line = S.equalImportLine(rs, 121);
+        traces.push({
+          type: 'scatter', mode: 'lines', x: line.xs, y: line.ys, name: '同等重要线',
+          line: { color: '#e8710a', width: 1.6 }, legendrank: 1,
+        });
         traces.push({
           type: 'scatter', mode: 'markers', x: [scan.best.x], y: [scan.best.y], cliponaxis: false,
           marker: { symbol: 'circle', size: 7, color: '#e8710a', line: { color: '#fff', width: 1.5 } },

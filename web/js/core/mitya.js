@@ -203,24 +203,29 @@
     return { gx: one(f(x - h, y), f(x + h, y)), gy: one(f(x, y - h), f(x, y + h)) };
   };
 
-  /** 下一词条最优分配：把 1 个新词条拆成 α 精通 + (1 − α) 双暴（已有词条不动），
-      在 α ∈ [0, 1] 上最大化 D(x + α, y + 1 − α)。伤害两侧可分离（A(精通) × C(双暴)），
-      按对数边际相等求根；够不到交点时整条给更值的一侧。与词条预算 / 容量无关。 */
-  S.nextAlloc = function (s, x, y) {
+  /* 伤害两侧可分离：D ∝ A(精通) × C(双暴)（抗性 / 擢升是常数乘子，不进对数边际）。 */
+  function lnAOf(s, x) {
+    var em = s.em + S.EM_PER_ROLL * x;
+    var b = 1 + Math.min(S.B_PER_EM * em, S.B_CAP) + (s.bFlat || 0);
+    return Math.log((s.k || 1) * S.COEF * em * b * (1 + C.emTerm(em) + (s.bonus || 0)) + (s.f || 0));
+  }
+  function lnCOf(s, y) {
+    var t = S.critSplit(s.cr, s.cd, y);
+    return Math.log(1 + Math.min(t.cr, 100) / 100 * t.cd / 100);
+  }
+  /** 对数边际（每词条），中心差分 h = 0.05；贴 0 边界退化单侧。 */
+  function dlog(fn, u) {
     var h = 0.05;
-    function dlog(fn, u) {
-      return u - h < 0 ? (fn(u + h) - fn(u)) / h : (fn(u + h) - fn(u - h)) / (2 * h);
-    }
-    function lnA(xx) {
-      var em = s.em + S.EM_PER_ROLL * xx;
-      var b = 1 + Math.min(S.B_PER_EM * em, S.B_CAP) + (s.bFlat || 0);
-      return Math.log((s.k || 1) * S.COEF * em * b * (1 + C.emTerm(em) + (s.bonus || 0)) + (s.f || 0));
-    }
-    function lnC(yy) {
-      var t = S.critSplit(s.cr, s.cd, yy);
-      return Math.log(1 + Math.min(t.cr, 100) / 100 * t.cd / 100);
-    }
-    function f(a) { return dlog(lnA, x + a) - dlog(lnC, y + 1 - a); }
+    return u - h < 0 ? (fn(u + h) - fn(u)) / h : (fn(u + h) - fn(u - h)) / (2 * h);
+  }
+
+  /** 下一词条最优分配：把 1 个新词条拆成 α 精通 + (1 − α) 双暴（已有词条不动），
+      在 α ∈ [0, 1] 上最大化 D(x + α, y + 1 − α)。两侧可分离，按对数边际相等求根；
+      够不到交点时整条给更值的一侧。与词条预算 / 容量无关。 */
+  S.nextAlloc = function (s, x, y) {
+    var la = function (u) { return lnAOf(s, u); };
+    var lc = function (u) { return lnCOf(s, u); };
+    function f(a) { return dlog(la, x + a) - dlog(lc, y + 1 - a); }
     if (f(0) <= 0) return { em: 0, crit: 1 };
     if (f(1) >= 0) return { em: 1, crit: 0 };
     var lo = 0, hi = 1;
@@ -230,5 +235,29 @@
     }
     var a = (lo + hi) / 2;
     return { em: a, crit: 1 - a };
+  };
+
+  /** 精通 / 双暴「同等重要」曲线：∂lnD/∂x（每精通词条）= ∂lnD/∂y（每双暴词条）。
+      在 0–47 三角形内按 y 逐行求 x（无解的行跳过）；它也是各词条预算下最优分配的轨迹。 */
+  S.equalImportLine = function (s, G) {
+    G = G || 121;
+    var cap = s.nMax || s.n;
+    var la = function (u) { return lnAOf(s, u); };
+    var lc = function (u) { return lnCOf(s, u); };
+    var xs = [], ys = [];
+    for (var j = 0; j <= G; j++) {
+      var y = cap * j / G;
+      var gy = dlog(lc, y);
+      var xmax = cap - y;
+      var f = function (x) { return dlog(la, x) - gy; };
+      if (f(0) < 0 || f(xmax) > 0) continue;   // 该行没有交点
+      var a = 0, b = xmax;
+      for (var k = 0; k < 50; k++) {
+        var m = (a + b) / 2;
+        if (f(m) > 0) a = m; else b = m;
+      }
+      xs.push((a + b) / 2); ys.push(y);
+    }
+    return { xs: xs, ys: ys };
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
