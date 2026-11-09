@@ -203,26 +203,32 @@
     return { gx: one(f(x - h, y), f(x + h, y)), gy: one(f(x, y - h), f(x, y + h)) };
   };
 
-  /** 归一化梯度（两维）：预算未满时看「各加 1 条」；预算已满时看「挪 1 条」。
-      只保留能提升伤害的方向（正增益）；两者都为 0 时表示当前点已最优。
-      返回 {em, crit, gEm, gCrit, best}，em + crit = 1（best 时两者为 0）。 */
-  S.gradWeights = function (s, x, y) {
-    var z = s.n - x - y;
-    var m0 = multAt(s, x, y);
-    if (m0 === null) return null;
-    var g = function (m) { return m === null ? NaN : m / m0 - 1; };
-    var gEm, gCrit;
-    if (z > 1e-9) {
-      gEm = g(multAt(s, x + 1, y));
-      gCrit = g(multAt(s, x, y + 1));
-    } else {
-      gEm = y >= 1 ? g(multAt(s, x + 1, y - 1)) : NaN;
-      gCrit = x >= 1 ? g(multAt(s, x - 1, y + 1)) : NaN;
+  /** 下一词条最优分配：把 1 个新词条拆成 α 精通 + (1 − α) 双暴（已有词条不动），
+      在 α ∈ [0, 1] 上最大化 D(x + α, y + 1 − α)。伤害两侧可分离（A(精通) × C(双暴)），
+      按对数边际相等求根；够不到交点时整条给更值的一侧。与词条预算 / 容量无关。 */
+  S.nextAlloc = function (s, x, y) {
+    var h = 0.05;
+    function dlog(fn, u) {
+      return u - h < 0 ? (fn(u + h) - fn(u)) / h : (fn(u + h) - fn(u - h)) / (2 * h);
     }
-    var pEm = isFinite(gEm) && gEm > 0 ? gEm : 0;
-    var pCrit = isFinite(gCrit) && gCrit > 0 ? gCrit : 0;
-    var t = pEm + pCrit;
-    if (t <= 1e-12) return { em: 0, crit: 0, gEm: gEm, gCrit: gCrit, best: true };
-    return { em: pEm / t, crit: pCrit / t, gEm: gEm, gCrit: gCrit, best: false };
+    function lnA(xx) {
+      var em = s.em + S.EM_PER_ROLL * xx;
+      var b = 1 + Math.min(S.B_PER_EM * em, S.B_CAP) + (s.bFlat || 0);
+      return Math.log((s.k || 1) * S.COEF * em * b * (1 + C.emTerm(em) + (s.bonus || 0)) + (s.f || 0));
+    }
+    function lnC(yy) {
+      var t = S.critSplit(s.cr, s.cd, yy);
+      return Math.log(1 + Math.min(t.cr, 100) / 100 * t.cd / 100);
+    }
+    function f(a) { return dlog(lnA, x + a) - dlog(lnC, y + 1 - a); }
+    if (f(0) <= 0) return { em: 0, crit: 1 };
+    if (f(1) >= 0) return { em: 1, crit: 0 };
+    var lo = 0, hi = 1;
+    for (var i = 0; i < 60; i++) {
+      var mid = (lo + hi) / 2;
+      if (f(mid) > 0) lo = mid; else hi = mid;
+    }
+    var a = (lo + hi) / 2;
+    return { em: a, crit: 1 - a };
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -139,12 +139,13 @@
     create: function (host, ctx) {
       var charts = ctx.charts;
 
-      function twoBar(w) {
-        var one = function (name, cls, val) {
-          return '<div class="t"><div class="k"><span class="n">' + name + '</span><span class="v">' + val.toFixed(2) +
-            '</span></div><div class="b"><i class="' + cls + '" style="width:' + (Math.max(0, val) * 100).toFixed(1) + '%"></i></div></div>';
-        };
-        return '<div class="tip__tri">' + one('精通', 'em', w.em) + one('双暴', 'cr', w.crit) + '</div>';
+      /** 两维度单条分段条：左精通（青）· 右双暴（紫），数值在条上方（同瑞希悬浮卡）。 */
+      function segBar(a, b) {
+        var g = function (v) { return Math.max(0.04, v).toFixed(3); };
+        return '<div class="tip__barlbl"><span class="s-em">精通 ' + a.toFixed(2) + '</span>' +
+          '<span class="s-cr">双暴 ' + b.toFixed(2) + '</span></div>' +
+          '<div class="tip__seg"><i class="em" style="flex-grow:' + g(a) + '"></i>' +
+          '<i class="cr" style="flex-grow:' + g(b) + '"></i></div>';
       }
       function eqItem(v) {
         return '<span class="val"><b class="' + (v >= 1 ? 'hi' : 'lo') + '">' + v.toFixed(2) + '</b></span>';
@@ -349,7 +350,7 @@
         var mult = det.exp / base0;
         var eq = S.equiv(s, x, y);
         var rng = S.equivRange(s, 41);
-        var gw = S.gradWeights(s, x, y);
+        var al = S.nextAlloc(s, x, y);
 
         /* 梯度箭头线段（与叠加层同一算法）——卡片避开它放 */
         var segs = [];
@@ -378,9 +379,7 @@
           '<div class="tip__hd"><span>双暴</span><span class="rl">' + y.toFixed(1) + ' 词条</span><span class="vl">' + det.cr.toFixed(1) + ' / ' + det.cd.toFixed(1) + '</span></div>' +
           (S.critSplit(s.cr, s.cd, y).cr >= 100 - 1e-9 ? '<div class="tip__cap">暴击率已封顶；超出部分全进暴伤</div>' : '') +
           eqHTML +
-          (gw && !gw.best
-            ? '<div class="tip__cap mt" style="font-weight:600">可提升方向</div>' + twoBar(gw)
-            : '<div class="tip__cap mt" style="font-weight:600">当前点已最优</div>');
+          '<div class="tip__cap mt" style="font-weight:600">下一词条最优分配</div>' + segBar(al.em, al.crit);
         tip.show(html, hoverPx.x, hoverPx.y, { segs: segs });
       });
       m.wrap.addEventListener('mouseleave', function () {
