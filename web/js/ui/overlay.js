@@ -92,8 +92,31 @@
     return t;
   }
 
+  /** 自绘悬停圆点：独立叠加层 + 隐藏原生光标（同一 wrap 上后挂，压在主叠加层之上）。
+      geom() 与主叠加层同一套几何；locate(e) 返回相对叠加层的 {x, y}，图外返回 null。 */
+  function cursor(wrap, geom, locate) {
+    var ovl = mount(wrap, geom);
+    var dot = null;
+    ovl.draw(function () {
+      return dot ? ['<circle cx="' + dot.x.toFixed(1) + '" cy="' + dot.y.toFixed(1) +
+        '" r="3.8" fill="#4a6fa5" stroke="#fff" stroke-width="1.2"/>'] : [];
+    });
+    wrap.addEventListener('mousemove', function (e) {
+      dot = locate(e);
+      wrap.classList.toggle('hidecursor', !!dot);
+      ovl.queue();
+    });
+    wrap.addEventListener('mouseleave', function () {
+      dot = null;
+      wrap.classList.remove('hidecursor');
+      ovl.queue();
+    });
+    return ovl;
+  }
+
   UI.overlay = {
     mount: mount,
+    cursor: cursor,
     defs: defs,
     arrow: arrow,
     arrowTip: arrowTip,

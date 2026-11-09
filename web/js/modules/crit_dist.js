@@ -186,6 +186,8 @@
 
       var tip1 = ctx.tip.mount(m1.wrap, m1.geom);
       var tip2 = ctx.tip.mount(m2.wrap, m2.geom);
+      ctx.overlay.cursor(m1.wrap, m1.geom, function (e) { return m1.pxIn(e); });
+      ctx.overlay.cursor(m2.wrap, m2.geom, function (e) { return m2.pxIn(e); });
       var last1 = null, last2 = null;
 
       /** 段读取（编辑器在参数面板里；越界的读数按 min / max 夹紧）。 */

@@ -419,6 +419,7 @@
       /* ── 悬浮卡片：一屏对照各档 ── */
       function bindHover(m, tip, mode) {
         var state = null;
+        ctx.overlay.cursor(m.wrap, m.geom, function (e) { return m.pxIn(e); });
         m.wrap.addEventListener('mousemove', function (e) {
           var p = m.pxIn(e);
           if (!p) { tip.hide(); return; }

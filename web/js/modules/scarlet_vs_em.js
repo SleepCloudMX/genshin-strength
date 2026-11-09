@@ -77,6 +77,7 @@
       var footSet = foot.querySelector('.foot-set');
       var footEm = foot.querySelector('.foot-em');
       var tip = ctx.tip.mount(m.wrap, m.geom);
+      ctx.overlay.cursor(m.wrap, m.geom, function (e) { return m.pxIn(e); });
       var st = null;
       var cache = { key: null, heat: null, divider: null };
 

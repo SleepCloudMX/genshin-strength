@@ -95,6 +95,7 @@
       var ovl = ctx.overlay.mount(m.wrap, m.geom);
       ovl.el.appendChild(chip);
       var tip = ctx.tip.mount(m.wrap, m.geom);
+      ctx.overlay.cursor(m.wrap, m.geom, function (e) { return m.pxIn(e); });
 
       host.appendChild(verdict);
       host.appendChild(card);

@@ -68,6 +68,14 @@
       var tipB = ctx.tip.mount(mB.wrap, mBGeom);
       var tipBs = ctx.tip.mount(mB.wrap, mBGeom);   // 下半格的小卡：内容少，用窄版宽度
       tipBs.el.classList.add('tip--sm');
+      ctx.overlay.cursor(mA.wrap, mA.geom, function (e) { return mA.pxIn(e); });
+      ctx.overlay.cursor(mB.wrap, mBGeom, function (e) {   // 图 B 上下两格并集：两格都出圆点
+        var g = mBGeom();
+        var r = mB.wrap.getBoundingClientRect();
+        var px = e.clientX - r.left - g.left, py = e.clientY - r.top - g.top;
+        if (px < -4 || px > g.w + 4 || py < -4 || py > g.h + 4) return null;
+        return { x: Math.min(Math.max(px, 0), g.w), y: Math.min(Math.max(py, 0), g.h) };
+      });
       var st = null;
 
       /** 图 B 是上下两格（双暴词条数 / 精通·双暴）：几何取两格并集 ——

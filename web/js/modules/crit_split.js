@@ -107,6 +107,9 @@
       var tip1 = ctx.tip.mount(m1.wrap, m1.geom);
       var tip2 = ctx.tip.mount(m2.wrap, m2.geom);
       var tip3 = ctx.tip.mount(m3.wrap, m3.geom);
+      ctx.overlay.cursor(m1.wrap, m1.geom, function (e) { return m1.pxIn(e); });
+      ctx.overlay.cursor(m2.wrap, m2.geom, function (e) { return m2.pxIn(e); });
+      ctx.overlay.cursor(m3.wrap, m3.geom, function (e) { return m3.pxIn(e); });
       var cache = null;     // { V, n, V0, sw, idxOf, qs }
       var g2ref = null, g3ref = null;
 

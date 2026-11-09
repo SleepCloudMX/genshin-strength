@@ -177,6 +177,7 @@
       var m = charts.mount(card, { height: 620 });
       var ovl = ctx.overlay.mount(m.wrap, m.geom);
       var tip = ctx.tip.mount(m.wrap, m.geom);
+      ctx.overlay.cursor(m.wrap, m.geom, function (e) { return m.pxIn(e); });
       card.appendChild(GS.ui.panels.actionsRow(function () { return m.plot; }));
 
       host.appendChild(verdict);
@@ -327,16 +328,12 @@
               });
             }
           }
-          /* 自绘光标：画在鼠标热点的精确像素上（原生光标已隐藏） */
-          parts.push('<circle cx="' + hoverPx.x.toFixed(1) + '" cy="' + hoverPx.y.toFixed(1) +
-            '" r="3.8" fill="#4a6fa5" stroke="#fff" stroke-width="1.2"/>');
         }
         return parts;
       });
 
       m.wrap.addEventListener('mousemove', function (e) {
         hoverPx = m.pxIn(e);
-        m.wrap.classList.toggle('hidecursor', !!hoverPx);
         ovl.queue();
         if (!hoverPx || !st) { tip.hide(); return; }
         var g = m.geom();
@@ -397,7 +394,6 @@
       });
       m.wrap.addEventListener('mouseleave', function () {
         hoverPx = null;
-        m.wrap.classList.remove('hidecursor');
         ovl.queue();
         tip.hide();
       });
