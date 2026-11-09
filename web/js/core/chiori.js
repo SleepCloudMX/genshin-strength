@@ -52,11 +52,11 @@
     return S.defFactor(lvChar, lvEnemy, defRed, defIgnore) * S.resFactor(res);
   };
 
-  S.PER_ATK = 0.05;        // 1 大攻击词条 = 5% 攻击
-  S.PER_DEF = 0.062;       // 1 大防御词条 = 6.2% 防御
-  S.PER_FLAT = 16.5;       // 1 小攻击词条
-  S.PER_FLAT_DEF = 19.7;   // 1 小防御词条
-  S.PER_CR = C.CR_PER_ROLL;   // 1 双暴词条 = 3.3% 暴击 / 6.6% 暴伤
+  S.PER_ATK = C.ROLL.atkPct / 100;     // 1 大攻击词条
+  S.PER_DEF = C.ROLL.defPct / 100;     // 1 大防御词条
+  S.PER_FLAT = C.ROLL.atkFlat;         // 1 小攻击词条
+  S.PER_FLAT_DEF = C.ROLL.defFlat;     // 1 小防御词条
+  S.PER_CR = C.CR_PER_ROLL;            // 1 双暴词条
   S.PER_CD = C.CD_PER_ROLL;
   S.N_MAX = 50;            // 词条预算上限（估算见页脚）
 

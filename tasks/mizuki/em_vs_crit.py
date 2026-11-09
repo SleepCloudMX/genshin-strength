@@ -6,7 +6,8 @@
 只讨论**圣遗物副词条**的分配：主词条、武器、天赋、队友给的量都是固定值，
 「等效词条」只在副词条场景成立，不能拿去换算那些固定来源。
 
-1 等效词条 = 20 精通 = 3.3% 暴击 = 6.6% 暴伤。
+1 等效词条 = 19.815 精通 = 3.305% 暴击 = 6.605% 暴伤（四档均值；
+与 web/js/core/const.js 的 C.ROLL 表一致）。
 """
 
 from __future__ import annotations
@@ -34,9 +35,10 @@ CRIT_RATE_BASE = 36.0  # 自身 5 + 血红之证 4 件套 16 + 双冰共鸣 15
 CRIT_DMG_BASE = 112.2  # 自身 50 + 冠主词条 62.2
 SWIRL_BONUS = 1.40     # 炉火 4 件套 50 + 七七 50 + 血红之证 4 件套 40
 
-EM_PER_ROLL = 20.0
-CRIT_RATE_PER_ROLL = 3.3
-CRIT_DMG_PER_ROLL = 6.6
+# 与 web/js/core/const.js 的 C.ROLL 一致（修改时两边同步）
+EM_PER_ROLL = 19.815
+CRIT_RATE_PER_ROLL = 3.305
+CRIT_DMG_PER_ROLL = 6.605
 
 #: 1:2 配平所需的最少双暴词条数。低于它时 暴击率 词条数会算成负数，不成立。
 BALANCED_FROM = CRIT_DMG_BASE / CRIT_DMG_PER_ROLL - CRIT_RATE_BASE / CRIT_RATE_PER_ROLL

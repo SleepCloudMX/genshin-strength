@@ -50,7 +50,8 @@
       },
       {
         key: '', type: 'note',
-        html: '<b>口径同伤害热图页</b>：1 词条 = 20 精通 = 6.6 双暴分 = 5% 大攻击（攻击词条按大攻击折算）；' +
+        html: '<b>口径同伤害热图页</b>：1 词条 = ' + GS.core.ROLL.em + ' 精通 = ' + GS.core.SCORE_PER_ROLL + ' 双暴分 = ' +
+          GS.core.ROLL.atkPct + '% 大攻击（攻击词条按大攻击折算）；' +
           '特效<b>只计对星超导生效的常驻部分</b>，按全覆盖 / 满层，行内注明。',
       },
       { key: 'patk', type: 'items', label: '大攻击 %', step: 0.1, min: -9999, items: [

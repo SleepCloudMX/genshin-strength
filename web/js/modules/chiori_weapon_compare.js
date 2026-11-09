@@ -48,7 +48,8 @@
       },
       {
         key: '', type: 'note',
-        html: '<b>口径同伤害热图页</b>：1 词条 = 5% 大攻击 = 6.2% 大防御 = 3.3% 暴击 = 6.6% 暴伤；' +
+        html: '<b>口径同伤害热图页</b>：1 词条 = ' + GS.core.ROLL.atkPct + '% 大攻击 = ' + GS.core.ROLL.defPct + '% 大防御 = ' +
+          GS.core.ROLL.cr + '% 暴击 = ' + GS.core.ROLL.cd + '% 暴伤；' +
           '特效<b>只计对「袖」斩切（元素战技伤害）生效的常驻 / 满层部分</b>，行内注明；五星按精 1、四星 / 三星按精 5（狼牙精 1 / 精 5 两档并列）。',
       },
       { key: 'baseAtk', type: 'items', label: '基础攻击力', step: 1, min: 0, items: [

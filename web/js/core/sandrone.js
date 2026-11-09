@@ -17,8 +17,8 @@
   S.PER_EM = C.EM_PER_ROLL;
   S.PER_CR = C.CR_PER_ROLL;
   S.PER_CD = C.CD_PER_ROLL;
-  S.PER_ATK = 0.05;         // 1 个大攻击词条 = 5% 攻击
-  S.PER_FLAT = 16.5;        // 1 个小攻击词条
+  S.PER_ATK = C.ROLL.atkPct / 100;   // 1 个大攻击词条
+  S.PER_FLAT = C.ROLL.atkFlat;       // 1 个小攻击词条
   S.N_MAX = 53;             // 词条预算上限（约 52.9，推导见页面页脚）
 
   /* 武器：只计对星超导生效的常驻部分；特效按全覆盖 / 满层（note 注明）。

@@ -40,7 +40,8 @@
       },
       {
         key: '', type: 'note',
-        html: '<b>词条口径</b>：1 词条 = 20 精通 = 3.3% 暴击 = 6.6% 暴伤 = 5% 大攻击；<b>双暴按 1 : 2 配平</b>' +
+        html: '<b>词条口径</b>：1 词条 = ' + GS.core.ROLL.em + ' 精通 = ' + GS.core.ROLL.cr + '% 暴击 = ' +
+          GS.core.ROLL.cd + '% 暴伤 = ' + GS.core.ROLL.atkPct + '% 大攻击；<b>双暴按 1 : 2 配平</b>' +
           '（先补基准偏斜；暴击率封顶 100% 后全进暴伤），攻击词条按大攻击折算（小攻击见换算行）。',
       },
       { key: 'baseAtk', type: 'items', label: '基础攻击力', step: 1, min: 0, items: [

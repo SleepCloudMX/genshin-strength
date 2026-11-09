@@ -7,7 +7,7 @@
   var Mi = GS.core.mizuki;
   var el = GS.ui.panels.el;
 
-  var FOOT = '1 等效词条 = 20 精通 = 3.3% 暴击 = 6.6% 暴伤。<b>星扩散直伤</b> = 瑞希天赋「廓然梦生」的精通倍率伤害。';
+  var FOOT = '1 等效词条 = ' + C.ROLL.em + ' 精通 = ' + C.ROLL.cr + '% 暴击 = ' + C.ROLL.cd + '% 暴伤。<b>星扩散直伤</b> = 瑞希天赋「廓然梦生」的精通倍率伤害。';
 
   /* 图 B 下半格三条曲线的颜色（卡片色标与曲线同一来源） */
   var COL_CR = '#d62728', COL_CD = '#ff7f0e', COL_EM = '#2e8b57';
