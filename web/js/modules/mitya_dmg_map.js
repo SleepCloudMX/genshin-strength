@@ -110,15 +110,6 @@
         ],
       },
       { key: 'n', type: 'range', label: '词条预算', def: S.N_DEF, min: 2, max: S.N_MAX, step: 1 },
-      { key: 'kReadout', type: 'readout', full: true, label: '星超导系数 K', compute: function (s) {
-        return S.kOf(s.kLayers).toFixed(2) + '（' + s.kLayers + ' 层）';
-      } },
-      { key: 'resReadout', type: 'readout', full: true, label: '抗性系数', compute: function (s) {
-        return q(C.kappa((s.enemyRes - s.resShred) / 100), 2, 4).toFixed(4);
-      } },
-      { key: 'baseDmg', type: 'readout', full: true, label: '基准单段伤害（0 词条）', compute: function (s) {
-        return S.damage(coreState(s), 0, 0).toFixed(0);
-      } },
     ],
 
     create: function (host, ctx) {
