@@ -1,4 +1,4 @@
-/* 米提亚 · 伤害热图：精通 × 双暴热图（单段「递变聚爆」星超导）+ 跟随梯度箭头。 */
+/* 米提亚 · 伤害热图：精通 × 双暴热图（单段「递变聚爆」星超导）+ 跟随「下 δ 词条最优分配」箭头。 */
 (function (global) {
   'use strict';
   var GS = global.GS = global.GS || {};
@@ -66,6 +66,9 @@
     '细虚线 = 5 / 10 / … / 45 词条，橙色虚线 = 当前预算 n（默认 30），' +
     '橙色实线 = 最优分配线（每个总词条数下最优分配点的轨迹：低预算时沿左轴全双暴，暴击率封顶后可能有一段水平段，' +
     '内点段即两类词条的瞬时对数边际相等 <code>∂lnD/∂x = ∂lnD/∂y</code>，δ → 0）。越往左上精通越值、越往右下双暴越值。' +
+    '<b>箭头</b> = 下 δ 词条最优分配的方向（δ → 0）：在最优分配线上，新词条两侧边际相等，' +
+    '拆分由二阶项决定、即该点线的切向；离线的点则把 δ 全给对数边际更高的一侧。' +
+    '按与图同一套轴刻度（像素 / 词条）映射，长度固定、只指示方向。' +
     '预算只用于最优分配与橙色虚线，<b>不是绘图上限</b>；' +
     '预算内外的点读数方式相同。超过 47 词条的悬浮只列同比例折算到 47 词条的数值。' +
     'K 主要缩放绝对伤害，但 F 不随 K 缩放、且会再乘暴击，K 变化会让最优分配轻微移动' +
@@ -77,7 +80,8 @@
     math: true,
     intro: '绘图范围固定 0–47 词条（细虚线 = 5 / 10 / … / 45，橙色虚线 = 当前预算 n，橙色实线 = 最优分配线）：' +
       '颜色 = 相对基准面板的伤害倍数，叠加倍数等高线；最优分配按预算 n 计算（默认 30），预算只决定橙线与最优标记，不限制绘图与读数。' +
-      '鼠标在图上时，箭头指向该点<b>上升最快</b>的方向，悬浮读该点的面板、倍数与词条等效；' +
+      '鼠标在图上时，箭头 = 下 δ 词条最优分配的方向（δ → 0）：在最优分配线上与线相切，' +
+      '离线的点把 δ 全给边际更高的一侧；悬浮读该点的面板、倍数与词条等效；' +
       '点击图面固定所选点（十字虚线），复位回最优。单段口径 = 10 级「递变聚爆」的星超导部分（403.2% 元素精通）。',
     controls: [
       {
@@ -290,27 +294,29 @@
         }).then(function () { ovl.queue(); });
       }
 
-      /** 可行的上升方向：在物理边界（nMax）上时投影到 (1,−1) / (−1,1)；否则直接用梯度。 */
-      function feasibleGrad(s, x, y) {
-        var g = S.grad(x, y, s);
-        var gx = g.gx, gy = g.gy;
-        var cap = s.nMax || s.n;
-        if (x + y >= cap - 1e-9) {
-          var d = gx - gy;
-          if (Math.abs(d) < 1e-12) return { gx: 0, gy: 0 };
-          var dirX = d > 0 ? 1 : -1;
-          var dirY = -dirX;
-          if ((dirX < 0 && x <= 1e-9) || (dirY < 0 && y <= 1e-9)) return { gx: 0, gy: 0 };
-          return { gx: dirX * Math.abs(d), gy: dirY * Math.abs(d) };
+      var LINE_TOL = 0.12;   // 词条：判定「在最优分配线上」的容差（约 2–3 px）
+
+      /** δ→0 的下 δ 词条最优分配方向（词条空间，两轴同单位）。
+          线上：边际相等，拆分由二阶项决定 = 线的切向；
+          离线：δ 全给对数边际更高的一侧（角点解）。 */
+      function spendDir(s, x, y) {
+        var t = x + y;
+        var q = S.optAt(s, t);
+        if (Math.abs(x - q.x) <= LINE_TOL) {
+          var h = 0.05;
+          var lo = Math.max(0, t - h), hi = Math.min(s.nMax, t + h);
+          var dx = (S.optAt(s, hi).x - S.optAt(s, lo).x) / (hi - lo);
+          return { vx: dx, vy: 1 - dx };
         }
-        return { gx: gx, gy: gy };
+        var gr = S.grad(x, y, s);
+        return gr.gx >= gr.gy ? { vx: 1, vy: 0 } : { vx: 0, vy: 1 };
       }
 
       ovl.draw(function (g) {
         var s = st;
         if (!s) return [];
         var cap = s.nMax || s.n;
-        var parts = [ctx.overlay.defs([{ id: 'ovl-arrow-g', color: '#4a6fa5' }])];
+        var parts = [ctx.overlay.defs([{ id: 'ovl-arrow-p', color: '#111' }])];
         if (pinned) {
           var px = pinned.x / cap * g.w, py = (cap - pinned.y) / cap * g.h;
           parts.push('<line x1="' + px + '" y1="0" x2="' + px + '" y2="' + g.h + '" stroke="#4a6fa5" stroke-width="1.2" stroke-dasharray="6,4"/>');
@@ -334,15 +340,10 @@
           var x = hoverPx.x / g.w * cap;
           var y = cap - hoverPx.y / g.h * cap;
           if (x >= 0 && y >= 0 && x + y <= cap + 1e-9) {
-            var grad = feasibleGrad(s, x, y);
-            var ax = grad.gx * cap / g.w, ay = grad.gy * cap / g.h;
-            var mag = Math.hypot(ax, ay);
-            if (mag > 1e-9) {
-              ctx.overlay.arrow(parts, hoverPx.x, hoverPx.y, ax, ay, g, {
-                color: '#4a6fa5', width: 1.8, marker: 'ovl-arrow-g',
-                len: Math.min(Math.max(mag * 60000, 9), 66),
-              });
-            }
+            var v = spendDir(s, x, y);
+            ctx.overlay.arrow(parts, hoverPx.x, hoverPx.y,
+              v.vx * g.w / cap, v.vy * g.h / cap, g,
+              { color: '#111', width: 2.2, marker: 'ovl-arrow-p', len: 31 });
           }
         }
         return parts;
@@ -378,16 +379,12 @@
         var rng = S.equivRange(s, 41);
         var al = S.nextAlloc(s, x, y);
 
-        /* 梯度箭头线段（与叠加层同一算法）——卡片避开它放 */
+        /* 下 δ 词条分配箭头（与叠加层同一算法）——卡片避开它放 */
         var segs = [];
-        var gr = feasibleGrad(s, x, y);
-        var ax = gr.gx * cap / g.w, ay = gr.gy * cap / g.h;
-        var mag = Math.hypot(ax, ay);
-        if (mag > 1e-9) {
-          var tp = ctx.overlay.arrowTip(hoverPx.x, hoverPx.y, ax, ay, g,
-            { len: Math.min(Math.max(mag * 60000, 9), 66) });
-          segs.push([hoverPx.x, hoverPx.y, tp.tx, tp.ty]);
-        }
+        var sv = spendDir(s, x, y);
+        var tp = ctx.overlay.arrowTip(hoverPx.x, hoverPx.y,
+          sv.vx * g.w / cap, sv.vy * g.h / cap, g, { len: 31 });
+        segs.push([hoverPx.x, hoverPx.y, tp.tx, tp.ty]);
 
         var eqHTML = '';
         if (isFinite(eq.em)) {
