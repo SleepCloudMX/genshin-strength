@@ -102,7 +102,7 @@
       { key: 'f', type: 'items', label: '额外提升', step: 0.1, min: 0, items: [
         { n: '瓦列里攻斥（单层）', v: 2263.6 }] },
       {
-        type: 'group', label: '敌人区',
+        type: 'group', label: '敌人区', open: true,
         items: [
           { key: 'enemyRes', type: 'number', label: '敌人抗性 %', def: 10, step: 1, min: -100, max: 200 },
           { key: 'resShred', type: 'number', label: '减抗合计 %', def: 60, step: 1, min: 0, max: 200 },
