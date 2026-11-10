@@ -1,4 +1,4 @@
-/* 米提亚 · 伤害热图：精通 × 双暴热图（单段「递变聚爆」星超导）+ 跟随「下 δ 词条最优分配」箭头。 */
+/* 米提亚 · 伤害热图：精通 × 双暴热图（单段「递变聚爆」星超导）+ 悬浮卡读数。 */
 (function (global) {
   'use strict';
   var GS = global.GS = global.GS || {};
@@ -66,9 +66,8 @@
     '细虚线 = 5 / 10 / … / 45 词条，橙色虚线 = 当前预算 n（默认 30），' +
     '橙色实线 = 最优分配线（每个总词条数下最优分配点的轨迹：低预算时沿左轴全双暴，暴击率封顶后可能有一段水平段，' +
     '内点段即两类词条的瞬时对数边际相等 <code>∂lnD/∂x = ∂lnD/∂y</code>，δ → 0）。越往左上精通越值、越往右下双暴越值。' +
-    '<b>箭头</b> = 下 δ 词条最优分配的方向（δ → 0）：在最优分配线上，新词条两侧边际相等，' +
-    '拆分由二阶项决定、即该点线的切向；离线的点则把 δ 全给对数边际更高的一侧。' +
-    '按与图同一套轴刻度（像素 / 词条）映射，长度固定、只指示方向。' +
+    '<b>归一化梯度</b> = 伤害对数梯度按两轴归一化（精通 / 双暴 两值合为 1），即该点的词条重要性；' +
+    '最优分配线的内点段恒为 0.50 · 0.50，沿左轴的全双暴段与水平段是受约束的边界解，不必相等。' +
     '预算只用于最优分配与橙色虚线，<b>不是绘图上限</b>；' +
     '预算内外的点读数方式相同。超过 47 词条的悬浮只列同比例折算到 47 词条的数值。' +
     'K 主要缩放绝对伤害，但 F 不随 K 缩放、且会再乘暴击，K 变化会让最优分配轻微移动' +
@@ -80,8 +79,7 @@
     math: true,
     intro: '绘图范围固定 0–47 词条（细虚线 = 5 / 10 / … / 45，橙色虚线 = 当前预算 n，橙色实线 = 最优分配线）：' +
       '颜色 = 相对基准面板的伤害倍数，叠加倍数等高线；最优分配按预算 n 计算（默认 30），预算只决定橙线与最优标记，不限制绘图与读数。' +
-      '鼠标在图上时，箭头 = 下 δ 词条最优分配的方向（δ → 0）：在最优分配线上与线相切，' +
-      '离线的点把 δ 全给边际更高的一侧；悬浮读该点的面板、倍数与词条等效；' +
+      '鼠标在图上时，悬浮卡给出该点的面板、倍数、词条等效、下一词条最优分配与归一化梯度；' +
       '点击图面固定所选点（十字虚线），复位回最优。单段口径 = 10 级「递变聚爆」的星超导部分（403.2% 元素精通）。',
     controls: [
       {
@@ -187,7 +185,6 @@
       host.appendChild(GS.ui.panels.note(FOOT, 'pagenote'));
 
       var st = null;
-      var hoverPx = null;
       var pinned = null;
       var lastRaw = null;
       var curP = null;
@@ -294,29 +291,11 @@
         }).then(function () { ovl.queue(); });
       }
 
-      var LINE_TOL = 0.12;   // 词条：判定「在最优分配线上」的容差（约 2–3 px）
-
-      /** δ→0 的下 δ 词条最优分配方向（词条空间，两轴同单位）。
-          线上：边际相等，拆分由二阶项决定 = 线的切向；
-          离线：δ 全给对数边际更高的一侧（角点解）。 */
-      function spendDir(s, x, y) {
-        var t = x + y;
-        var q = S.optAt(s, t);
-        if (Math.abs(x - q.x) <= LINE_TOL) {
-          var h = 0.05;
-          var lo = Math.max(0, t - h), hi = Math.min(s.nMax, t + h);
-          var dx = (S.optAt(s, hi).x - S.optAt(s, lo).x) / (hi - lo);
-          return { vx: dx, vy: 1 - dx };
-        }
-        var gr = S.grad(x, y, s);
-        return gr.gx >= gr.gy ? { vx: 1, vy: 0 } : { vx: 0, vy: 1 };
-      }
-
       ovl.draw(function (g) {
         var s = st;
         if (!s) return [];
         var cap = s.nMax || s.n;
-        var parts = [ctx.overlay.defs([{ id: 'ovl-arrow-p', color: '#111' }])];
+        var parts = [];
         if (pinned) {
           var px = pinned.x / cap * g.w, py = (cap - pinned.y) / cap * g.h;
           parts.push('<line x1="' + px + '" y1="0" x2="' + px + '" y2="' + g.h + '" stroke="#4a6fa5" stroke-width="1.2" stroke-dasharray="6,4"/>');
@@ -336,22 +315,11 @@
           ctx.overlay.text(parts, mk.x / cap * g.w + 7, (cap - mk.y) / cap * g.h + 4,
             Math.round(mk.dmg) + ' (' + mk.n + '词)', '#e8710a');
         }
-        if (hoverPx) {
-          var x = hoverPx.x / g.w * cap;
-          var y = cap - hoverPx.y / g.h * cap;
-          if (x >= 0 && y >= 0 && x + y <= cap + 1e-9) {
-            var v = spendDir(s, x, y);
-            ctx.overlay.arrow(parts, hoverPx.x, hoverPx.y,
-              v.vx * g.w / cap, v.vy * g.h / cap, g,
-              { color: '#111', width: 2.2, marker: 'ovl-arrow-p', len: 31 });
-          }
-        }
         return parts;
       });
 
       m.wrap.addEventListener('mousemove', function (e) {
-        hoverPx = m.pxIn(e);
-        ovl.queue();
+        var hoverPx = m.pxIn(e);
         if (!hoverPx || !st) { tip.hide(); return; }
         var g = m.geom();
         var cap = st.nMax;
@@ -369,7 +337,7 @@
             '<div class="tip__crit">暴击 ' + Math.round(detF.crit) + '、未暴击 ' + Math.round(detF.noncrit) + '</div>' +
             '<div class="tip__hero tip__hero--sm"><b>×' + (detF.exp / base0).toFixed(3) + '</b><span class="u">相对基准面板</span></div>' +
             '<div class="tip__bad">超过 ' + cap + ' 词条上限</div>',
-            hoverPx.x, hoverPx.y, { segs: [] });
+            hoverPx.x, hoverPx.y);
           return;
         }
 
@@ -378,13 +346,9 @@
         var eq = S.equiv(s, x, y);
         var rng = S.equivRange(s, 41);
         var al = S.nextAlloc(s, x, y);
-
-        /* 下 δ 词条分配箭头（与叠加层同一算法）——卡片避开它放 */
-        var segs = [];
-        var sv = spendDir(s, x, y);
-        var tp = ctx.overlay.arrowTip(hoverPx.x, hoverPx.y,
-          sv.vx * g.w / cap, sv.vy * g.h / cap, g, { len: 31 });
-        segs.push([hoverPx.x, hoverPx.y, tp.tx, tp.ty]);
+        var gr = S.grad(x, y, s);
+        var gsum = gr.gx + gr.gy;
+        var gEm = gsum > 0 ? gr.gx / gsum : 0.5;
 
         var eqHTML = '';
         if (isFinite(eq.em)) {
@@ -402,12 +366,11 @@
           '<div class="tip__hd"><span>双暴</span><span class="rl">' + y.toFixed(1) + ' 词条</span><span class="vl">' + det.cr.toFixed(1) + ' / ' + det.cd.toFixed(1) + '</span></div>' +
           (S.critSplit(s.cr, s.cd, y).cr >= 100 - 1e-9 ? '<div class="tip__cap">暴击率已封顶；超出部分全进暴伤</div>' : '') +
           eqHTML +
-          '<div class="tip__cap mt" style="font-weight:600">下一词条最优分配</div>' + segBar(al.em, al.crit);
-        tip.show(html, hoverPx.x, hoverPx.y, { segs: segs });
+          '<div class="tip__cap mt" style="font-weight:600">下一词条最优分配</div>' + segBar(al.em, al.crit) +
+          '<div class="tip__cap mt" style="font-weight:600">归一化梯度</div>' + segBar(gEm, 1 - gEm);
+        tip.show(html, hoverPx.x, hoverPx.y);
       });
       m.wrap.addEventListener('mouseleave', function () {
-        hoverPx = null;
-        ovl.queue();
         tip.hide();
       });
 
