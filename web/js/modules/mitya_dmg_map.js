@@ -402,9 +402,9 @@
         var bOwnPctQ = q(det.bOwn * 100, 2, 4);
         var bFlatPctQ = q((s.bFlat || 0) * 100, 2, 4);
         var bQ = q(1 + bOwnPctQ / 100 + bFlatPctQ / 100, 3, 5), bS = fmtTrim(bQ, 3, 5);
-        var eQ = q(C.emTerm(emQ), 3, 5), eS = fmtTrim(eQ, 3, 5);
+        var eQ = q(C.emTerm(emQ), 3, 5);
         var sQ = q(s.bonus || 0, 2, 4);
-        var bracketQ = q(1 + eQ + sQ, 3, 5);
+        var bracketQ = q(1 + eQ + sQ, 3, 5), bracketS = fmtTrim(bracketQ, 3, 5);
         var kQ = q(s.k || 1, 2, 2);
         var coefQ = q(S.COEF, 3, 3);
         var coreQ = q(kQ * coefQ * emQ * bQ * bracketQ, 2, 2);
@@ -448,12 +448,13 @@
           ' \\times ' + u(C_EM, '元素精通', emS) + ',\\,' + u(C_B, '天赋上限', fmtTrim(S.B_CAP * 100, 0, 2) + '\\%') +
           '\\right) + ' + u(C_B, '队友基础提升', fmtTrim(bFlatPctQ, 0, 4) + '\\%') +
           ' = \\textcolor{' + C_B + '}{' + bS + '}\\\\[2pt]' +
-          h(C_E, '精通项') + ' &= \\frac{6 \\times ' + u(C_EM, '元素精通', emS) + '}{' +
-          u(C_EM, '元素精通', emS) + ' + 2000} = \\textcolor{' + C_E + '}{' + eS + '}\\\\[2pt]' +
+          h(C_E, '增伤系数') + ' &= 1 + \\frac{6 \\times ' + u(C_EM, '元素精通', emS) + '}{' +
+          u(C_EM, '元素精通', emS) + ' + 2000} + ' + u(C_S, '星超导增伤', fmtTrim(sQ, 2, 4)) +
+          ' = \\textcolor{' + C_E + '}{' + bracketS + '}\\\\[2pt]' +
           h(C_BASE, '单段基础伤害') + ' &= ' + u(C_K, '星超导系数', fmtTrim(kQ, 2, 2)) + ' \\cdot ' +
           u(C_K, '天赋倍率', fmtTrim(coefQ, 3, 3)) + ' \\cdot ' + u(C_EM, '元素精通', emS) + ' \\cdot ' +
-          u(C_B, '基础提升', bS) + ' \\cdot \\left(1 + ' + u(C_E, '精通项', eS) +
-          ' + ' + u(C_S, '星超导增伤', fmtTrim(sQ, 2, 4)) + '\\right) + ' + u(C_F, '额外提升', fmtTrim(fQ, 0, 2)) +
+          u(C_B, '基础提升', bS) + ' \\cdot ' + u(C_E, '增伤系数', bracketS) +
+          ' + ' + u(C_F, '额外提升', fmtTrim(fQ, 0, 2)) +
           ' = \\textcolor{' + C_BASE + '}{' + baseS + '}\\\\[2pt]' +
           h(C_RES, '雷抗系数') + ' &= \\begin{cases} ' +
           '1 - \\text{抗性} / 2, & \\text{抗性} < 0, \\\\ ' +

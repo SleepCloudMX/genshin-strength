@@ -110,7 +110,6 @@
 
       /* 公式面板配色：同名量同色；深色系、不刺眼 */
       var C_EM = '#2f6f8f',    // 元素精通
-          C_E = '#3f7d4f',     // 精通项
           C_S = '#8f3f5f',     // 星扩散增伤
           C_E2 = '#c05621',    // 战技增伤
           C_K = '#7a6a55',     // 增伤系数 / 倍率
@@ -408,7 +407,7 @@
         var emQ = q(s.emBase + C.EM_PER_ROLL * H.EM_MULT * xQ, 1, 3), emS = fmtTrim(emQ, 1, 3);
         var bQ = q(1 + (s.baseUp || 0), 2, 2), bS = fmtTrim(bQ, 2, 2);
         var sQ = q(s.bonus || 0, 2, 2), sS = fmtTrim(sQ, 2, 2);
-        var eTermQ = q(C.emTerm(emQ), 3, 5), eTermS = fmtTrim(eTermQ, 3, 5);
+        var eTermQ = q(C.emTerm(emQ), 3, 5);
         var eBonusQ = q(H.E_COEF * emQ, 3, 5);
         var kQ = q(1 + eTermQ + sQ + eBonusQ, 3, 5), kS = fmtTrim(kQ, 3, 5);
         var coreQ, baseLabel, baseTex;
@@ -465,11 +464,9 @@
           ' \\times ' + u(C_EM, '廓然梦生', fmtTrim(H.EM_MULT, 1, 1)) +
           ' \\times ' + u(C_EM, '精通词条', fmtTrim(xQ, 1, 4)) +
           ' = \\textcolor{' + C_EM + '}{' + emS + '}\\\\[2pt]' +
-          h(C_E, '精通项') + ' &= \\frac{6 \\times ' + u(C_EM, '元素精通', emS) + '}{' +
-          u(C_EM, '元素精通', emS) + ' + 2000} = \\textcolor{' + C_E + '}{' + eTermS + '}\\\\[2pt]' +
-          h(C_K, '增伤系数') + ' &= 1 + ' + u(C_E, '精通项', eTermS) + ' + ' +
-          u(C_S, '星扩散增伤', sS) + ' + ' + u(C_E2, '战技每点精通', fmtTrim(H.E_COEF, 3, 5)) +
-          ' \\times ' + u(C_EM, '元素精通', emS) +
+          h(C_K, '增伤系数') + ' &= 1 + \\frac{6 \\times ' + u(C_EM, '元素精通', emS) + '}{' +
+          u(C_EM, '元素精通', emS) + ' + 2000} + ' + u(C_S, '星扩散增伤', sS) + ' + ' +
+          u(C_E2, '战技每点精通', fmtTrim(H.E_COEF, 3, 5)) + ' \\times ' + u(C_EM, '元素精通', emS) +
           ' = \\textcolor{' + C_K + '}{' + kS + '}\\\\[2pt]' +
           h(C_BASE, baseLabel) + ' &= ' + baseTex +
           ' = \\textcolor{' + C_BASE + '}{' + coreS + '}\\\\[2pt]' +
