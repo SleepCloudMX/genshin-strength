@@ -102,10 +102,25 @@
         return s;
       }
       function q(v, minDp, maxDp) { return Number(fmtTrim(v, minDp, maxDp)); }
+      /** 公式面板：量写成「中文名 + 下方数值」（与千织页同式）。 */
+      function u(color, name, val) {
+        return '\\textcolor{' + color + '}{\\underset{' + val + '}{\\text{' + name + '}}}';
+      }
+      function h(color, name) { return '\\textcolor{' + color + '}{\\text{' + name + '}}'; }
 
-      /* 公式面板配色：同名量同色 */
-      var C_EM = '#2f6f8f', C_K = '#7a6a55', C_BASE = '#23201a',
-          C_RES = '#a0764e', C_CR = '#b5453c', C_CD = '#8f3f5f', C_FINAL = '#23201a';
+      /* 公式面板配色：同名量同色；深色系、不刺眼 */
+      var C_EM = '#2f6f8f',    // 元素精通
+          C_E = '#3f7d4f',     // 精通项
+          C_S = '#8f3f5f',     // 星扩散增伤
+          C_E2 = '#c05621',    // 战技增伤
+          C_K = '#7a6a55',     // 增伤系数 / 倍率
+          C_B = '#5a8ca0',     // 基础提升
+          C_BASE = '#7b4fa0',  // 直伤 / 反应基础
+          C_ENEMY = '#6e685c', // 敌人区辅助量（抗性）
+          C_RES = '#a0764e',   // 抗性系数
+          C_CR = '#b5453c',    // 暴击率
+          C_CD = '#8f3f5f',    // 暴击伤害
+          C_FINAL = '#23201a'; // 最终伤害
 
       var verdict = el('div', 'verdict');
       verdict.innerHTML =
@@ -379,8 +394,8 @@
         if (!st || !curP || !calcActive || !global.katex) return;
         var s = st, x = curP.x, y = curP.y;
         var part = calcActive.part, kind = calcActive.kind;
-        var isDirect = part === 0;
-        var d = isDirect ? H.directParts(s, x, y) : H.reactParts(s, x, y, part === 1 ? 'wind' : 'ice');
+        var isDirect = part === 0, isIce = part === 2;
+        var d = isDirect ? H.directParts(s, x, y) : H.reactParts(s, x, y, isIce ? 'ice' : 'wind');
         if (!d) return;
         var expV = isDirect ? d.direct : d.exp;
         var kindName = kind === 'crit' ? '暴击' : kind === 'noncrit' ? '未暴击' : '期望';
@@ -388,61 +403,85 @@
         var label = isDirect ? '星扩散直伤' : (part === 1 ? '反应星扩散（风）' : '反应星扩散（冰）');
         calcpopT.textContent = label + ' · ' + kindName + ' ' + titleVal;
 
+        /* 各量先取显示精度、再逐级计算：印出的式子乘出来正好等于印出的结果。 */
         var xQ = q(x, 1, 4);
-        var emQ = q(s.emBase + C.EM_PER_ROLL * H.EM_MULT * xQ, 1, 3);
-        var bQ = q(1 + (s.baseUp || 0), 2, 2);
-        var sQ = q(s.bonus || 0, 2, 2);
-        var eTermQ = q(C.emTerm(emQ), 3, 5);
+        var emQ = q(s.emBase + C.EM_PER_ROLL * H.EM_MULT * xQ, 1, 3), emS = fmtTrim(emQ, 1, 3);
+        var bQ = q(1 + (s.baseUp || 0), 2, 2), bS = fmtTrim(bQ, 2, 2);
+        var sQ = q(s.bonus || 0, 2, 2), sS = fmtTrim(sQ, 2, 2);
+        var eTermQ = q(C.emTerm(emQ), 3, 5), eTermS = fmtTrim(eTermQ, 3, 5);
         var eBonusQ = q(H.E_COEF * emQ, 3, 5);
-        var kQ = q(1 + eTermQ + sQ + eBonusQ, 3, 5);
-        var coreQ, baseTex;
+        var kQ = q(1 + eTermQ + sQ + eBonusQ, 3, 5), kS = fmtTrim(kQ, 3, 5);
+        var coreQ, baseLabel, baseTex;
         if (isDirect) {
           coreQ = q(10 * emQ * bQ * kQ, 2, 2);
-          baseTex = '10 \\times ' + fmtTrim(emQ, 1, 3) + ' \\times ' + fmtTrim(bQ, 2, 2) + ' \\times ' +
-            fmtTrim(kQ, 3, 5) + ' = \\textcolor{' + C_BASE + '}{' + fmtTrim(coreQ, 2, 2) + '}';
+          baseLabel = '直伤基础';
+          baseTex = u(C_K, '天赋倍率', '10') + ' \\cdot ' + u(C_EM, '元素精通', emS) + ' \\cdot ' +
+            '(1+' + u(C_B, '基础提升', bS) + ') \\cdot ' + u(C_K, '增伤系数', kS);
         } else {
-          var multQ = q(d.mult, 2, 2), shareQ = q(d.share, 2, 2);
-          coreQ = q(H.REACT_LEVEL * multQ * shareQ * bQ * kQ, 2, 2);
-          baseTex = fmtTrim(H.REACT_LEVEL, 2, 2) + ' \\times ' + fmtTrim(multQ, 2, 2) + ' \\times ' +
-            fmtTrim(shareQ, 2, 2) + ' \\times ' + fmtTrim(bQ, 2, 2) + ' \\times ' +
-            fmtTrim(kQ, 3, 5) + ' = \\textcolor{' + C_BASE + '}{' + fmtTrim(coreQ, 2, 2) + '}';
+          var multQ = q(d.mult, 2, 2), multS = fmtTrim(multQ, 0, 2);
+          coreQ = q(H.REACT_LEVEL * multQ * q(d.share, 2, 2) * bQ * kQ, 2, 2);
+          baseLabel = '反应基础';
+          baseTex = u(C_K, '等级基数', fmtTrim(H.REACT_LEVEL, 2, 2)) + ' \\cdot ' +
+            u(C_K, isIce ? '风涡倍率' : '天赋倍率', multS) + ' \\cdot ' +
+            u(C_K, '分摊', isIce ? '3/10' : '3/5') + ' \\cdot ' +
+            '(1+' + u(C_B, '基础提升', bS) + ') \\cdot ' + u(C_K, '增伤系数', kS);
         }
-        var resQ = q(d.res, 2, 4);
-        var crQ = q(d.cr / 100, 2, 5), cdQ = q(d.cd / 100, 2, 5);
-        var critQ = kind === 'crit' ? q(1 + cdQ, 3, 5) : kind === 'noncrit' ? 1 : q(1 + crQ * cdQ, 3, 5);
-        var finalQ = q(coreQ * resQ * critQ, 2, 2);
+        var coreS = fmtTrim(coreQ, 2, 2);
+        var resQ = q(d.res, 2, 4), resS = fmtTrim(resQ, 2, 4);
+        var crQ = q(d.cr / 100, 2, 6), crS = fmtTrim(crQ, 2, 6);
+        var cdQ = q(d.cd / 100, 2, 6), cdS = fmtTrim(cdQ, 2, 6);
+        var zoneQ = kind === 'crit' ? q(1 + cdQ, 3, 6) : kind === 'noncrit' ? 1 : q(1 + crQ * cdQ, 3, 6);
+        var finalQ = q(coreQ * resQ * zoneQ, 2, 2);
 
-        var netRes = part === 2
+        var netRes = isIce
           ? (lastRaw.enemyRes - lastRaw.shredIce) / 100
           : (lastRaw.enemyRes - lastRaw.shredA) / 100;
-        var netResPct = q(netRes * 100, 0, 2);
-        var resTex;
-        if (netRes < 0) resTex = '1 - \\frac{' + fmtTrim(netResPct, 0, 2) + '\\%}{2}';
-        else if (netRes < 0.75) resTex = '1 - ' + fmtTrim(netResPct, 0, 2) + '\\%';
-        else resTex = '\\frac{1}{4 \\times ' + fmtTrim(q(netRes, 2, 4), 2, 4) + ' + 1}';
-
-        var critTex;
-        if (kind === 'crit') {
-          critTex = '1 + \\textcolor{' + C_CD + '}{' + fmtTrim(cdQ, 2, 5) + '} = \\textcolor{' + C_FINAL + '}{' + fmtTrim(critQ, 3, 5) + '}';
-        } else if (kind === 'noncrit') {
-          critTex = '1';
+        var rMark = u(C_ENEMY, '抗性', fmtTrim(netRes, 0, 4));
+        var resCond, resExpr;
+        if (netRes < 0) {
+          resCond = '\\text{抗性} < 0';
+          resExpr = '1 - ' + rMark + ' / 2';
+        } else if (netRes < 0.75) {
+          resCond = '0 \\le \\text{抗性} < 0.75';
+          resExpr = '1 - ' + rMark;
         } else {
-          critTex = '1 + \\textcolor{' + C_CR + '}{' + fmtTrim(crQ, 2, 5) + '} \\times \\textcolor{' + C_CD + '}{' +
-            fmtTrim(cdQ, 2, 5) + '} = \\textcolor{' + C_FINAL + '}{' + fmtTrim(critQ, 3, 5) + '}';
+          resCond = '\\text{抗性} \\ge 0.75';
+          resExpr = '\\frac{1}{4 \\cdot ' + rMark + ' + 1}';
+        }
+        var resName = isIce ? '冰抗系数' : '风抗系数';
+
+        var zoneTex;
+        if (kind === 'crit') {
+          zoneTex = '(1+' + u(C_CD, '暴击伤害', cdS) + ')';
+        } else if (kind === 'noncrit') {
+          zoneTex = '1';
+        } else {
+          zoneTex = '(1+' + u(C_CR, '暴击率', crS) + '\\cdot' + u(C_CD, '暴击伤害', cdS) + ')';
         }
 
         var tex = '\\begin{aligned}' +
-          '\\textcolor{' + C_EM + '}{EM} &= ' + fmtTrim(s.emBase, 1, 1) + ' + ' + fmtTrim(C.EM_PER_ROLL, 3, 3) +
-          ' \\times 1.1 \\times ' + fmtTrim(xQ, 1, 4) + ' = \\textcolor{' + C_EM + '}{' + fmtTrim(emQ, 1, 3) + '}\\\\[2pt]' +
-          '\\textcolor{' + C_K + '}{K} &= 1 + \\frac{6 \\times ' + fmtTrim(emQ, 1, 3) + '}{' + fmtTrim(emQ, 1, 3) +
-          ' + 2000} + ' + fmtTrim(sQ, 2, 2) + ' + 0.00045 \\times ' + fmtTrim(emQ, 1, 3) +
-          ' = \\textcolor{' + C_K + '}{' + fmtTrim(kQ, 3, 5) + '}\\\\[2pt]' +
-          '\\textcolor{' + C_BASE + '}{基础} &= ' + baseTex + '\\\\[2pt]' +
-          '\\textcolor{' + C_RES + '}{R} &= ' + resTex + ' = \\textcolor{' + C_RES + '}{' + fmtTrim(resQ, 2, 4) + '}\\\\[2pt]' +
-          '\\textcolor{' + C_FINAL + '}{C} &= ' + critTex + '\\\\[2pt]' +
-          '\\textcolor{' + C_FINAL + '}{最终} &= \\textcolor{' + C_BASE + '}{' + fmtTrim(coreQ, 2, 2) + '} \\times ' +
-          '\\textcolor{' + C_RES + '}{' + fmtTrim(resQ, 2, 4) + '} \\times ' +
-          '\\textcolor{' + C_FINAL + '}{' + fmtTrim(critQ, 3, 5) + '} = \\textcolor{' + C_FINAL + '}{' + fmtTrim(finalQ, 0, 0) + '}' +
+          h(C_EM, '元素精通') + ' &= ' + u(C_EM, '基准精通', fmtTrim(s.emBase, 1, 1)) +
+          ' + ' + u(C_EM, '每条精通', fmtTrim(C.EM_PER_ROLL, 3, 3)) +
+          ' \\times ' + u(C_EM, '廓然梦生', fmtTrim(H.EM_MULT, 1, 1)) +
+          ' \\times ' + u(C_EM, '精通词条', fmtTrim(xQ, 1, 4)) +
+          ' = \\textcolor{' + C_EM + '}{' + emS + '}\\\\[2pt]' +
+          h(C_E, '精通项') + ' &= \\frac{6 \\times ' + u(C_EM, '元素精通', emS) + '}{' +
+          u(C_EM, '元素精通', emS) + ' + 2000} = \\textcolor{' + C_E + '}{' + eTermS + '}\\\\[2pt]' +
+          h(C_K, '增伤系数') + ' &= 1 + ' + u(C_E, '精通项', eTermS) + ' + ' +
+          u(C_S, '星扩散增伤', sS) + ' + ' + u(C_E2, '战技每点精通', fmtTrim(H.E_COEF, 3, 5)) +
+          ' \\times ' + u(C_EM, '元素精通', emS) +
+          ' = \\textcolor{' + C_K + '}{' + kS + '}\\\\[2pt]' +
+          h(C_BASE, baseLabel) + ' &= ' + baseTex +
+          ' = \\textcolor{' + C_BASE + '}{' + coreS + '}\\\\[2pt]' +
+          h(C_RES, resName) + ' &= \\begin{cases} ' +
+          '1 - \\text{抗性} / 2, & \\text{抗性} < 0, \\\\ ' +
+          '1 - \\text{抗性}, & 0 \\le \\text{抗性} < 0.75, \\\\ ' +
+          '1 / (4 \\cdot \\text{抗性} + 1), & \\text{抗性} \\ge 0.75. \\end{cases}' +
+          '\\quad \\xlongequal{' + resCond + '} ' + resExpr +
+          ' = \\textcolor{' + C_RES + '}{' + resS + '}\\\\[2pt]' +
+          h(C_FINAL, '最终伤害') + ' &= ' + u(C_BASE, baseLabel, coreS) + ' \\cdot ' +
+          u(C_RES, resName, resS) + ' \\cdot ' + zoneTex +
+          ' = \\textcolor{' + C_FINAL + '}{' + fmtTrim(finalQ, 0, 0) + '}' +
           '\\end{aligned}';
 
         calcpop.style.display = 'block';
