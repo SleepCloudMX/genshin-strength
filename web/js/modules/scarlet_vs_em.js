@@ -28,30 +28,42 @@
     controls: [
       {
         key: '', type: 'note',
-        html: '<b>以下都填「上完 buff」后的实际数值</b>（含副词条；不含套装特效 —— 两套的套装效果由脚本自动加上）；' +
-          '每个数值可点「明细」查看与编辑逐项来源。',
+        html: '<b>基准面板 = 上完 buff、不含副词条</b>（不含套装特效 —— 两套的套装效果由脚本自动加上）；' +
+          '每个数值可点「明细」查看逐项来源。',
       },
       {
         key: '', type: 'note',
-        html: '<b>星扩散伤害 = 星扩散直伤（大头）+ 反应星扩散</b>。<b>星扩散直伤占比</b>：给定的假定常数（全图按此假定，' +
-          '不随基准精通变化），计算中直接采用；本页<b>不</b>根据你的配置推算真实占比（实测约九成，见' +
-          '<a href="#/mizuki/stellar_swirl#share">机制页</a>）。默认 90%；拉到 100% = 只看星扩散直伤。',
+        html: '<b>星扩散伤害 = 星扩散直伤 + 反应星扩散</b>。<b>直伤占比</b> c 是模型内的假设：按 ' +
+          '<code>a·x / (a·x + b(1−x)) = c</code> 混合两条路径（100% = 只看直伤）；' +
+          '本页不推算真实占比（实测约九成，见<a href="#/mizuki/stellar_swirl#share">机制页</a>）。默认 90%。',
       },
       { key: 'bonus', type: 'items', label: '星扩散增伤 %', step: 5, min: 0, items: [
+        { n: '炉火 4 件套', v: 50 },
         { n: '冰主 6 命', v: 40 },
-        { n: '炉火', v: 50 }] },
-      { key: 'em', type: 'items', label: '基准精通', step: 10, min: 589, items: [
-        { n: '总数', v: 1000 }] },
+        { n: '奥黛塔 华彩', v: 60 }] },
+      { key: 'em', type: 'items', label: '基准精通', step: 1, min: 589, items: [
+        { n: '瑞希突破', v: 115 },
+        { n: '天光的纺琴 R5', v: 200 },
+        { n: '精通沙', v: 187 },
+        { n: '精通杯', v: 187 },
+        { n: '昼想夜梦', v: 100 },
+        { n: '冰主 2 命', v: 120 }],
+        derived: [
+          { n: '廓然梦生 10%', compute: function (base) { return base * 0.1; } },
+        ] },
       { key: 'cr', type: 'items', label: '基准暴击率 %', step: 0.1, min: 5, items: [
-        { n: '总数', v: 60 }] },
+        { n: '瑞希自身', v: 5 },
+        { n: '双冰共鸣', v: 15 }] },
       { key: 'cd', type: 'items', label: '基准暴伤 %', step: 0.1, min: 50, items: [
-        { n: '总数', v: 120 }] },
+        { n: '角色基础', v: 50 },
+        { n: '暴伤头', v: 62.2 }] },
       { key: 'score', type: 'readout', label: '双暴分', compute: function (s) { return (2 * s.cr + s.cd).toFixed(1); } },
       { key: 'd', type: 'range', label: '星扩散直伤占比', def: 90, min: 0, max: 100, step: 1, unit: '%', live: 100 },
       {
-        key: 'eset', type: 'select', label: '精通套', def: 'gild2',
+        key: 'eset', type: 'select', label: '精通套', def: 'gild180',
         options: [
-          { value: 'gild2', label: '饰金之梦 4 件套（+180 精通）' },
+          { value: 'gild180', label: '饰金之梦（+180 精通）' },
+          { value: 'gild230', label: '饰金之梦（+230 精通）' },
           { value: 'em22', label: '精通 2+2（+160 精通）' },
         ],
       },
@@ -68,8 +80,10 @@
       foot.innerHTML =
         '<b>双暴分</b> = 2 × 基准暴击 + 基准暴伤（实时算出）。血红之证 4 件套的 +16% 暴击由脚本自己加，' +
         '所以图上血红那一路是「你填的暴击 + 16%」（双暴分 +32）。两套的精通也不同：<span class="foot-set"></span> ' +
-        '比你填的基准精通多 <span class="foot-em"></span>。星扩散增伤则是在你填的值上，血红那一路再 +40%。<br>' +
-        '比值 = 两套的期望伤害比，&gt; 1 表示血红更优。倍率、(1 + 基础提升)、抗性系数、擢升在同队伍下相同，已约掉。';
+        '比基准精通多 <span class="foot-em"></span>（精通轴为终值，含廓然梦生 ×1.1；套装精通是梦浮前的量，进入模型时同样 ×1.1）。' +
+        '星扩散增伤则是在你填的值上，血红那一路再 +40%。<br>' +
+        '两条路径按目标直伤占比 c 混合、反应按风段 3/5；比值 = 两套的混合伤害比，&gt; 1 表示血红更优。' +
+        '倍率、(1 + 基础提升)、抗性系数、擢升在同队伍下相同，已约掉；内部括号含瑞希 E Lv10 的 +0.00045 × 精通。';
       host.appendChild(verdict);
       host.appendChild(card);
       host.appendChild(foot);
@@ -82,7 +96,7 @@
       var cache = { key: null, heat: null, divider: null };
 
       function state(s) {
-        return { bonus: s.bonus / 100, em: s.em, score: 2 * s.cr + s.cd, d: s.d / 100, leg: Mi.EM_SETS[s.eset] || Mi.EM_SETS.gild2 };
+        return { bonus: s.bonus / 100, em: s.em, score: 2 * s.cr + s.cd, d: s.d / 100, leg: Mi.EM_SETS[s.eset] || Mi.EM_SETS.gild180 };
       }
 
       /** Plotly 没有 matplotlib 的 TwoSlopeNorm，手动模拟分段压缩：1.0 → 色带正中。 */
@@ -165,7 +179,7 @@
       function updateVerdict(s) {
         var r = Mi.ratio(s.em, s.score / 100, s.bonus, s.d, s.leg);
         footSet.textContent = s.leg.name;
-        footEm.textContent = s.leg.em.toFixed(0);
+        footEm.textContent = '+' + (s.leg.em * Mi.HM.EM_MULT).toFixed(0);
         var margin = Math.abs(r - 1) * 100;
         var who;
         if (margin.toFixed(1) === '0.0') {

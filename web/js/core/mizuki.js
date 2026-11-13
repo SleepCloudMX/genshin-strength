@@ -83,10 +83,12 @@
   M.SCORE_MAX = 400;
 
   M.SCARLET = { em: 0, critRate: 0.16, swirlBonus: 0.40 };   // 血红之证 4 件套（固定的一方）
-  /** 可切换的对比方。饰金之梦 4 件套 = 2 件套 80 + 每 1 种异元素队友 50（两种异元素 → +100）。 */
+  /** 可切换的对比方。饰金之梦 4 件套 = 2 件套 80 + 每 1 种异元素队友 50（两种 → +180，三种 → +230）。
+      套装精通是梦浮前的量，进模型时按廓然梦生 ×1.1。 */
   M.EM_SETS = {
-    gild2: { id: 'gild2', name: '饰金之梦', em: 180.0, critRate: 0.0, swirlBonus: 0.0 },
-    em22: { id: 'em22', name: '精通 2+2', em: 160.0, critRate: 0.0, swirlBonus: 0.0 },
+    gild180: { id: 'gild180', name: '饰金之梦（+180 精通）', em: 180.0, critRate: 0.0, swirlBonus: 0.0 },
+    gild230: { id: 'gild230', name: '饰金之梦（+230 精通）', em: 230.0, critRate: 0.0, swirlBonus: 0.0 },
+    em22: { id: 'em22', name: '精通 2+2（+160 精通）', em: 160.0, critRate: 0.0, swirlBonus: 0.0 },
   };
 
   /** 双暴分 budget（= 2×暴击率 + 暴伤，小数）下的期望暴击区。 */
@@ -97,16 +99,11 @@
     return 1 + rate * dmg;
   };
 
-  /** 血红之证 / 精通套 的期望伤害比。score 为双暴分小数，不含套装特效；leg = 选中的精通套。
-   *  d = 星扩散直伤占比：给定的假定常数，在图上任意位置都成立，不锚定任何面板值；
-   *  反应折算精通 W = em·(1−d)/d（随该点的基准精通取），线性项 = d·(e + W) = d·e + (1−d)·em。 */
-  M.ratio = function (em, score, bonus, d, leg) {
-    function hit(build) {
-      var e = em + build.em;
-      var lin = d * e + (1 - d) * em;
-      return lin * (1 + C.emTerm(e) + bonus + build.swirlBonus) * M.critZone(score, build.critRate);
-    }
-    return hit(M.SCARLET) / hit(leg);
+  /** 血红之证 / 精通套 的期望伤害比。score = 双暴分 / 100（不含套装特效）；c = 目标直伤占比。
+      两套共用 (1+基础提升)、抗性、擢升，已略去；反应按风段 3/5 分摊。 */
+  M.ratio = function (em, score, bonus, c, leg) {
+    return H.setHit(em, score, bonus + M.SCARLET.swirlBonus, M.SCARLET.critRate, c) /
+           H.setHit(em + leg.em * H.EM_MULT, score, bonus, leg.critRate, c);
   };
 
   /** 该双暴分下比值为 1 的精通。区间内无交点时返回 { none: 'scarlet' | 'leg' }。 */
@@ -402,6 +399,41 @@
     return { cr: Math.min(t.cr, 100), cd: t.cd, a: t.a };
   };
   H.critZone = function (t) { return 1 + t.cr / 100 * t.cd / 100; };
+
+  /** 目标直伤占比 c 下的直伤 / 反应混合：由 a·x / (a·x + b(1−x)) = c 解出 x，
+      等价于 a·b / (a(1−c) + b·c)。c = 1 即纯直伤。 */
+  H.blend = function (a, b, c) {
+    if (c >= 1) return a;
+    if (c <= 0) return b;
+    return a * b / (a * (1 - c) + c * b);
+  };
+
+  /** 套装对比一套配置的相对伤害：终值精通 em、双暴分 score（= 分/100）、增伤、套装额外暴击率。
+      共同项 (1+基础提升)、抗性、擢升、等级基数在两套间相同，已略去。 */
+  H.setHit = function (em, score, bonus, extraCrit, c) {
+    var k = 1 + C.emTerm(em) + bonus + H.E_COEF * em;
+    var react = H.REACT_LEVEL * H.WIND_MULT * H.WIND_SHARE * k;
+    return H.blend(10 * em * k, react, c) * M.critZone(score, extraCrit);
+  };
+
+  /** 词条分配：n 个等效词条中 b 个给双暴、其余给精通时的星扩散直伤。 */
+  H.allocDamage = function (s, n, b) { return H.direct(s, n - b, b); };
+  /** 给定 n 的最优双暴词条数（其余给精通）与伤害。 */
+  H.allocBest = function (s, n) {
+    var p = H.optAt(s, n);
+    var f = H.direct(s, p.x, p.y);
+    return { b: p.y, x: p.x, f: f === null ? 0 : f };
+  };
+  /** 不低于 level × fmax 的双暴词条区间（单峰，扫描）。 */
+  H.allocPlateau = function (s, n, fmax, level) {
+    var steps = Math.max(800, Math.ceil(n * 40)), lo = null, hi = null;
+    for (var i = 0; i <= steps; i++) {
+      var b = n * i / steps;
+      var d = H.direct(s, n - b, b);
+      if (d !== null && d >= level * fmax) { if (lo === null) lo = b; hi = b; }
+    }
+    return { lo: lo, hi: hi };
+  };
 
   /** 直伤单点：星扩散直伤（EM × 1000%）。域外返回 null。
       core = 10 × EM × (1 + 基础提升) × K，最终 = core × 抗性系数 × 暴击区。 */

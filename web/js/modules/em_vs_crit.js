@@ -5,9 +5,11 @@
   var M = GS.modules = GS.modules || {};
   var C = GS.core;
   var Mi = GS.core.mizuki;
+  var H = Mi.HM;
   var el = GS.ui.panels.el;
 
-  var FOOT = '1 等效词条 = ' + C.ROLL.em + ' 精通 = ' + C.ROLL.cr + '% 暴击 = ' + C.ROLL.cd + '% 暴伤。<b>星扩散直伤</b> = 瑞希天赋「廓然梦生」的精通倍率伤害。';
+  var FOOT = '1 等效词条 = ' + C.ROLL.em + ' 精通 = ' + C.ROLL.cr + '% 暴击 = ' + C.ROLL.cd + '% 暴伤；' +
+    '梦浮内每条精通 ×1.1（廓然梦生）。<b>星扩散直伤</b> = 瑞希天赋「廓然梦生」的精通倍率伤害，本页只算直伤。';
 
   /* 图 B 下半格三条曲线的颜色（卡片色标与曲线同一来源） */
   var COL_CR = '#d62728', COL_CD = '#ff7f0e', COL_EM = '#2e8b57';
@@ -15,8 +17,8 @@
   M['mizuki/em_vs_crit'] = {
     title: '「梦见月瑞希」精通和双暴的词条分配',
     tab: '瑞希·词条分配',
-    intro: 'A = 各词条数下「给双暴多少」的伤害曲线（× = 该曲线最优，虚线 = 平台区）；' +
-      'B = 最优拆分随词条数的变化。悬浮读该点的双暴拆分、精通与伤害倍数。',
+    intro: 'A = 各词条数下「给双暴多少」的星扩散直伤曲线（× = 该曲线最优，虚线 = 平台区）；' +
+      'B = 最优拆分随词条数（5 ~ 43）的变化。悬浮读该点的双暴拆分、精通与伤害倍数。',
     controls: [
       {
         key: '', type: 'note',
@@ -25,23 +27,32 @@
       },
       {
         key: '', type: 'note',
-        html: '<b>星扩散伤害 = 星扩散直伤（大头）+ 反应星扩散</b>。<b>星扩散直伤占比</b>：给定的假定常数（按基准分配处定义），' +
-          '计算中直接采用；本页<b>不</b>根据你的配置推算真实占比（实测约九成，见<a href="#/mizuki/stellar_swirl#share">机制页</a>）。' +
-          '默认 90%；拉到 100% = 只看星扩散直伤。',
+        html: '<b>星扩散直伤口径</b>：梦浮内每条精通 ×1.1（廓然梦生）；增伤系数含瑞希 E Lv10 的 +0.00045 × 精通。' +
+          '本页只算直伤；反应见热图结论框。',
       },
       { key: 'bonus', type: 'items', label: '星扩散增伤 %', step: 1, min: 0, items: [
+        { n: '炉火 4 件套', v: 50 },
+        { n: '血红 4 件套', v: 40 },
         { n: '冰主 6 命', v: 40 },
-        { n: '炉火', v: 50 },
-        { n: '血红 4 件套', v: 40 }] },
+        { n: '奥黛塔 华彩', v: 60 }] },
       { key: 'em', type: 'items', label: '基准精通', step: 1, min: 589, items: [
-        { n: '总数', v: 1000 }] },
+        { n: '瑞希突破', v: 115 },
+        { n: '天光的纺琴 R5', v: 200 },
+        { n: '精通沙', v: 187 },
+        { n: '精通杯', v: 187 },
+        { n: '昼想夜梦', v: 100 },
+        { n: '冰主 2 命', v: 120 }],
+        derived: [
+          { n: '廓然梦生 10%', compute: function (base) { return base * 0.1; } },
+        ] },
       { key: 'cr', type: 'items', label: '基准暴击率 %', step: 0.1, min: 5, items: [
-        { n: '总数', v: 36 }] },
+        { n: '瑞希自身', v: 5 },
+        { n: '双冰共鸣', v: 15 },
+        { n: '血红 4 件套', v: 16 }] },
       { key: 'cd', type: 'items', label: '基准暴伤 %', step: 0.1, min: 50, items: [
         { n: '角色基础', v: 50 },
         { n: '暴伤头', v: 62.2 }] },
       { key: 'score', type: 'readout', label: '双暴分', compute: function (s) { return C.f(C.baseScore(s.cr, s.cd), 1); } },
-      { key: 'd', type: 'range', label: '星扩散直伤占比', def: 90, min: 0, max: 100, step: 1, unit: '%', live: 100 },
       { key: 'ns', type: 'text', full: true, label: '曲线取哪些 n', def: '15, 20, 25, 30, 35' },
       { key: 'level', type: 'number', label: '平台阈值 %', def: 99, step: 0.5, min: 0, max: 100 },
     ],
@@ -52,8 +63,6 @@
       var cardA = el('div', 'card chartcard');
       cardA.appendChild(el('div', 'chart-h', '相对「词条全给精通」的伤害倍数'));
       var mA = charts.mount(cardA, { height: 520 });
-      var lossNote = el('p', 'chartnote');
-      cardA.appendChild(lossNote);
       cardA.appendChild(GS.ui.panels.actionsRow(function () { return mA.plot; }, 'curves'));
 
       var cardB = el('div', 'card chartcard');
@@ -95,8 +104,9 @@
 
       function readState(s) {
         return {
-          em: s.em, cr: s.cr, cd: s.cd,
-          bonus: s.bonus / 100, d: s.d / 100,
+          emBase: s.em, cr0: s.cr, cd0: s.cd,
+          bonus: s.bonus / 100, baseUp: 0,
+          nMax: Mi.ROLL_LIMIT,
           ns: Mi.parseNs(s.ns),
           level: s.level / 100,
         };
@@ -106,22 +116,17 @@
         var traces = [], annos = [];
         var ns = s.ns.length ? s.ns : [15, 20, 25, 30, 35];
         var span = Math.max.apply(null, ns);
-        var lossMax = 0;
 
         ns.forEach(function (n, i) {
           var color = Mi.ramp(i / Math.max(ns.length - 1, 1));
-          var base = Mi.rollDamage(s, n, 0);
-          var best = Mi.bestSplit(s, n);
-          var pl = Mi.plateau(s, n, best.f, s.level);
-          if (s.d < 1) {
-            var bDirect = Mi.bestSplit(Object.assign({}, s, { d: 1 }), n).b;
-            lossMax = Math.max(lossMax, 1 - Mi.rollDamage(s, n, bDirect) / best.f);
-          }
+          var base = H.allocDamage(s, n, 0);
+          var best = H.allocBest(s, n);
+          var pl = H.allocPlateau(s, n, best.f, s.level);
 
           var xs = [], ys = [];
           for (var k = 0; k <= 401; k++) {
             var b = n * k / 401;
-            xs.push(b); ys.push(Mi.rollDamage(s, n, b) / base);
+            xs.push(b); ys.push(H.allocDamage(s, n, b) / base);
           }
           traces.push({
             type: 'scatter', mode: 'lines', x: xs, y: ys,
@@ -131,12 +136,12 @@
           if (pl.lo !== null) {
             traces.push({
               type: 'scatter', mode: 'lines', x: [pl.lo, pl.hi],
-              y: [Mi.rollDamage(s, n, pl.lo) / base, Mi.rollDamage(s, n, pl.hi) / base],
+              y: [H.allocDamage(s, n, pl.lo) / base, H.allocDamage(s, n, pl.hi) / base],
               line: { color: color, width: 1.4, dash: 'dash' },
             });
             [pl.lo, pl.hi].forEach(function (x) {
               traces.push({
-                type: 'scatter', mode: 'markers', x: [x], y: [Mi.rollDamage(s, n, x) / base],
+                type: 'scatter', mode: 'markers', x: [x], y: [H.allocDamage(s, n, x) / base],
                 marker: { color: color, size: 8, line: { color: '#fff', width: 1.2 } },
               });
             });
@@ -156,7 +161,7 @@
           if (pl.lo !== null) {
             [pl.lo, pl.hi].forEach(function (x) {
               annos.push(Object.assign({}, common, {
-                x: x, y: Mi.rollDamage(s, n, x) / base, xshift: 0, yshift: -15,
+                x: x, y: H.allocDamage(s, n, x) / base, xshift: 0, yshift: -15,
                 xanchor: 'center', yanchor: 'top', font: { size: 11, color: color },
                 text: x.toFixed(1) + ' 词',
               }));
@@ -165,7 +170,7 @@
         });
 
         return {
-          traces: traces, lossMax: lossMax,
+          traces: traces,
           layout: {
             xaxis: charts.axis({ title: { text: '给双暴的等效词条数（其余给精通）' }, range: [0, span] }),
             yaxis: charts.axis({ title: { text: '星扩散直伤倍数' } }),
@@ -178,15 +183,15 @@
       }
 
       function buildB(s) {
-        var steps = 121, lo0 = 5, hi0 = Math.max(45, Math.max.apply(null, s.ns.length ? s.ns : [45]));
+        var steps = 121, lo0 = 5, hi0 = Mi.ROLL_LIMIT;
         var ns = [], bs = [], los = [], his = [], ems = [], crs = [], cds = [];
         for (var i = 0; i <= steps; i++) {
           var n = lo0 + (hi0 - lo0) * i / steps;
-          var best = Mi.bestSplit(s, n);
-          var pl = Mi.plateau(s, n, best.f, s.level);
+          var best = H.allocBest(s, n);
+          var pl = H.allocPlateau(s, n, best.f, s.level);
           ns.push(n); bs.push(best.b); los.push(pl.lo); his.push(pl.hi);
-          var t = Mi.allocAt(best.b, s.cr, s.cd);
-          ems.push(C.EM_PER_ROLL * (n - best.b) + s.em);
+          var t = Mi.allocAt(best.b, s.cr0, s.cd0);
+          ems.push(H.emAt(s.emBase, n - best.b));
           crs.push(t.cr); cds.push(t.cd);
         }
 
@@ -226,25 +231,14 @@
         var s = readState(s0);
         st = s;
         var a = buildA(s), b = buildB(s);
-
-        if (s.d >= 1) {
-          lossNote.style.display = 'none'; lossNote.textContent = '';
-        } else {
-          var p = a.lossMax * 100;
-          lossNote.style.display = '';
-          lossNote.textContent = p < 0.005
-            ? '参考：词条按「纯直伤最优」分配时，总伤害损失 ＜ 0.01%。'
-            : '参考：词条按「纯直伤最优」分配时，总伤害损失 ≤ ' + p.toFixed(2) + '%。';
-        }
-
         charts.draw(mA.plot, a.traces, a.layout);
         charts.draw(mB.plot, b.traces, b.layout);
       }
 
       /* ── 悬浮：图 A 取屏幕距离最近的曲线；图 B 按 n 取一列读数 ── */
       function curveAt(s, n, b) {
-        var base = Mi.rollDamage(s, n, 0);
-        return { v: Mi.rollDamage(s, n, b) / base, base: base };
+        var base = H.allocDamage(s, n, 0);
+        return { v: H.allocDamage(s, n, b) / base, base: base };
       }
 
       mA.wrap.addEventListener('mousemove', function (e) {
@@ -266,9 +260,9 @@
         if (!pick) { tipA.hide(); return; }
 
         var n = pick.n, v = pick.v;
-        var t = Mi.allocAt(b, st.cr, st.cd);
-        var em = C.EM_PER_ROLL * (n - b) + st.em;
-        var fMax = Mi.bestSplit(st, n).f / Mi.rollDamage(st, n, 0);
+        var t = Mi.allocAt(b, st.cr0, st.cd0);
+        var em = H.emAt(st.emBase, n - b);
+        var fMax = H.allocBest(st, n).f / H.allocDamage(st, n, 0);
         tipA.show(ctx.tip.card({
           title: '共 ' + n + ' 词条 · 给双暴 ' + b.toFixed(1) + ' · 给精通 ' + (n - b).toFixed(1),
           hero: { v: '×' + v.toFixed(4), cap: '相对「词条全给精通」' },
@@ -292,9 +286,9 @@
         px = Math.min(Math.max(px, 0), g.w);
         var xr = fl.xaxis.range;
         var n = xr[0] + px / g.w * (xr[1] - xr[0]);
-        var best = Mi.bestSplit(st, n);
-        var t = Mi.allocAt(best.b, st.cr, st.cd);
-        var em = C.EM_PER_ROLL * (n - best.b) + st.em;
+        var best = H.allocBest(st, n);
+        var t = Mi.allocAt(best.b, st.cr0, st.cd0);
+        var em = H.emAt(st.emBase, n - best.b);
 
         /* 下半格（精通 / 暴击率 / 暴伤 三条曲线）：只读三条曲线在该 n 的值，色标 = 曲线颜色 */
         if (fl.yaxis2 && py > fl.yaxis2._offset - g.top) {
@@ -312,19 +306,19 @@
         tipBs.hide();
 
         /* 上半格（最优双暴词条数 + 平台带） */
-        var pl = Mi.plateau(st, n, best.f, st.level);
+        var pl = H.allocPlateau(st, n, best.f, st.level);
         var pct = (st.level * 100).toFixed(0) + '% 平台';
         var after;
         if (pl.lo === null) {
           after = ctx.tip.div() + ctx.tip.cap(pct + '：—');
         } else {
-          var loT = Mi.allocAt(pl.lo, st.cr, st.cd);
-          var hiT = Mi.allocAt(pl.hi, st.cr, st.cd);
+          var loT = Mi.allocAt(pl.lo, st.cr0, st.cd0);
+          var hiT = Mi.allocAt(pl.hi, st.cr0, st.cd0);
           after = ctx.tip.div() +
             ctx.tip.cap(pct + '两端（双暴 ' + pl.lo.toFixed(1) + ' ~ ' + pl.hi.toFixed(1) + ' 词条）') +
             ctx.tip.rows([
-              ['左端', '双暴 ' + loT.cr.toFixed(1) + '% / ' + loT.cd.toFixed(1) + '% · 精通 ' + (C.EM_PER_ROLL * (n - pl.lo) + st.em).toFixed(0)],
-              ['右端', '双暴 ' + hiT.cr.toFixed(1) + '% / ' + hiT.cd.toFixed(1) + '% · 精通 ' + (C.EM_PER_ROLL * (n - pl.hi) + st.em).toFixed(0)],
+              ['左端', '双暴 ' + loT.cr.toFixed(1) + '% / ' + loT.cd.toFixed(1) + '% · 精通 ' + H.emAt(st.emBase, n - pl.lo).toFixed(0)],
+              ['右端', '双暴 ' + hiT.cr.toFixed(1) + '% / ' + hiT.cd.toFixed(1) + '% · 精通 ' + H.emAt(st.emBase, n - pl.hi).toFixed(0)],
             ]);
         }
         tipB.show(ctx.tip.card({
