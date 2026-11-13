@@ -383,7 +383,7 @@
 
   /* ── 词条热图（2026-11-13 口径） ──
      坐标 = 精通词条 × 双暴词条；热图、最优分配、梯度全部按星扩散直伤。
-     反应星扩散只作悬浮卡读数，不参与热图与最优。
+     反应星扩散（风 / 冰）只作结论框读数，不参与热图与最优。
      默认队：Vayaniṣa / 奥黛塔 / 冰主 / 瑞希；天光的纺琴 R5；瑞希 2 命。
      口径见 docs/ai-output/0-mechanism/2-瑞希与配队增益.md。 */
   var H = M.HM = {};
@@ -403,7 +403,8 @@
   };
   H.critZone = function (t) { return 1 + t.cr / 100 * t.cd / 100; };
 
-  /** 直伤单点：星扩散直伤（EM × 1000%）。域外返回 null。 */
+  /** 直伤单点：星扩散直伤（EM × 1000%）。域外返回 null。
+      core = 10 × EM × (1 + 基础提升) × K，最终 = core × 抗性系数 × 暴击区。 */
   H.directParts = function (s, x, y) {
     var cap = s.nMax || M.ROLL_LIMIT;
     if (x < -1e-9 || y < -1e-9 || x + y > cap + 1e-9) return null;
@@ -411,30 +412,37 @@
     var k = H.kAt(em, s);
     var t = H.critAt(s, y);
     var res = s.resA === undefined ? 1 : s.resA;
-    var base = 10 * em * (1 + (s.baseUp || 0)) * k * res;
+    var core = 10 * em * (1 + (s.baseUp || 0)) * k;
     return {
       x: x, y: y, em: em, k: k, cr: t.cr, cd: t.cd, critRolls: t.a,
-      direct: base * H.critZone(t),
-      crit: base * (1 + t.cd / 100),
-      noncrit: base,
+      core: core, res: res,
+      direct: core * res * H.critZone(t),
+      crit: core * res * (1 + t.cd / 100),
+      noncrit: core * res,
     };
   };
   H.direct = function (s, x, y) { var d = H.directParts(s, x, y); return d ? d.direct : null; };
   H.baseline = function (s) { return H.direct(s, 0, 0); };
 
   /** 单次反应星扩散：风路径 0.75 × 3/5；冰路径（风涡系数 2/3）× 3/10。 */
-  H.reactParts = function (s, x, y) {
+  H.reactParts = function (s, x, y, path) {
     var cap = s.nMax || M.ROLL_LIMIT;
     if (x < -1e-9 || y < -1e-9 || x + y > cap + 1e-9) return null;
     var em = H.emAt(s.emBase, x);
     var k = H.kAt(em, s);
     var t = H.critAt(s, y);
-    var ice = s.rxPath === 'ice';
+    var ice = path === 'ice';
     var mult = ice ? (s.rxCoef || 3) : H.WIND_MULT;
     var share = ice ? H.ICE_SHARE : H.WIND_SHARE;
     var res = ice ? (s.resIce === undefined ? 1 : s.resIce) : (s.resA === undefined ? 1 : s.resA);
-    var base = H.REACT_LEVEL * mult * share * (1 + (s.baseUp || 0)) * k * res;
-    return { exp: base * H.critZone(t), crit: base * (1 + t.cd / 100), noncrit: base };
+    var core = H.REACT_LEVEL * mult * share * (1 + (s.baseUp || 0)) * k;
+    return {
+      em: em, k: k, cr: t.cr, cd: t.cd, critRolls: t.a,
+      core: core, res: res, mult: mult, share: share, ice: ice,
+      exp: core * res * H.critZone(t),
+      crit: core * res * (1 + t.cd / 100),
+      noncrit: core * res,
+    };
   };
 
   function lnA(s, x) {

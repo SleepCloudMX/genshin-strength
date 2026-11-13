@@ -1,4 +1,4 @@
-/* 瑞希 · 伤害热图：精通词条 × 双暴词条的星扩散直伤热图 + 悬浮卡（直伤 / 单次反应）。 */
+/* 瑞希 · 伤害热图：精通词条 × 双暴词条的星扩散直伤热图；结论框列直伤 + 两条反应，悬浮卡只读直伤。 */
 (function (global) {
   'use strict';
   var GS = global.GS = global.GS || {};
@@ -14,15 +14,16 @@
   var FOOT =
     '星扩散直伤 = 廓然梦生「辉映·星扩散」额外那一次 <b>1000% 元素精通</b>风伤：' +
     '<code>D = 10 × EM × (1 + 基础提升) × (1 + 6EM/(EM+2000) + 星扩散增伤 + 0.00045 × EM) × 抗性系数 × 暴击区</code>（E Lv10）。' +
-    '反应星扩散（单次）= <code>1446.85 × 倍率 × 分摊 × (1 + 基础提升) × 同一括号 × 抗性系数 × 暴击区</code>；默认风路径 0.75 × 3/5。' +
-    'EM = 梦浮内终值（含廓然梦生 10%）；无防御区；详见 ' +
+    '反应星扩散（单次）= <code>1446.85 × 倍率 × 分摊 × (1 + 基础提升) × 同一括号 × 抗性系数 × 暴击区</code>：风 0.75 × 3/5，冰（风涡系数 2 / 3）× 3/10。' +
+    '热图、最优分配、梯度按直伤；结论框另列两条反应。EM = 梦浮内终值（含廓然梦生 10%）；无防御区；详见 ' +
     '<code>docs/ai-output/0-mechanism/2-瑞希与配队增益.md</code>。<br>' +
     '<b>归一化梯度</b> = 悬浮点两类词条的相对重要性。';
 
   M['mizuki/em_crit_map'] = {
     title: '「梦见月瑞希」伤害热图',
     tab: '瑞希·伤害热图',
-    intro: '颜色 = 相对基准面板（0 词条）的星扩散直伤倍数；悬浮读直伤与单次反应星扩散伤害，点击固定所选点、复位回最优。',
+    math: true,
+    intro: '颜色 = 相对基准面板（0 词条）的星扩散直伤倍数；结论框列直伤与两条反应，悬浮读直伤，点击固定所选点、复位回最优。',
     controls: [
       {
         key: '', type: 'note',
@@ -58,11 +59,6 @@
       { key: 'baseUp', type: 'items', label: '基础提升 %', step: 1, min: 0, full: true, items: [
         { n: '奥黛塔 固有天赋', v: 14 },
         { n: '冰主 固有天赋', v: 7 }] },
-      { key: 'rxPath', type: 'select', half: true, label: '反应路径', def: 'wind',
-        options: [
-          { value: 'wind', label: '风（0.75 · 3/5）' },
-          { value: 'ice', label: '冰（风涡系数 · 3/10）' },
-        ] },
       { key: 'rxCoef', type: 'select', half: true, label: '风涡系数', def: '3',
         options: [
           { value: '2', label: '1–2（倍率 2）' },
@@ -70,8 +66,8 @@
         ] },
       {
         key: '', type: 'note',
-        html: '热图、最优分配、梯度按星扩散直伤；悬浮卡另列单次反应星扩散伤害。' +
-          '反应路径与风涡系数只影响反应读数；风涡系数仅冰路径使用。',
+        html: '热图、最优分配、梯度按星扩散直伤；结论框另列风 / 冰两条单次反应。' +
+          '风涡系数只影响冰反应读数。',
       },
       {
         type: 'group', label: '敌人区', open: true,
@@ -97,6 +93,19 @@
       function eqItem(v) {
         return '<span class="val"><b class="' + (v >= 1 ? 'hi' : 'lo') + '">' + v.toFixed(2) + '</b></span>';
       }
+      function fmtTrim(v, minDp, maxDp) {
+        var s = Number(v).toFixed(maxDp);
+        while (s.indexOf('.') >= 0 && s.length - s.indexOf('.') - 1 > minDp && s.charAt(s.length - 1) === '0') {
+          s = s.slice(0, -1);
+        }
+        if (s.charAt(s.length - 1) === '.') s = s.slice(0, -1);
+        return s;
+      }
+      function q(v, minDp, maxDp) { return Number(fmtTrim(v, minDp, maxDp)); }
+
+      /* 公式面板配色：同名量同色 */
+      var C_EM = '#2f6f8f', C_K = '#7a6a55', C_BASE = '#23201a',
+          C_RES = '#a0764e', C_CR = '#b5453c', C_CD = '#8f3f5f', C_FINAL = '#23201a';
 
       var verdict = el('div', 'verdict');
       verdict.innerHTML =
@@ -109,6 +118,12 @@
         '<span class="verdict__vv" id="bestSplit">—</span></div>' +
         '<div class="verdict__vrow"><span class="verdict__vk">面板</span>' +
         '<span class="verdict__vv" id="cornerLine">—</span></div></div></div>';
+      var calcpop = el('div', 'calcpop');
+      var calcpopT = el('div', 'calcpop__t');
+      var calcpopM = el('div', 'calcpop__m');
+      calcpop.appendChild(calcpopT);
+      calcpop.appendChild(calcpopM);
+      verdict.appendChild(calcpop);
 
       var card = el('div', 'card chartcard');
       var m = charts.mount(card, { height: 620 });
@@ -126,6 +141,8 @@
       var lastRaw = null;
       var eqRange = null;
       var optMarks = [];
+      var curP = null;
+      var calcActive = null;
 
       /** 控件 state → core state（抗性系数由敌人区折算）。 */
       function coreState(s) {
@@ -134,9 +151,16 @@
           bonus: s.bonus / 100, baseUp: s.baseUp / 100,
           resA: C.kappa((s.enemyRes - s.shredA) / 100),
           resIce: C.kappa((s.enemyRes - s.shredIce) / 100),
-          rxPath: s.rxPath, rxCoef: Number(s.rxCoef) || 3,
+          rxCoef: Number(s.rxCoef) || 3,
           n: s.n, nMax: CAP,
         };
+      }
+
+      function dcell(part, label, exp, crit, noncrit) {
+        return '<div class="dcell" data-part="' + part + '"><span class="dcell__k">' + label + '</span>' +
+          '<b class="dcell__v" data-k="exp">' + Math.round(exp) + '</b>' +
+          '<span class="dcell__c"><span data-k="crit">暴击 <b>' + Math.round(crit) + '</b></span>、' +
+          '<span data-k="noncrit">未暴击 <b>' + Math.round(noncrit) + '</b></span></span></div>';
       }
 
       function updateVerdict(rs) {
@@ -145,16 +169,18 @@
           pinned = null;
         }
         var p = pinned || best;
+        curP = { x: p.x, y: p.y };
         var det = H.directParts(rs, p.x, p.y);
+        var rxw = H.reactParts(rs, p.x, p.y, 'wind');
+        var rxi = H.reactParts(rs, p.x, p.y, 'ice');
         var mult = det.direct / H.baseline(rs);
         document.getElementById('vState').textContent = pinned ? '所选点' : '最优分配';
         document.getElementById('vMul').textContent = '×' + mult.toFixed(3);
         document.getElementById('vReset').hidden = !pinned;
         document.getElementById('vdmgRow').innerHTML =
-          '<div class="dcell" data-part="0"><span class="dcell__k">星扩散直伤</span>' +
-          '<b class="dcell__v">' + Math.round(det.direct) + '</b>' +
-          '<span class="dcell__c"><span>暴击 <b>' + Math.round(det.crit) + '</b></span>、' +
-          '<span>未暴击 <b>' + Math.round(det.noncrit) + '</b></span></span></div>';
+          dcell(0, '星扩散直伤', det.direct, det.crit, det.noncrit) +
+          dcell(1, '反应星扩散（风）', rxw.exp, rxw.crit, rxw.noncrit) +
+          dcell(2, '反应星扩散（冰）', rxi.exp, rxi.crit, rxi.noncrit);
         var xr = parseFloat(p.x.toFixed(1)), yr = parseFloat(p.y.toFixed(1));
         document.getElementById('bestSplit').textContent =
           '共 ' + (xr + yr).toFixed(1) + ' 词条：精通 ' + xr.toFixed(1) + ' · 双暴 ' + yr.toFixed(1) +
@@ -165,6 +191,7 @@
 
       function update(s0) {
         lastRaw = s0;
+        hideCalc();
         var rs = coreState(s0);
         st = rs;
         var scan = H.scan(rs, GRID);
@@ -286,7 +313,6 @@
         }
 
         var det = H.directParts(s, x, y);
-        var rx = H.reactParts(s, x, y);
         var mult = det.direct / base0;
         var eq = H.equiv(s, x, y);
         var rng = eqRange || H.equivRange(s, 61);
@@ -296,7 +322,6 @@
         var gEm = gsum > 0 ? gr.gx / gsum : 0.5;
         var xr = x.toFixed(1), yr = y.toFixed(1);
         var totR = (parseFloat(xr) + parseFloat(yr)).toFixed(1);
-        var pathName = s.rxPath === 'ice' ? '冰' : '风';
 
         var eqHTML = '';
         if (isFinite(eq.em)) {
@@ -313,8 +338,6 @@
           '<div class="tip__hd tip__hd--sum"><span class="nm">有效词条</span><span class="rl">' + totR + '</span><span class="vl"></span></div>' +
           '<div class="tip__hd"><span>精通</span><span class="rl">' + xr + ' 词条</span><span class="vl">' + det.em.toFixed(0) + '</span></div>' +
           '<div class="tip__hd"><span>双暴</span><span class="rl">' + yr + ' 词条</span><span class="vl">' + det.cr.toFixed(1) + ' / ' + det.cd.toFixed(1) + '</span></div>' +
-          '<div class="tip__hero tip__hero--sm" style="margin-top:7px"><b>' + Math.round(rx.exp) + '</b><span class="u">反应星扩散（' + pathName + '）</span></div>' +
-          '<div class="tip__crit">暴击 ' + Math.round(rx.crit) + '、未暴击 ' + Math.round(rx.noncrit) + '</div>' +
           eqHTML +
           '<div class="tip__cap mt" style="font-weight:600">下一词条最优分配</div>' + segBar(al.em, al.crit) +
           '<div class="tip__cap mt" style="font-weight:600">归一化梯度</div>' + segBar(gEm, 1 - gEm);
@@ -340,6 +363,108 @@
         if (!pinned || !lastRaw) return;
         pinned = null;
         update(lastRaw);
+      });
+
+      /* 结论框数字的计算过程：跟随鼠标；按所指格子选直伤 / 风反应 / 冰反应，按所指数字选期望 / 暴击 / 未暴击。 */
+      function hideCalc() { calcActive = null; calcpop.style.display = 'none'; }
+      function placeCalc(cx, cy) {
+        var w = calcpop.offsetWidth, h = calcpop.offsetHeight;
+        var left = cx + 16, top = cy + 16;
+        if (left + w > global.innerWidth - 8) left = cx - w - 16;
+        if (top + h > global.innerHeight - 8) top = cy - h - 16;
+        calcpop.style.left = left + 'px';
+        calcpop.style.top = top + 'px';
+      }
+      function showCalc(cx, cy) {
+        if (!st || !curP || !calcActive || !global.katex) return;
+        var s = st, x = curP.x, y = curP.y;
+        var part = calcActive.part, kind = calcActive.kind;
+        var isDirect = part === 0;
+        var d = isDirect ? H.directParts(s, x, y) : H.reactParts(s, x, y, part === 1 ? 'wind' : 'ice');
+        if (!d) return;
+        var expV = isDirect ? d.direct : d.exp;
+        var kindName = kind === 'crit' ? '暴击' : kind === 'noncrit' ? '未暴击' : '期望';
+        var titleVal = Math.round(kind === 'crit' ? d.crit : kind === 'noncrit' ? d.noncrit : expV);
+        var label = isDirect ? '星扩散直伤' : (part === 1 ? '反应星扩散（风）' : '反应星扩散（冰）');
+        calcpopT.textContent = label + ' · ' + kindName + ' ' + titleVal;
+
+        var xQ = q(x, 1, 4);
+        var emQ = q(s.emBase + C.EM_PER_ROLL * H.EM_MULT * xQ, 1, 3);
+        var bQ = q(1 + (s.baseUp || 0), 2, 2);
+        var sQ = q(s.bonus || 0, 2, 2);
+        var eTermQ = q(C.emTerm(emQ), 3, 5);
+        var eBonusQ = q(H.E_COEF * emQ, 3, 5);
+        var kQ = q(1 + eTermQ + sQ + eBonusQ, 3, 5);
+        var coreQ, baseTex;
+        if (isDirect) {
+          coreQ = q(10 * emQ * bQ * kQ, 2, 2);
+          baseTex = '10 \\times ' + fmtTrim(emQ, 1, 3) + ' \\times ' + fmtTrim(bQ, 2, 2) + ' \\times ' +
+            fmtTrim(kQ, 3, 5) + ' = \\textcolor{' + C_BASE + '}{' + fmtTrim(coreQ, 2, 2) + '}';
+        } else {
+          var multQ = q(d.mult, 2, 2), shareQ = q(d.share, 2, 2);
+          coreQ = q(H.REACT_LEVEL * multQ * shareQ * bQ * kQ, 2, 2);
+          baseTex = fmtTrim(H.REACT_LEVEL, 2, 2) + ' \\times ' + fmtTrim(multQ, 2, 2) + ' \\times ' +
+            fmtTrim(shareQ, 2, 2) + ' \\times ' + fmtTrim(bQ, 2, 2) + ' \\times ' +
+            fmtTrim(kQ, 3, 5) + ' = \\textcolor{' + C_BASE + '}{' + fmtTrim(coreQ, 2, 2) + '}';
+        }
+        var resQ = q(d.res, 2, 4);
+        var crQ = q(d.cr / 100, 2, 5), cdQ = q(d.cd / 100, 2, 5);
+        var critQ = kind === 'crit' ? q(1 + cdQ, 3, 5) : kind === 'noncrit' ? 1 : q(1 + crQ * cdQ, 3, 5);
+        var finalQ = q(coreQ * resQ * critQ, 2, 2);
+
+        var netRes = part === 2
+          ? (lastRaw.enemyRes - lastRaw.shredIce) / 100
+          : (lastRaw.enemyRes - lastRaw.shredA) / 100;
+        var netResPct = q(netRes * 100, 0, 2);
+        var resTex;
+        if (netRes < 0) resTex = '1 - \\frac{' + fmtTrim(netResPct, 0, 2) + '\\%}{2}';
+        else if (netRes < 0.75) resTex = '1 - ' + fmtTrim(netResPct, 0, 2) + '\\%';
+        else resTex = '\\frac{1}{4 \\times ' + fmtTrim(q(netRes, 2, 4), 2, 4) + ' + 1}';
+
+        var critTex;
+        if (kind === 'crit') {
+          critTex = '1 + \\textcolor{' + C_CD + '}{' + fmtTrim(cdQ, 2, 5) + '} = \\textcolor{' + C_FINAL + '}{' + fmtTrim(critQ, 3, 5) + '}';
+        } else if (kind === 'noncrit') {
+          critTex = '1';
+        } else {
+          critTex = '1 + \\textcolor{' + C_CR + '}{' + fmtTrim(crQ, 2, 5) + '} \\times \\textcolor{' + C_CD + '}{' +
+            fmtTrim(cdQ, 2, 5) + '} = \\textcolor{' + C_FINAL + '}{' + fmtTrim(critQ, 3, 5) + '}';
+        }
+
+        var tex = '\\begin{aligned}' +
+          '\\textcolor{' + C_EM + '}{EM} &= ' + fmtTrim(s.emBase, 1, 1) + ' + ' + fmtTrim(C.EM_PER_ROLL, 3, 3) +
+          ' \\times 1.1 \\times ' + fmtTrim(xQ, 1, 4) + ' = \\textcolor{' + C_EM + '}{' + fmtTrim(emQ, 1, 3) + '}\\\\[2pt]' +
+          '\\textcolor{' + C_K + '}{K} &= 1 + \\frac{6 \\times ' + fmtTrim(emQ, 1, 3) + '}{' + fmtTrim(emQ, 1, 3) +
+          ' + 2000} + ' + fmtTrim(sQ, 2, 2) + ' + 0.00045 \\times ' + fmtTrim(emQ, 1, 3) +
+          ' = \\textcolor{' + C_K + '}{' + fmtTrim(kQ, 3, 5) + '}\\\\[2pt]' +
+          '\\textcolor{' + C_BASE + '}{基础} &= ' + baseTex + '\\\\[2pt]' +
+          '\\textcolor{' + C_RES + '}{R} &= ' + resTex + ' = \\textcolor{' + C_RES + '}{' + fmtTrim(resQ, 2, 4) + '}\\\\[2pt]' +
+          '\\textcolor{' + C_FINAL + '}{C} &= ' + critTex + '\\\\[2pt]' +
+          '\\textcolor{' + C_FINAL + '}{最终} &= \\textcolor{' + C_BASE + '}{' + fmtTrim(coreQ, 2, 2) + '} \\times ' +
+          '\\textcolor{' + C_RES + '}{' + fmtTrim(resQ, 2, 4) + '} \\times ' +
+          '\\textcolor{' + C_FINAL + '}{' + fmtTrim(critQ, 3, 5) + '} = \\textcolor{' + C_FINAL + '}{' + fmtTrim(finalQ, 0, 0) + '}' +
+          '\\end{aligned}';
+
+        calcpop.style.display = 'block';
+        global.katex.render(tex, calcpopM, { displayMode: true, throwOnError: false });
+        placeCalc(cx, cy);
+      }
+      verdict.addEventListener('mouseover', function (e) {
+        var num = e.target.closest && e.target.closest('[data-k]');
+        var cell = num && num.closest('.dcell[data-part]');
+        if (num && cell) {
+          calcActive = { part: Number(cell.getAttribute('data-part')), kind: num.getAttribute('data-k') };
+          showCalc(e.clientX, e.clientY);
+        } else {
+          hideCalc();
+        }
+      });
+      verdict.addEventListener('mouseout', function (e) {
+        var num = e.target.closest && e.target.closest('[data-k]');
+        if (num && !num.contains(e.relatedTarget)) hideCalc();
+      });
+      verdict.addEventListener('mousemove', function (e) {
+        if (calcActive) placeCalc(e.clientX, e.clientY);
       });
 
       return { plot: m.plot, update: update };
