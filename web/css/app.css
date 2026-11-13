@@ -346,6 +346,9 @@ a:hover { text-decoration: underline; }
 .tip__hd .rl { text-align: right; font-family: var(--mono); font-size: 11.5px; color: var(--text-dim); }
 .tip__hd .vl { text-align: right; font-family: var(--mono); font-size: 11.5px; }
 .tip__hd .rg { text-align: right; font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+/* 合计行：标签加粗；标签列加宽、词条数列收窄，数值右缘仍与下方两行对齐 */
+.tip__hd--sum { grid-template-columns: 60px 42px 1fr; }
+.tip__hd--sum .nm { font-weight: 600; }
 /* 等效行：属性贴左、数值与上方「xx 词条」同列对齐、范围推右 */
 .tip__eqr { display: grid; grid-template-columns: 44px 48px 1fr; column-gap: 6px; align-items: baseline; white-space: nowrap; }
 .tip__eqr .lb { color: var(--text-dim); }

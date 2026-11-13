@@ -315,6 +315,8 @@
 
         var det = S.detail(s, x, y);
         var mult = det.exp / base0;
+        var xr = x.toFixed(1), yr = y.toFixed(1);
+        var totR = (parseFloat(xr) + parseFloat(yr)).toFixed(1);   // 按显示精度求和，印出的数可复算
         var eq = S.equiv(s, x, y);
         var rng = S.equivRange(s, 41);
         var al = S.nextAlloc(s, x, y);
@@ -334,8 +336,9 @@
           '<div class="tip__crit">暴击 ' + Math.round(det.crit) + '、未暴击 ' + Math.round(det.noncrit) + '</div>' +
           '<div class="tip__hero tip__hero--sm"><b>×' + mult.toFixed(3) + '</b><span class="u">相对基准面板</span></div>' +
           '<div class="tip__div"></div>' +
-          '<div class="tip__hd"><span>精通</span><span class="rl">' + x.toFixed(1) + ' 词条</span><span class="vl">' + det.em.toFixed(0) + '</span></div>' +
-          '<div class="tip__hd"><span>双暴</span><span class="rl">' + y.toFixed(1) + ' 词条</span><span class="vl">' + det.cr.toFixed(1) + ' / ' + det.cd.toFixed(1) + '</span></div>' +
+          '<div class="tip__hd tip__hd--sum"><span class="nm">有效词条</span><span class="rl">' + totR + '</span><span class="vl"></span></div>' +
+          '<div class="tip__hd"><span>精通</span><span class="rl">' + xr + ' 词条</span><span class="vl">' + det.em.toFixed(0) + '</span></div>' +
+          '<div class="tip__hd"><span>双暴</span><span class="rl">' + yr + ' 词条</span><span class="vl">' + det.cr.toFixed(1) + ' / ' + det.cd.toFixed(1) + '</span></div>' +
           (S.critSplit(s.cr, s.cd, y).cr >= 100 - 1e-9 ? '<div class="tip__cap">暴击率已封顶；超出部分全进暴伤</div>' : '') +
           eqHTML +
           '<div class="tip__cap mt" style="font-weight:600">下一词条最优分配</div>' + segBar(al.em, al.crit) +
