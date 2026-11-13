@@ -90,6 +90,8 @@
     ['sac', 1], ['lost', 1],
     ['lute', 5],
   ];
+  var DEFAULT_KEY = {};
+  DEFAULT_ROWS.forEach(function (p) { DEFAULT_KEY[p[0] + '-' + p[1]] = true; });
 
   /* 公共面板 = 伤害热图默认、不含武器：精通 709 + 廓然梦生 10% = 779.9（终值）；
      武器精通是梦浮前的量，进模型时 ×1.1。 */
@@ -174,30 +176,60 @@
         o.value = String(r);
         refSel.appendChild(o);
       }
+      // 默认停在第一个不在默认表里的精炼（通常是 R2）；都在则停在第一项
+      var pick = refSel.options[0].value;
+      for (var i = 0; i < refSel.options.length; i++) {
+        if (!DEFAULT_KEY[famSel.value + '-' + refSel.options[i].value]) {
+          pick = refSel.options[i].value;
+          break;
+        }
+      }
+      refSel.value = pick;
     }
-    famSel.addEventListener('change', fillRefine);
+    famSel.addEventListener('change', function () { fillRefine(); refresh(); });
+    refSel.addEventListener('change', refresh);
     fillRefine();
 
     var btns = el('div', 'wadd__btns');
-    var add = el('button', 'btn btn--ghost', '添加 / 更新');
+    var add = el('button', 'btn btn--ghost', '添加');
     var clear = el('button', 'btn btn--ghost', '清除添加');
     add.type = 'button'; clear.type = 'button';
     var status = el('div', 'wadd__status', '');
 
+    function selectedKey() {
+      return famSel.value + '-' + clampRefine(BY_ID[famSel.value], Number(refSel.value));
+    }
+    function currentKey() {
+      var x = api.state.extra;
+      return x && BY_ID[x.family] ? x.family + '-' + clampRefine(BY_ID[x.family], x.refine) : null;
+    }
     function refresh() {
+      var key = selectedKey(), cur = currentKey();
+      status.classList.toggle('wadd__status--warn', !!DEFAULT_KEY[key] && cur !== key);
+      if (DEFAULT_KEY[key] && cur !== key) {
+        status.textContent = '该武器已在表中';
+        return;
+      }
+      if (cur === key) {
+        status.textContent = '当前添加：' + BY_ID[famSel.value].name + ' R' + refSel.value;
+        return;
+      }
       var x = api.state.extra;
       status.textContent = x && BY_ID[x.family]
         ? '当前添加：' + BY_ID[x.family].name + ' R' + clampRefine(BY_ID[x.family], x.refine)
         : '当前未添加';
     }
     add.addEventListener('click', function () {
+      var key = selectedKey();
+      if (DEFAULT_KEY[key] || currentKey() === key) { refresh(); return; }
       api.state.extra = { family: famSel.value, refine: Number(refSel.value) };
       refresh();
       api.commit('extra');
     });
     clear.addEventListener('click', function () {
       api.state.extra = null;
-      refresh();
+      status.classList.remove('wadd__status--warn');
+      status.textContent = '当前未添加';
       api.commit('extra');
     });
     btns.appendChild(add);
@@ -216,7 +248,7 @@
     noPlotly: true,
     intro: '各武器在自身最优词条分配下的星扩散直伤指数，以寝正月初晴 R1 = 100；' +
       '公共面板同伤害热图（不含武器），词条预算可调。默认 17 行；需要 R2/3/4 时，' +
-      '在「添加武器」里选武器与精炼，把额外一行加到表里。',
+      '在「添加武器」里选武器与精炼，把额外一行加到表里；表中已有的不会重复添加。',
     controls: [
       {
         key: '', type: 'note',
