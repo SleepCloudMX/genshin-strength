@@ -37,19 +37,19 @@
           '<code>a·x / (a·x + b(1−x)) = c</code> 混合两条路径（100% = 只看直伤）；' +
           '本页不推算真实占比（实测约九成，见<a href="#/mizuki/stellar_swirl#share">机制页</a>）。默认 90%。',
       },
+      {
+        key: 'eset', type: 'select', half: true, label: '精通套', def: 'gild180',
+        options: [
+          { value: 'gild180', label: '饰金之梦 +180' },
+          { value: 'gild230', label: '饰金之梦 +230' },
+          { value: 'em22', label: '精通 2+2 +160' },
+        ],
+      },
       { key: 'bonus', type: 'items', label: '星扩散增伤 %', step: 5, min: 0, items: [
         { n: '炉火 4 件套', v: 50 },
         { n: '冰主 6 命', v: 40 },
         { n: '奥黛塔 华彩', v: 60 }] },
       { key: 'd', type: 'range', label: '星扩散直伤占比', def: 90, min: 0, max: 100, step: 1, unit: '%', live: 100 },
-      {
-        key: 'eset', type: 'select', label: '精通套', def: 'gild180',
-        options: [
-          { value: 'gild180', label: '饰金之梦（+180 精通）' },
-          { value: 'gild230', label: '饰金之梦（+230 精通）' },
-          { value: 'em22', label: '精通 2+2（+160 精通）' },
-        ],
-      },
     ],
 
     create: function (host, ctx) {
