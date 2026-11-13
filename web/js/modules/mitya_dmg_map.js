@@ -204,7 +204,7 @@
           shapes.push({ type: 'line', x0: 0, y0: pinned.y, x1: cap, y1: pinned.y, line: { color: '#4a6fa5', width: 1.2, dash: 'dash' } });
         }
         for (var c = 5; c < cap; c += 5) {
-          shapes.push({ type: 'line', x0: 0, y0: c, x1: c, y1: 0, line: { color: '#6a6a6a', width: 1, dash: 'dot' } });
+          shapes.push({ type: 'line', x0: 0, y0: c, x1: c, y1: 0, line: { color: '#9a9a9a', width: 1, dash: 'dot' } });
         }
         shapes.push({ type: 'line', x0: 0, y0: rs.n, x1: rs.n, y1: 0, line: { color: '#e8710a', width: 1.8, dash: 'dash' } });
 
@@ -234,7 +234,7 @@
         traces.push({   // 等词条线是 shapes，不会进图例；画一段轴外线段补图例项（裁剪后不可见）
           type: 'scatter', mode: 'lines', x: [-2, -1], y: [-2, -1], name: '等词条线',
           hoverinfo: 'skip', showlegend: true,
-          line: { color: '#6a6a6a', width: 1, dash: 'dot' }, legendrank: 3,
+          line: { color: '#9a9a9a', width: 1, dash: 'dot' }, legendrank: 3,
         });
         /* 10 / 20 / 30 / 40 词条各自的最优点（与当前预算无关）：标记 + 行内伤害标在叠加层 */
         optMarks = [10, 20, 30, 40].map(function (t) {
