@@ -105,7 +105,7 @@
     return Math.min(Math.max(r, f.minR || 1), f.maxR || 5);
   }
 
-  function makeRow(f, r, n, extra) {
+  function makeRow(f, r, n) {
     r = clampRefine(f, r);
     var b = f.refine(r);
     var s = {
@@ -121,7 +121,7 @@
     var d = H.direct(s, p.x, p.y);
     var t = Mi.allocAt(p.y, s.cr0, s.cd0);
     return {
-      f: f, r: r, extra: !!extra, note: b.note,
+      f: f, r: r, note: b.note,
       x: p.x, y: p.y, d: d,
       em: H.emAt(s.emBase, p.x),
       cr: Math.min(t.cr, 100), cd: t.cd,
@@ -129,10 +129,9 @@
   }
 
   function rowHTML(r) {
-    var isBase = !r.extra && r.f.id === BASE.family && r.r === BASE.refine;
-    return '<div class="wrow t' + r.f.tier + (isBase ? ' base' : '') + (r.extra ? ' extra' : '') + '">' +
-      '<div><div class="wname">' + r.f.name + ' R' + r.r +
-        (r.extra ? '<span class="wtag">附加</span>' : '') + '</div>' +
+    var isBase = r.f.id === BASE.family && r.r === BASE.refine;
+    return '<div class="wrow t' + r.f.tier + (isBase ? ' base' : '') + '">' +
+      '<div><div class="wname">' + r.f.name + ' R' + r.r + '</div>' +
         '<div class="wsub">' + r.f.base + ' 基础 · ' + r.f.sub + '</div></div>' +
       '<div class="wbar"><div class="fill" style="width:' + r.width.toFixed(1) + '%"></div><b>' + r.idx.toFixed(1) + '</b></div>' +
       '<div><div class="wsplit">最优：精通 ' + r.x.toFixed(1) + ' · 双暴 ' + r.y.toFixed(1) + '</div>' +
@@ -153,6 +152,7 @@
 
   function extraBuilder(cell, api) {
     var wrap = el('div', 'wadd');
+    wrap.appendChild(el('div', 'wadd__hd', '附加对比行'));
     var famLab = el('label', null, '武器');
     var famSel = el('select', 'field__input');
     FAMILIES.forEach(function (f) {
@@ -224,12 +224,7 @@
           '暴击 36% / 暴伤 112.2% / 星扩散增伤 190% / 基础提升 21%。武器特效只计对星扩散直伤生效的部分。',
       },
       { key: 'n', type: 'range', label: '词条预算', def: 30, min: 2, max: N_MAX, step: 1 },
-      {
-        type: 'group', label: '附加对比行', open: false,
-        items: [
-          { key: 'extra', type: 'custom', build: extraBuilder },
-        ],
-      },
+      { key: 'extra', type: 'custom', build: extraBuilder },
     ],
 
     create: function (host) {
@@ -243,7 +238,7 @@
           var base = makeRow(BY_ID[BASE.family], BASE.refine, n);
           var rows = DEFAULT_ROWS.map(function (p) { return makeRow(BY_ID[p[0]], p[1], n); });
           if (s.extra && BY_ID[s.extra.family]) {
-            rows.push(makeRow(BY_ID[s.extra.family], s.extra.refine, n, true));
+            rows.push(makeRow(BY_ID[s.extra.family], s.extra.refine, n));
           }
           var maxD = Math.max.apply(null, rows.map(function (r) { return r.d; }));
           rows.forEach(function (r) {
