@@ -229,6 +229,11 @@
           type: 'scatter', mode: 'lines', x: lineX, y: line.ys, name: '最优分配线',
           line: { color: '#e8710a', width: 1.6 }, legendrank: 1,
         });
+        traces.push({   // 等词条线是 shapes，不会进图例；画一段轴外线段补图例项（裁剪后不可见）
+          type: 'scatter', mode: 'lines', x: [-2, -1], y: [-2, -1], name: '等词条线',
+          hoverinfo: 'skip', showlegend: true,
+          line: { color: '#b9b1b7', width: 1, dash: 'dot' }, legendrank: 3,
+        });
         /* 10 / 20 / 30 / 40 词条各自的最优点（与当前预算无关）：标记 + 行内伤害标在叠加层 */
         optMarks = [10, 20, 30, 40].map(function (t) {
           var p = S.optAt(rs, t);
@@ -274,11 +279,6 @@
           parts.push('<line x1="0" y1="' + py + '" x2="' + g.w + '" y2="' + py + '" stroke="#4a6fa5" stroke-width="1.2" stroke-dasharray="6,4"/>');
           parts.push('<line x1="' + (px - 6) + '" y1="' + py + '" x2="' + (px + 6) + '" y2="' + py + '" stroke="#4a6fa5" stroke-width="2"/>');
           parts.push('<line x1="' + px + '" y1="' + (py - 6) + '" x2="' + px + '" y2="' + (py + 6) + '" stroke="#4a6fa5" stroke-width="2"/>');
-        }
-        for (var c = 5; c < cap; c += 5) {
-          if (Math.abs(c - s.n) < 1e-9) continue;
-          var lx = c * 0.78 / cap * g.w, ly = (cap - c * 0.22) / cap * g.h;
-          ctx.overlay.text(parts, lx, ly, c + ' 词', '#888', 'middle');
         }
         ctx.overlay.text(parts, s.n * 0.78 / cap * g.w, (cap - s.n * 0.22) / cap * g.h,
           '预算 ' + s.n + ' 词', '#e8710a', 'middle');
@@ -339,7 +339,6 @@
           '<div class="tip__hd tip__hd--sum"><span class="nm">有效词条</span><span class="rl">' + totR + '</span><span class="vl"></span></div>' +
           '<div class="tip__hd"><span>精通</span><span class="rl">' + xr + ' 词条</span><span class="vl">' + det.em.toFixed(0) + '</span></div>' +
           '<div class="tip__hd"><span>双暴</span><span class="rl">' + yr + ' 词条</span><span class="vl">' + det.cr.toFixed(1) + ' / ' + det.cd.toFixed(1) + '</span></div>' +
-          (S.critSplit(s.cr, s.cd, y).cr >= 100 - 1e-9 ? '<div class="tip__cap">暴击率已封顶；超出部分全进暴伤</div>' : '') +
           eqHTML +
           '<div class="tip__cap mt" style="font-weight:600">下一词条最优分配</div>' + segBar(al.em, al.crit) +
           '<div class="tip__cap mt" style="font-weight:600">归一化梯度</div>' + segBar(gEm, 1 - gEm);
