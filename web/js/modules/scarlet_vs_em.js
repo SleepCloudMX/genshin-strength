@@ -179,7 +179,7 @@
       function updateVerdict(s) {
         var r = Mi.ratio(s.em, s.score / 100, s.bonus, s.d, s.leg);
         footSet.textContent = s.leg.name;
-        footEm.textContent = '+' + (s.leg.em * Mi.HM.EM_MULT).toFixed(0);
+        footEm.textContent = (s.leg.em * Mi.HM.EM_MULT).toFixed(0);
         var margin = Math.abs(r - 1) * 100;
         var who;
         if (margin.toFixed(1) === '0.0') {
