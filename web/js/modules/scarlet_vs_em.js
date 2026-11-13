@@ -23,13 +23,13 @@
   M['mizuki/scarlet_vs_em'] = {
     title: '「梦见月瑞希」血红之证 4 件套 vs 精通套',
     tab: '瑞希·套装对比',
-    intro: '悬浮读该点的比值；<b>点击图面可把基准移到该点</b>（双暴分按 1 : 2 拆成暴击 / 暴伤）。' +
-      '改基准三项只移动十字准星与结论条；星扩散增伤、直伤占比、精通套变，图才重算。',
+    intro: '悬浮读该点的比值；<b>点击图面移动十字准星</b>，结论条给出该点的比值、谁更优、' +
+      '该双暴分下精通到多少才翻面。星扩散增伤、直伤占比、精通套变，图才重算。',
     controls: [
       {
         key: '', type: 'note',
-        html: '<b>基准面板 = 上完 buff、不含副词条</b>（不含套装特效 —— 两套的套装效果由脚本自动加上）；' +
-          '每个数值可点「明细」查看逐项来源。',
+        html: '图上每个点 = 一套「精通 × 双暴分」的配置；两套的套装效果由脚本自动加上' +
+          '（血红 +16% 暴击、+40 增伤；精通套 +180 / +230 精通）。',
       },
       {
         key: '', type: 'note',
@@ -41,23 +41,6 @@
         { n: '炉火 4 件套', v: 50 },
         { n: '冰主 6 命', v: 40 },
         { n: '奥黛塔 华彩', v: 60 }] },
-      { key: 'em', type: 'items', label: '基准精通', step: 1, min: 589, items: [
-        { n: '瑞希突破', v: 115 },
-        { n: '天光的纺琴 R5', v: 200 },
-        { n: '精通沙', v: 187 },
-        { n: '精通杯', v: 187 },
-        { n: '昼想夜梦', v: 100 },
-        { n: '冰主 2 命', v: 120 }],
-        derived: [
-          { n: '廓然梦生 10%', compute: function (base) { return base * 0.1; } },
-        ] },
-      { key: 'cr', type: 'items', label: '基准暴击率 %', step: 0.1, min: 5, items: [
-        { n: '瑞希自身', v: 5 },
-        { n: '双冰共鸣', v: 15 }] },
-      { key: 'cd', type: 'items', label: '基准暴伤 %', step: 0.1, min: 50, items: [
-        { n: '角色基础', v: 50 },
-        { n: '暴伤头', v: 62.2 }] },
-      { key: 'score', type: 'readout', label: '双暴分', compute: function (s) { return (2 * s.cr + s.cd).toFixed(1); } },
       { key: 'd', type: 'range', label: '星扩散直伤占比', def: 90, min: 0, max: 100, step: 1, unit: '%', live: 100 },
       {
         key: 'eset', type: 'select', label: '精通套', def: 'gild180',
@@ -78,9 +61,9 @@
       card.appendChild(GS.ui.panels.actionsRow(function () { return m.plot; }));
       var foot = el('p', 'pagenote');
       foot.innerHTML =
-        '<b>双暴分</b> = 2 × 基准暴击 + 基准暴伤（实时算出）。血红之证 4 件套的 +16% 暴击由脚本自己加，' +
-        '所以图上血红那一路是「你填的暴击 + 16%」（双暴分 +32）。两套的精通也不同：<span class="foot-set"></span> ' +
-        '比基准精通多 <span class="foot-em"></span>（精通轴为终值，含廓然梦生 ×1.1；套装精通是梦浮前的量，进入模型时同样 ×1.1）。' +
+        '<b>双暴分</b> = 2 × 暴击 + 暴伤。血红之证 4 件套的 +16% 暴击由脚本自己加（该点的双暴分 +32）。' +
+        '两套的精通也不同：<span class="foot-set"></span> 比该点精通多 <span class="foot-em"></span>' +
+        '（精通轴为终值，含廓然梦生 ×1.1；套装精通是梦浮前的量，进入模型时同样 ×1.1）。' +
         '星扩散增伤则是在你填的值上，血红那一路再 +40%。<br>' +
         '两条路径按目标直伤占比 c 混合、反应按风段 3/5；比值 = 两套的混合伤害比，&gt; 1 表示血红更优。' +
         '倍率、(1 + 基础提升)、抗性系数、擢升在同队伍下相同，已约掉；内部括号含瑞希 E Lv10 的 +0.00045 × 精通。';
@@ -93,10 +76,11 @@
       var tip = ctx.tip.mount(m.wrap, m.geom);
       ctx.overlay.cursor(m.wrap, m.geom, function (e) { return m.pxIn(e); });
       var st = null;
+      var ref = { em: 999.9, score: 152.2 };   // 十字准星（默认 = 上完 buff、不含套装特效的基准）
       var cache = { key: null, heat: null, divider: null };
 
       function state(s) {
-        return { bonus: s.bonus / 100, em: s.em, score: 2 * s.cr + s.cd, d: s.d / 100, leg: Mi.EM_SETS[s.eset] || Mi.EM_SETS.gild180 };
+        return { bonus: s.bonus / 100, d: s.d / 100, leg: Mi.EM_SETS[s.eset] || Mi.EM_SETS.gild180 };
       }
 
       /** Plotly 没有 matplotlib 的 TwoSlopeNorm，手动模拟分段压缩：1.0 → 色带正中。 */
@@ -144,17 +128,17 @@
           line: { color: '#000', width: 2.4 },
         };
       };
-      var crossTrace = function (s) {
+      var crossTrace = function () {
         return {
-          type: 'scatter', mode: 'markers', x: [s.em], y: [s.score], showlegend: false,
+          type: 'scatter', mode: 'markers', x: [ref.em], y: [ref.score], showlegend: false,
           marker: { symbol: 'cross-thin-open', size: 22, color: '#111', line: { width: 2.5, color: '#111' } },
         };
       };
 
       function layoutFor(s) {
         var shapes = [
-          { type: 'line', x0: s.em, x1: s.em, y0: 0, y1: SCORE_MAX, line: { color: '#111', width: 1.2, dash: 'dot' } },
-          { type: 'line', x0: 0, x1: EM_MAX, y0: s.score, y1: s.score, line: { color: '#111', width: 1.2, dash: 'dot' } },
+          { type: 'line', x0: ref.em, x1: ref.em, y0: 0, y1: SCORE_MAX, line: { color: '#111', width: 1.2, dash: 'dot' } },
+          { type: 'line', x0: 0, x1: EM_MAX, y0: ref.score, y1: ref.score, line: { color: '#111', width: 1.2, dash: 'dot' } },
         ];
         var annos = [];
         REFERENCES.forEach(function (r) {
@@ -177,7 +161,7 @@
       }
 
       function updateVerdict(s) {
-        var r = Mi.ratio(s.em, s.score / 100, s.bonus, s.d, s.leg);
+        var r = Mi.ratio(ref.em, ref.score / 100, s.bonus, s.d, s.leg);
         footSet.textContent = s.leg.name;
         footEm.textContent = (s.leg.em * Mi.HM.EM_MULT).toFixed(0);
         var margin = Math.abs(r - 1) * 100;
@@ -189,12 +173,12 @@
           who = better + ' 优 ' + margin.toFixed(1) + '%';
         }
         var color = margin.toFixed(1) === '0.0' ? '' : (r > 1 ? '#a03030' : '#2a6099');
-        var be = Mi.breakEven(s.score / 100, s.bonus, s.d, s.leg);
+        var be = Mi.breakEven(ref.score / 100, s.bonus, s.d, s.leg);
         var split = be.x !== undefined
-          ? '双暴分固定在 ' + s.score.toFixed(1) + ' 时，精通 ' + be.x.toFixed(0) + ' 是分界（你现在 ' + s.em.toFixed(0) + '）'
+          ? '双暴分固定在 ' + ref.score.toFixed(1) + ' 时，精通 ' + be.x.toFixed(0) + ' 是分界（该点 ' + ref.em.toFixed(0) + '）'
           : be.none === 'scarlet'
-            ? '双暴分 ' + s.score.toFixed(1) + ' 下，全区间都是血红之证更优'
-            : '双暴分 ' + s.score.toFixed(1) + ' 下，全区间都是' + s.leg.name + '更优';
+            ? '双暴分 ' + ref.score.toFixed(1) + ' 下，全区间都是血红之证更优'
+            : '双暴分 ' + ref.score.toFixed(1) + ' 下，全区间都是' + s.leg.name + '更优';
         verdict.innerHTML =
           '<div class="verdict__hero">血红之证 / ' + s.leg.name + ' = <b>' + r.toFixed(4) + '</b></div>' +
           '<div class="verdict__who"' + (color ? ' style="color:' + color + '"' : '') + '>' + who + '</div>' +
@@ -203,7 +187,7 @@
 
       function draw(s, divider) {
         var h = heatOf(s);
-        charts.draw(m.plot, [h.heat, dividerTrace(divider.bx, divider.by), crossTrace(s)], layoutFor(s));
+        charts.draw(m.plot, [h.heat, dividerTrace(divider.bx, divider.by), crossTrace()], layoutFor(s));
       }
 
       function update(s0) {
@@ -249,20 +233,20 @@
       });
       m.wrap.addEventListener('mouseleave', tip.hide);
 
-      /* 点击图面 = 把基准移到该点；双暴分按 1 : 2 拆成暴击 / 暴伤 */
+      /* 点击图面 = 移动十字准星（不动热力图，只重画准星与结论条） */
       m.wrap.addEventListener('click', function (e) {
         var p = m.pxIn(e);
         if (!p) return;
         var fl = m.plot._fullLayout;
         if (!fl || !fl.xaxis || !fl.xaxis._length) return;
         var xr = fl.xaxis.range, yr = fl.yaxis.range;
-        var em = xr[0] + p.x / fl.xaxis._length * (xr[1] - xr[0]);
-        var sc = yr[1] - p.y / fl.yaxis._length * (yr[1] - yr[0]);
-        GS.app.setValues({
-          em: Math.max(Math.round(em), 589),
-          cr: Math.max(Math.round(sc / 4 * 10) / 10, 5),
-          cd: Math.max(Math.round(sc / 2 * 10) / 10, 50),
-        });
+        ref = {
+          em: xr[0] + p.x / fl.xaxis._length * (xr[1] - xr[0]),
+          score: yr[1] - p.y / fl.yaxis._length * (yr[1] - yr[0]),
+        };
+        if (!st) return;
+        updateVerdict(st);
+        draw(st, heatOf(st).divider);
       });
 
       return { plot: m.plot, update: update, preview: preview };
