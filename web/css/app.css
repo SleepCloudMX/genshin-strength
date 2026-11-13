@@ -704,12 +704,17 @@ input[type="range"] {
 .wbar .fill { height: 8px; border-radius: 4px; background: var(--accent); }
 .wbar b { font-variant-numeric: tabular-nums; font-size: var(--fs-sm); min-width: 44px; }
 
-/* 武器对比：可选武器清单 */
-.wpick { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; }
-.wpick label { display: flex; align-items: center; gap: 6px; font-size: var(--fs-xs); color: var(--text); }
-.wpick input { margin: 0; accent-color: var(--accent); }
-.wpick__bar { display: flex; gap: 8px; margin-bottom: 8px; }
-.wpick__hd { grid-column: 1 / -1; margin-top: 6px; color: var(--text-dim); font-size: var(--fs-xs); }
+/* 武器对比：附加对比行 */
+.wadd { display: grid; grid-template-columns: 1fr 90px; gap: 8px; }
+.wadd label { display: flex; flex-direction: column; gap: 4px; font-size: var(--fs-xs); color: var(--text-dim); }
+.wadd__btns { grid-column: 1 / -1; display: flex; gap: 8px; }
+.wadd__status { grid-column: 1 / -1; color: var(--text-dim); font-size: var(--fs-xs); }
+.wrow.extra { box-shadow: inset 3px 0 0 var(--accent); }
+.wtag {
+  display: inline-block; margin-left: 6px; padding: 0 5px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent-deep); font-size: 10px; font-weight: 600;
+  vertical-align: 1px;
+}
 
 /* --- 说明页排版（机制页） -------------------------------------------------- */
 .prose { max-width: 78ch; }
