@@ -23,19 +23,11 @@
   M['mizuki/scarlet_vs_em'] = {
     title: '「梦见月瑞希」血红之证 4 件套 vs 精通套',
     tab: '瑞希·套装对比',
-    intro: '悬浮读该点的比值；<b>点击图面移动十字准星</b>，结论条给出该点的比值、谁更优、' +
-      '该双暴分下精通到多少才翻面。星扩散增伤、直伤占比、精通套变，图才重算。',
+    intro: '悬浮读该点的比值；<b>点击图面移动十字准星</b>，结论条给出该点的比值、谁更优、分界精通。',
     controls: [
       {
         key: '', type: 'note',
-        html: '图上每个点 = 一套「精通 × 双暴分」的配置；两套的套装效果由脚本自动加上' +
-          '（血红 +16% 暴击、+40 增伤；精通套 +160 / +180 / +230 精通）。',
-      },
-      {
-        key: '', type: 'note',
-        html: '<b>星扩散伤害 = 星扩散直伤 + 反应星扩散</b>。<b>直伤占比</b> c 是模型内的假设：按 ' +
-          '<code>a·x / (a·x + b(1−x)) = c</code> 混合两条路径（100% = 只看直伤）；' +
-          '本页不推算真实占比（实测约九成，见<a href="#/mizuki/stellar_swirl#share">机制页</a>）。默认 90%。',
+        html: '<b>直伤占比</b>：按目标占比混合直伤与反应（100% = 只看直伤），是模型假设，不是实测。',
       },
       {
         key: 'eset', type: 'select', half: true, label: '精通套', def: 'gild180',
@@ -61,12 +53,9 @@
       card.appendChild(GS.ui.panels.actionsRow(function () { return m.plot; }));
       var foot = el('p', 'pagenote');
       foot.innerHTML =
-        '<b>双暴分</b> = 2 × 暴击 + 暴伤。血红之证 4 件套的 +16% 暴击由脚本自己加（该点的双暴分 +32）。' +
-        '两套的精通也不同：<span class="foot-set"></span> 比该点精通多 <span class="foot-em"></span>' +
-        '（精通轴为终值，含廓然梦生 ×1.1；套装精通是梦浮前的量，进入模型时同样 ×1.1）。' +
-        '星扩散增伤则是在你填的值上，血红那一路再 +40%。<br>' +
-        '两条路径按目标直伤占比 c 混合、反应按风段 3/5；比值 = 两套的混合伤害比，&gt; 1 表示血红更优。' +
-        '倍率、(1 + 基础提升)、抗性系数、擢升在同队伍下相同，已约掉；内部括号含瑞希 E Lv10 的 +0.00045 × 精通。';
+        '<b>双暴分</b> = 2 × 暴击 + 暴伤。血红之证在输入值上 +16% 暴击（该点 +32）、+40 增伤；' +
+        '<span class="foot-set"></span> 比该点多 <span class="foot-em"></span> 精通（已含廓然梦生 ×1.1）。' +
+        '比值 &gt; 1 表示血红更优。';
       host.appendChild(verdict);
       host.appendChild(card);
       host.appendChild(foot);
