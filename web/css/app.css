@@ -679,6 +679,7 @@ input[type="range"] {
 .s14 { background: linear-gradient(90deg, #4a6fa5, #7b4fa0, #c3a1b4, #e8710a); }
 .s16 { background: linear-gradient(90deg, #4ec36b, #2e6f8e, #440154); }
 .s15 { background: linear-gradient(90deg, #053061, #a7d0e4, #f7f6f6, #c94741, #67001f); }
+.s17 { background: linear-gradient(90deg, #2f6f8f, #7b4fa0, #c05621); }
 
 /* 武器对比的行表 */
 .wlist { border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; background: var(--surface); box-shadow: var(--shadow-1); }
@@ -702,6 +703,13 @@ input[type="range"] {
 .wbar { display: flex; align-items: center; gap: 8px; }
 .wbar .fill { height: 8px; border-radius: 4px; background: var(--accent); }
 .wbar b { font-variant-numeric: tabular-nums; font-size: var(--fs-sm); min-width: 44px; }
+
+/* 武器对比：可选武器清单 */
+.wpick { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; }
+.wpick label { display: flex; align-items: center; gap: 6px; font-size: var(--fs-xs); color: var(--text); }
+.wpick input { margin: 0; accent-color: var(--accent); }
+.wpick__bar { display: flex; gap: 8px; margin-bottom: 8px; }
+.wpick__hd { grid-column: 1 / -1; margin-top: 6px; color: var(--text-dim); font-size: var(--fs-xs); }
 
 /* --- 说明页排版（机制页） -------------------------------------------------- */
 .prose { max-width: 78ch; }

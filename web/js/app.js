@@ -50,6 +50,7 @@
         { id: 'mizuki/scarlet_vs_em', label: '套装对比', icon: 'bars' },
         { id: 'mizuki/em_vs_crit', label: '词条分配', icon: 'curve' },
         { id: 'mizuki/em_crit_map', label: '伤害热图', icon: 'grid' },
+        { id: 'mizuki/weapon_compare', label: '武器对比', icon: 'sword' },
         { id: 'mizuki/stellar_swirl', label: '星扩散机制', icon: 'star' },
       ],
     },
