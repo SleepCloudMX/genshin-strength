@@ -48,7 +48,7 @@
         { n: '血红 4 件套', v: 40 },
         { n: '冰主 6 命', v: 40 },
         { n: '奥黛塔 华彩', v: 60 }] },
-      { key: 'baseUp', type: 'items', label: '基础提升 %', step: 1, min: 0, full: true, items: [
+      { key: 'baseUp', type: 'items', label: '基础提升 %', step: 1, min: 0, items: [
         { n: '奥黛塔 固有天赋', v: 14 },
         { n: '冰主 固有天赋', v: 7 }] },
       { key: 'rxCoef', type: 'select', half: true, label: '风涡系数', def: '3',
