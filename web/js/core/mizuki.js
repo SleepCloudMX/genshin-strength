@@ -394,7 +394,8 @@
   H.WIND_SHARE = 0.6;       // 风反应：3/5 给风元素角色（瑞希）
   H.ICE_SHARE = 0.3;        // 冰反应：3/10 给风元素角色（瑞希）
 
-  H.emAt = function (emBase, x) { return H.EM_MULT * (emBase + C.EM_PER_ROLL * x); };
+  /** emBase = 基准面板终值（已含廓然梦生 10%）；副词条每点按 ×1.1 进入。 */
+  H.emAt = function (emBase, x) { return emBase + C.EM_PER_ROLL * H.EM_MULT * x; };
   H.kAt = function (em, s) { return 1 + C.emTerm(em) + (s.bonus || 0) + H.E_COEF * em; };
   H.critAt = function (s, y) {
     var t = M.allocAt(y, s.cr0, s.cd0);

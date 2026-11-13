@@ -115,6 +115,8 @@
            直接在总数框里改 → 差额自动记成一条「手动调整」明细（为零则移除）。 */
         field.classList.add('field--items');
         var items = (c.items || []).map(function (it) { return { n: it.n, v: it.v, manual: false }; });
+        var derived = (c.derived || []).map(function (d) { return { n: d.n, compute: d.compute }; });
+        var derivedEls = [];
         var itInp = el('input', 'field__input');
         itInp.type = 'number';
         itInp.id = id;
@@ -132,17 +134,26 @@
         var pop = null, rowsBox = null, sumEl = null, popOpen = false;
 
         var round4 = function (v) { return +v.toFixed(4); };
-        var total = function () {
-          return items.reduce(function (a, it) { return a + it.v; }, 0);
-        };
         var namedTotal = function () {
           return items.reduce(function (a, it) { return a + (it.manual ? 0 : it.v); }, 0);
+        };
+        /** 自动派生行：只按具名来源（不含副词条、不含手动调整）计算，不可编辑 / 删除。 */
+        var derivedTotal = function () {
+          var base = namedTotal();
+          return derived.reduce(function (a, d) { return a + (Number(d.compute(base)) || 0); }, 0);
+        };
+        var total = function () {
+          return items.reduce(function (a, it) { return a + it.v; }, 0) + derivedTotal();
         };
         var manualRow = function () {
           for (var i = 0; i < items.length; i++) if (items[i].manual) return items[i];
           return null;
         };
         var updateSum = function () { if (sumEl) sumEl.textContent = '合计 ' + String(round4(total())); };
+        var updateDerived = function () {
+          var base = namedTotal();
+          derivedEls.forEach(function (el, i) { el.textContent = String(round4(derived[i].compute(base))); });
+        };
         /** 明细 → 总数框 / state / 合计读数；rows = true 时重建悬浮框行（行集合变了）。 */
         var sync = function (rows) {
           var v = round4(total());
@@ -150,7 +161,7 @@
           state[c.key] = v;
           if (popOpen) {
             if (rows) renderRows();
-            else updateSum();
+            else { updateSum(); updateDerived(); }
           }
           cb.commit(c.key);
         };
@@ -159,7 +170,7 @@
           if (!Number.isFinite(v)) { itInp.value = String(round4(total())); hideHint(); return; }
           v = clampTo(itInp, v);
           var man = manualRow();
-          var delta = round4(v - namedTotal());
+          var delta = round4(v - namedTotal() - derivedTotal());
           if (Math.abs(delta) < 1e-9) {
             if (man) { items.splice(items.indexOf(man), 1); sync(true); }
             else { itInp.value = String(round4(total())); sync(false); }
@@ -219,7 +230,17 @@
 
         var renderRows = function () {
           rowsBox.textContent = '';
+          derivedEls = [];
           items.forEach(function (it) { rowsBox.appendChild(mkRow(it)); });
+          derived.forEach(function (d) {
+            var r = el('div', 'iprow iprow--derived');
+            r.title = '自动计算，不可修改';
+            r.appendChild(el('span', 'iprow__name', d.n));
+            var val = el('span', 'iprow__val', String(round4(d.compute(namedTotal()))));
+            r.appendChild(val);
+            rowsBox.appendChild(r);
+            derivedEls.push(val);
+          });
           updateSum();
         };
 

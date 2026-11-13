@@ -529,6 +529,12 @@ input[type="range"] {
   font: inherit; font-size: 13px; cursor: pointer;
 }
 .iprow__del:hover { color: var(--bad); border-color: var(--bad); }
+/* 自动派生项：只读、不可删除 */
+.iprow--derived .iprow__name, .iprow--derived .iprow__val {
+  display: flex; align-items: center;
+  background: var(--surface-2); color: var(--text-dim); border-style: dashed;
+}
+.iprow--derived .iprow__val { justify-content: flex-end; }
 .items-pop__ft {
   display: flex; align-items: center; justify-content: space-between;
   border-top: 1px dashed var(--border); padding-top: var(--sp-2);

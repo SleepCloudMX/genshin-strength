@@ -33,15 +33,16 @@
         html: '<b>词条口径</b>：1 词条 = ' + C.ROLL.em + ' 精通（梦浮内 ×1.1 ≈ ' +
           (C.ROLL.em * 1.1).toFixed(1) + '）= ' + C.ROLL.cr + '% 暴击 = ' + C.ROLL.cd + '% 暴伤。',
       },
-      { key: 'em', type: 'items', label: '精通来源（加法）', step: 1, min: 0, items: [
+      { key: 'em', type: 'items', label: '基准精通', step: 1, min: 0, items: [
         { n: '瑞希突破', v: 115 },
         { n: '天光的纺琴 R5', v: 200 },
         { n: '精通沙', v: 187 },
         { n: '精通杯', v: 187 },
         { n: '昼想夜梦', v: 100 },
-        { n: '冰主 2 命', v: 120 }] },
-      { key: '', type: 'readout', label: '实战精通（廓然梦生 ×1.1）',
-        compute: function (s) { return C.f(1.1 * s.em, 0); } },
+        { n: '冰主 2 命', v: 120 }],
+        derived: [
+          { n: '廓然梦生 10%', compute: function (base) { return base * 0.1; } },
+        ] },
       { key: 'cr', type: 'items', label: '基准暴击率 %', step: 0.1, min: 0, items: [
         { n: '瑞希自身', v: 5 },
         { n: '双冰共鸣', v: 15 },
@@ -54,7 +55,7 @@
         { n: '血红 4 件套', v: 40 },
         { n: '冰主 6 命', v: 40 },
         { n: '奥黛塔 华彩', v: 60 }] },
-      { key: 'baseUp', type: 'items', label: '基础提升 %', step: 1, min: 0, items: [
+      { key: 'baseUp', type: 'items', label: '基础提升 %', step: 1, min: 0, full: true, items: [
         { n: '奥黛塔 固有天赋', v: 14 },
         { n: '冰主 固有天赋', v: 7 }] },
       { key: 'rxPath', type: 'select', half: true, label: '反应路径', def: 'wind',
