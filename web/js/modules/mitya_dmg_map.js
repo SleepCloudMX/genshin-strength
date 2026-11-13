@@ -181,8 +181,10 @@
           '<b class="dcell__v" data-k="exp">' + Math.round(det.exp) + '</b>' +
           '<span class="dcell__c"><span data-k="crit">暴击 <b>' + Math.round(det.crit) + '</b></span>、' +
           '<span data-k="noncrit">未暴击 <b>' + Math.round(det.noncrit) + '</b></span></span></div>';
+        var xr = parseFloat(p.x.toFixed(1)), yr = parseFloat(p.y.toFixed(1));
         document.getElementById('bestSplit').textContent =
-          '精通 ' + p.x.toFixed(1) + ' · 双暴 ' + p.y.toFixed(1) + ' 词条（暴击 ' + det.critRolls.toFixed(1) + ' 词条）';
+          '共 ' + (xr + yr).toFixed(1) + ' 词条：精通 ' + xr.toFixed(1) + ' · 双暴 ' + yr.toFixed(1) +
+          '（暴击 ' + det.critRolls.toFixed(1) + '）';
         document.getElementById('cornerLine').textContent =
           '精通 ' + det.em.toFixed(0) + ' · 暴击 ' + det.cr.toFixed(1) + ' / ' + det.cd.toFixed(1);
         return scan;
@@ -202,7 +204,7 @@
           shapes.push({ type: 'line', x0: 0, y0: pinned.y, x1: cap, y1: pinned.y, line: { color: '#4a6fa5', width: 1.2, dash: 'dash' } });
         }
         for (var c = 5; c < cap; c += 5) {
-          shapes.push({ type: 'line', x0: 0, y0: c, x1: c, y1: 0, line: { color: '#b9b1b7', width: 1, dash: 'dot' } });
+          shapes.push({ type: 'line', x0: 0, y0: c, x1: c, y1: 0, line: { color: '#6a6a6a', width: 1, dash: 'dot' } });
         }
         shapes.push({ type: 'line', x0: 0, y0: rs.n, x1: rs.n, y1: 0, line: { color: '#e8710a', width: 1.8, dash: 'dash' } });
 
@@ -232,7 +234,7 @@
         traces.push({   // 等词条线是 shapes，不会进图例；画一段轴外线段补图例项（裁剪后不可见）
           type: 'scatter', mode: 'lines', x: [-2, -1], y: [-2, -1], name: '等词条线',
           hoverinfo: 'skip', showlegend: true,
-          line: { color: '#b9b1b7', width: 1, dash: 'dot' }, legendrank: 3,
+          line: { color: '#6a6a6a', width: 1, dash: 'dot' }, legendrank: 3,
         });
         /* 10 / 20 / 30 / 40 词条各自的最优点（与当前预算无关）：标记 + 行内伤害标在叠加层 */
         optMarks = [10, 20, 30, 40].map(function (t) {
