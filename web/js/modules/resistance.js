@@ -473,7 +473,7 @@
       return {
         plot: m1.plot,
         update: update,
-        preview: updateVerdict,   // 拖动滑条时只更新结论条
+        preview: updateVerdict,   // 拖动滑条时只更新结论框
       };
     },
   };

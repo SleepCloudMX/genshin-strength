@@ -100,7 +100,7 @@
     create: function (host, ctx) {
       var charts = ctx.charts;
 
-      /* 悬浮读数与结论条共用 core 的同一套面板 / 伤害口径 */
+      /* 悬浮读数与结论框共用 core 的同一套面板 / 伤害口径 */
       function atkOf(s, z) { return S.panelAtk(s.baseAtk, s.atkPct, s.fatk, z); }
       function defOf(s, w) { return S.panelDef(s.baseDef, s.defPct, s.fdef, w); }
 

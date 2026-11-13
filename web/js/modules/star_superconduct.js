@@ -74,7 +74,7 @@
     create: function (host, ctx) {
       var charts = ctx.charts;
 
-      /* 悬浮读数与结论条共用 core 的同一套攻击力 / 伤害口径 */
+      /* 悬浮读数与结论框共用 core 的同一套攻击力 / 伤害口径 */
       function atkOf(s, z) { return S.panelAttack(s.baseAtk, s.atkPct, s.fatk, z); }
 
       /** 任意 (x, y) 的伤害（不做域检查；z 可为负 —— 超出词条上限时按比例折算，

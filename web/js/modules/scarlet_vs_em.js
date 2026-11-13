@@ -23,7 +23,7 @@
   M['mizuki/scarlet_vs_em'] = {
     title: '「梦见月瑞希」血红之证 4 件套 vs 精通套',
     tab: '瑞希·套装对比',
-    intro: '悬浮读该点的比值；<b>点击图面移动十字准星</b>，结论条给出该点的比值、谁更优、分界精通。',
+    intro: '悬浮读该点的比值；<b>点击图面移动十字准星</b>，结论框给出该点的比值、谁更优、分界精通。',
     controls: [
       {
         key: '', type: 'note',
@@ -186,7 +186,7 @@
         draw(s, heatOf(s).divider);
       }
 
-      /* 拖动滑条：只重算分界线与结论条，热力图保持（引用不变，react 跳过） */
+      /* 拖动滑条：只重算分界线与结论框，热力图保持（引用不变，react 跳过） */
       var queued = false;
       function preview(s0) {
         if (queued) return;
@@ -222,7 +222,7 @@
       });
       m.wrap.addEventListener('mouseleave', tip.hide);
 
-      /* 点击图面 = 移动十字准星（不动热力图，只重画准星与结论条） */
+      /* 点击图面 = 移动十字准星（不动热力图，只重画准星与结论框） */
       m.wrap.addEventListener('click', function (e) {
         var p = m.pxIn(e);
         if (!p) return;
