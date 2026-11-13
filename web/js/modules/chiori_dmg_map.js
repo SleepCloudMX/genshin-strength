@@ -135,7 +135,6 @@
       var verdict = el('div', 'verdict');
       verdict.innerHTML =
         '<div class="verdict__bar"><span class="verdict__st" id="vState">最优分配</span>' +
-        '<span class="verdict__mul" id="vMul">—</span><span>相对基准面板</span>' +
         '<button class="verdict__reset" id="vReset" type="button" hidden>复位</button></div>' +
         '<div class="verdict__dmg"><div class="verdict__cells" id="vdmgRow">—</div></div>' +
         '<div class="verdict__foot"><div class="verdict__vrows">' +
@@ -199,7 +198,6 @@
         var pz = Math.max(0, rs.n - p.x - p.y);
         var pv = partSplits(rs, p.x, p.y);
         document.getElementById('vState').textContent = pinned ? '所选点' : '最优分配';
-        document.getElementById('vMul').textContent = '×' + (pv[0].exp / scan.base0).toFixed(3);
         document.getElementById('vReset').hidden = !pinned;
         document.getElementById('vdmgRow').innerHTML = cellsHTML(pv, rs.fact);
         document.getElementById('vNote').innerHTML =
