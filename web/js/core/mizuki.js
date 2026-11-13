@@ -380,4 +380,174 @@
     for (var v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(v);
     return out;
   };
+
+  /* ── 词条热图（2026-11-13 口径） ──
+     坐标 = 精通词条 × 双暴词条；热图、最优分配、梯度全部按星扩散直伤。
+     反应星扩散只作悬浮卡读数，不参与热图与最优。
+     默认队：Vayaniṣa / 奥黛塔 / 冰主 / 瑞希；天光的纺琴 R5；瑞希 2 命。
+     口径见 docs/ai-output/0-mechanism/2-瑞希与配队增益.md。 */
+  var H = M.HM = {};
+  H.EM_MULT = 1.1;          // 廓然梦生 10%（含瑞希自身）
+  H.E_COEF = 0.00045;       // E Lv10：每 100 精通 +4.5% 星扩散增伤
+  H.REACT_LEVEL = 1446.85;  // 90 级剧变反应等级基数
+  H.WIND_MULT = 0.75;
+  H.WIND_SHARE = 0.6;       // 风反应：3/5 给风元素角色（瑞希）
+  H.ICE_SHARE = 0.3;        // 冰反应：3/10 给风元素角色（瑞希）
+
+  H.emAt = function (emBase, x) { return H.EM_MULT * (emBase + C.EM_PER_ROLL * x); };
+  H.kAt = function (em, s) { return 1 + C.emTerm(em) + (s.bonus || 0) + H.E_COEF * em; };
+  H.critAt = function (s, y) {
+    var t = M.allocAt(y, s.cr0, s.cd0);
+    return { cr: Math.min(t.cr, 100), cd: t.cd, a: t.a };
+  };
+  H.critZone = function (t) { return 1 + t.cr / 100 * t.cd / 100; };
+
+  /** 直伤单点：星扩散直伤（EM × 1000%）。域外返回 null。 */
+  H.directParts = function (s, x, y) {
+    var cap = s.nMax || M.ROLL_LIMIT;
+    if (x < -1e-9 || y < -1e-9 || x + y > cap + 1e-9) return null;
+    var em = H.emAt(s.emBase, x);
+    var k = H.kAt(em, s);
+    var t = H.critAt(s, y);
+    var res = s.resA === undefined ? 1 : s.resA;
+    var base = 10 * em * (1 + (s.baseUp || 0)) * k * res;
+    return {
+      x: x, y: y, em: em, k: k, cr: t.cr, cd: t.cd, critRolls: t.a,
+      direct: base * H.critZone(t),
+      crit: base * (1 + t.cd / 100),
+      noncrit: base,
+    };
+  };
+  H.direct = function (s, x, y) { var d = H.directParts(s, x, y); return d ? d.direct : null; };
+  H.baseline = function (s) { return H.direct(s, 0, 0); };
+
+  /** 单次反应星扩散：风路径 0.75 × 3/5；冰路径（风涡系数 2/3）× 3/10。 */
+  H.reactParts = function (s, x, y) {
+    var cap = s.nMax || M.ROLL_LIMIT;
+    if (x < -1e-9 || y < -1e-9 || x + y > cap + 1e-9) return null;
+    var em = H.emAt(s.emBase, x);
+    var k = H.kAt(em, s);
+    var t = H.critAt(s, y);
+    var ice = s.rxPath === 'ice';
+    var mult = ice ? (s.rxCoef || 3) : H.WIND_MULT;
+    var share = ice ? H.ICE_SHARE : H.WIND_SHARE;
+    var res = ice ? (s.resIce === undefined ? 1 : s.resIce) : (s.resA === undefined ? 1 : s.resA);
+    var base = H.REACT_LEVEL * mult * share * (1 + (s.baseUp || 0)) * k * res;
+    return { exp: base * H.critZone(t), crit: base * (1 + t.cd / 100), noncrit: base };
+  };
+
+  function lnA(s, x) {
+    var em = H.emAt(s.emBase, x);
+    if (em <= 0) return -Infinity;
+    return Math.log(em * H.kAt(em, s));
+  }
+  function lnC(s, y) { return Math.log(H.critZone(H.critAt(s, y))); }
+  function dlog(fn, u) {
+    var h = 0.05;
+    return u - h < 0 ? (fn(u + h) - fn(u)) / h : (fn(u + h) - fn(u - h)) / (2 * h);
+  }
+
+  /** 对数梯度（每词条），中心差分 h = 0.05；贴边界退化单侧。 */
+  H.grad = function (s, x, y) {
+    var cap = s.nMax || M.ROLL_LIMIT, h = 0.05;
+    function L(xx, yy) {
+      if (xx < 0 || yy < 0 || xx + yy > cap) return null;
+      return lnA(s, xx) + lnC(s, yy);
+    }
+    var f00 = L(x, y);
+    function one(a, b) {
+      if (a !== null && b !== null) return (b - a) / (2 * h);
+      if (b !== null) return (b - f00) / h;
+      if (a !== null) return (f00 - a) / h;
+      return NaN;   // 容量角点：两侧都越界，边际无定义
+    }
+    return { gx: one(L(x - h, y), L(x + h, y)), gy: one(L(x, y - h), L(x, y + h)) };
+  };
+
+  /** 词条等效：1 个精通词条 = d 个双暴词条（对数边际之比）。 */
+  H.equiv = function (s, x, y) {
+    var g = H.grad(s, x, y);
+    if (!isFinite(g.gx) || !isFinite(g.gy) || Math.abs(g.gy) < 1e-12) return { em: NaN };
+    return { em: g.gx / g.gy };
+  };
+  H.equivRange = function (s, G) {
+    G = G || 61;
+    var cap = s.nMax || M.ROLL_LIMIT;
+    var lo = Infinity, hi = -Infinity;
+    for (var i = 0; i <= G; i++) {
+      for (var j = 0; i + j <= G; j++) {
+        var x = cap * i / G, y = cap * j / G;
+        var e = H.equiv(s, x, y).em;
+        if (isFinite(e)) { if (e < lo) lo = e; if (e > hi) hi = e; }
+      }
+    }
+    return { lo: lo, hi: hi };
+  };
+
+  /** 下一词条最优分配：把 1 个新词条拆成 α 精通 + (1 − α) 双暴。 */
+  H.nextAlloc = function (s, x, y) {
+    var la = function (u) { return lnA(s, u); };
+    var lc = function (u) { return lnC(s, u); };
+    function f(a) { return dlog(la, x + a) - dlog(lc, y + 1 - a); }
+    if (f(0) <= 0) return { em: 0, crit: 1 };
+    if (f(1) >= 0) return { em: 1, crit: 0 };
+    var lo = 0, hi = 1;
+    for (var i = 0; i < 60; i++) {
+      var mid = (lo + hi) / 2;
+      if (f(mid) > 0) lo = mid; else hi = mid;
+    }
+    var a = (lo + hi) / 2;
+    return { em: a, crit: 1 - a };
+  };
+
+  /** 给定总词条数 t 的最优精通词条数 x（双暴 = t − x）。 */
+  function solveX(s, t) {
+    var la = function (u) { return lnA(s, u); };
+    var lc = function (u) { return lnC(s, u); };
+    function obj(x) { return la(x) + lc(t - x); }
+    var X = 48, d = Math.max(t / X, 1e-9), bx = 0, bv = -Infinity;
+    for (var j = 0; j <= X; j++) {
+      var x0 = t * j / X, v = obj(x0);
+      if (v > bv) { bv = v; bx = x0; }
+    }
+    var a = Math.max(0, bx - d), b = Math.min(t, bx + d);
+    for (var k = 0; k < 40; k++) {
+      var m1 = a + (b - a) / 3, m2 = b - (b - a) / 3;
+      if (obj(m1) < obj(m2)) a = m1; else b = m2;
+    }
+    return (a + b) / 2;
+  }
+  H.optAt = function (s, t) {
+    var cap = s.nMax || M.ROLL_LIMIT;
+    t = C.clamp(t, 0, cap);
+    var x = t > 1e-9 ? solveX(s, t) : 0;
+    return { x: x, y: t - x };
+  };
+  H.line = function (s, G) {
+    G = G || 121;
+    var cap = s.nMax || M.ROLL_LIMIT;
+    var xs = [], ys = [];
+    for (var i = 0; i <= G; i++) {
+      var p = H.optAt(s, cap * i / G);
+      xs.push(p.x); ys.push(p.y);
+    }
+    return { xs: xs, ys: ys };
+  };
+  H.scan = function (s, G) {
+    G = G || 121;
+    var cap = s.nMax || M.ROLL_LIMIT;
+    var step = cap / (G - 1);
+    var xs = Array.from({ length: G }, function (_, i) { return i * step; });
+    var base0 = H.baseline(s);
+    var zs = xs.map(function (y) {
+      return xs.map(function (x) {
+        if (x + y > cap + 1e-9) return null;
+        var d = H.direct(s, x, y);
+        return d === null ? null : d / base0;
+      });
+    });
+    var bp = H.optAt(s, s.n || cap);
+    var bd = H.direct(s, bp.x, bp.y);
+    return { xs: xs, zs: zs, best: { x: bp.x, y: bp.y, d: bd, v: bd / base0 }, base0: base0 };
+  };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
