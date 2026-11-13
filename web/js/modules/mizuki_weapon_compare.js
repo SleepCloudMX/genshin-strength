@@ -152,7 +152,7 @@
 
   function extraBuilder(cell, api) {
     var wrap = el('div', 'wadd');
-    wrap.appendChild(el('div', 'wadd__hd', '附加对比行'));
+    wrap.appendChild(el('div', 'wadd__hd', '添加武器'));
     var famLab = el('label', null, '武器');
     var famSel = el('select', 'field__input');
     FAMILIES.forEach(function (f) {
@@ -180,15 +180,15 @@
 
     var btns = el('div', 'wadd__btns');
     var add = el('button', 'btn btn--ghost', '添加 / 更新');
-    var clear = el('button', 'btn btn--ghost', '清除附加行');
+    var clear = el('button', 'btn btn--ghost', '清除添加');
     add.type = 'button'; clear.type = 'button';
     var status = el('div', 'wadd__status', '');
 
     function refresh() {
       var x = api.state.extra;
       status.textContent = x && BY_ID[x.family]
-        ? '当前附加：' + BY_ID[x.family].name + ' R' + clampRefine(BY_ID[x.family], x.refine)
-        : '当前未附加';
+        ? '当前添加：' + BY_ID[x.family].name + ' R' + clampRefine(BY_ID[x.family], x.refine)
+        : '当前未添加';
     }
     add.addEventListener('click', function () {
       api.state.extra = { family: famSel.value, refine: Number(refSel.value) };
@@ -216,7 +216,7 @@
     noPlotly: true,
     intro: '各武器在自身最优词条分配下的星扩散直伤指数，以寝正月初晴 R1 = 100；' +
       '公共面板同伤害热图（不含武器），词条预算可调。默认 17 行；需要 R2/3/4 时，' +
-      '在「附加对比行」里选武器与精炼，把额外一行加到表里。',
+      '在「添加武器」里选武器与精炼，把额外一行加到表里。',
     controls: [
       {
         key: '', type: 'note',

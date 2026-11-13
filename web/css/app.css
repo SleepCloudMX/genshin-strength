@@ -704,7 +704,7 @@ input[type="range"] {
 .wbar .fill { height: 8px; border-radius: 4px; background: var(--accent); }
 .wbar b { font-variant-numeric: tabular-nums; font-size: var(--fs-sm); min-width: 44px; }
 
-/* 武器对比：附加对比行 */
+/* 武器对比：添加武器 */
 .wadd { display: grid; grid-template-columns: 1fr 90px; gap: 8px; }
 .wadd__hd { grid-column: 1 / -1; font-weight: 600; font-size: var(--fs-sm); margin-bottom: 2px; }
 .wadd label { display: flex; flex-direction: column; gap: 4px; font-size: var(--fs-xs); color: var(--text-dim); }
